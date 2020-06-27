@@ -1,0 +1,9 @@
+/**/bin
+/**/obj
+/**/.vs
+/**/.vscode
+/**/.idea
+/**/*.suo
+/**/*.scc
+/**/*.csproj.user
+/**/*.DotSettings.user

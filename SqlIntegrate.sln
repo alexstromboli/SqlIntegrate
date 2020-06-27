@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TryPsql", "TryPsql\TryPsql.csproj", "{A08B5CA7-903A-4AC7-8351-ED385511C5C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParseProcs", "ParseProcs\ParseProcs.csproj", "{E76D6612-EA79-4D83-A64C-FA831ECEAF08}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A08B5CA7-903A-4AC7-8351-ED385511C5C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A08B5CA7-903A-4AC7-8351-ED385511C5C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A08B5CA7-903A-4AC7-8351-ED385511C5C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A08B5CA7-903A-4AC7-8351-ED385511C5C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E76D6612-EA79-4D83-A64C-FA831ECEAF08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E76D6612-EA79-4D83-A64C-FA831ECEAF08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E76D6612-EA79-4D83-A64C-FA831ECEAF08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E76D6612-EA79-4D83-A64C-FA831ECEAF08}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
