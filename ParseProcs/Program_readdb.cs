@@ -62,7 +62,7 @@ ORDER BY table_schema, table_name, ordinal_position;
 								continue;
 							}
 
-							Column c = new Column (ColumnName, PSqlType.Map[Type]);
+							NamedTyped c = new NamedTyped (ColumnName, PSqlType.Map[Type]);
 							t.AddColumn (c);
 						}
 					}

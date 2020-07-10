@@ -4,22 +4,22 @@ namespace ParseProcs
 {
 	public class Table : SchemaEntity
 	{
-		protected List<Column> _Columns;
-		public IReadOnlyList<Column> Columns => _Columns;
+		protected List<NamedTyped> _Columns;
+		public IReadOnlyList<NamedTyped> Columns => _Columns;
 
-		protected Dictionary<string, Column> _ColumnsDict;
-		public IReadOnlyDictionary<string, Column> ColumnsDict => _ColumnsDict;
+		protected Dictionary<string, NamedTyped> _ColumnsDict;
+		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict => _ColumnsDict;
 
 		public Table (string Schema, string Name)
 			: base (Schema, Name)
 		{
-			_Columns = new List<Column> ();
-			_ColumnsDict = new Dictionary<string, Column> ();
+			_Columns = new List<NamedTyped> ();
+			_ColumnsDict = new Dictionary<string, NamedTyped> ();
 		}
 
-		public Column AddColumn (Column Column)
+		public NamedTyped AddColumn (NamedTyped Column)
 		{
-			if (_ColumnsDict.TryGetValue (Column.Name, out Column Existing))
+			if (_ColumnsDict.TryGetValue (Column.Name, out NamedTyped Existing))
 			{
 				return Existing;
 			}

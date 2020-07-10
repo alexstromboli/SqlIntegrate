@@ -1,6 +1,6 @@
 namespace ParseProcs
 {
-	public abstract class NamedTyped
+	public class NamedTyped
 	{
 		public string Name { get; protected set; }
 		public PSqlType Type { get; protected set; }
