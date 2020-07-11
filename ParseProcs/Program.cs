@@ -1,23 +1,13 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
+
 using Sprache;
 
 namespace ParseProcs
 {
 	public static class SpracheUtils
 	{
-		/*
-		public static void AddTokens<T> (this Parser<T> P, params string[] Words)
-		{
-			foreach (string Word in Words)
-			{
-				P = P.Then ();
-			}
-		}
-		*/
-
 		public static Parser<string> AnyToken (params string[] Options)
 		{
 			Parser<string> Result = null;
@@ -43,6 +33,16 @@ namespace ParseProcs
 
 			return Result;
 		}
+
+		public static Parser<Func<RequestContext, PSqlType>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
+		{
+			return Parser.Select<T, Func<RequestContext, PSqlType>> (t => rc => Type);
+		}
+
+		public static Parser<Func<RequestContext, PSqlType>> ProduceTypeThrow<T> (this Parser<T> Parser)
+		{
+			return Parser.Select<T, Func<RequestContext, PSqlType>> (t => rc => throw new NotImplementedException ());
+		}
 	}
 
 	public class Ref<T>
@@ -55,6 +55,10 @@ namespace ParseProcs
 		{
 			Get = Parse.Ref (() => Parser);
 		}
+	}
+
+	public class RequestContext
+	{
 	}
 
 	/*
@@ -214,6 +218,20 @@ namespace ParseProcs
 						.Contained (Parse.Char ('('), Parse.Char (')'))
 					select n
 				;
+
+			//
+			var PAtomic =
+					PInteger.ProduceType (PSqlType.Int)
+						.Or (PNull.ProduceType (PSqlType.Null))
+						.Or (PFloat.ProduceType (PSqlType.Decimal))
+						.Or (PBooleanLiteral.ProduceType (PSqlType.Bool))
+						.Or (PSingleQuotedString.ProduceType (PSqlType.VarChar))
+						.Or (PQualifiedIdentifier.ProduceTypeThrow ())
+						.Or (PParents.ProduceTypeThrow ())
+						.Or (PFunctionCall.ProduceTypeThrow ())
+				;
+
+			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
 
 			var s01 = PDoubleQuotedString.Parse ("\"\"");
 			var s02 = PDoubleQuotedString.Parse ("\"test\"");

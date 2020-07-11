@@ -37,6 +37,7 @@ namespace ParseProcs
 			return Type;
 		}
 
+		public static readonly PSqlType Null = Add (typeof (object), "unknown");
 		public static readonly PSqlType RefCursor = Add (typeof (object), "refcursor");
 		public static readonly PSqlType Bool = Add (typeof (bool), "bool", "boolean");
 		public static readonly PSqlType Binary = Add (typeof (byte[]), "bytea");
@@ -49,7 +50,7 @@ namespace ParseProcs
 		public static readonly PSqlType Decimal = Add (typeof (decimal), "decimal", "numeric");
 		public static readonly PSqlType Real = Add (typeof (float), "real");
 		public static readonly PSqlType Float = Add (typeof (double), "float", "double precision");
-		
+
 		public static readonly PSqlType Json = Add (typeof (string), "json");
 		public static readonly PSqlType Jsonb = Add (typeof (string), "jsonb");
 
