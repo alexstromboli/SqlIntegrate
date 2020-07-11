@@ -131,7 +131,7 @@ namespace ParseProcs
 					select new string (s.ToArray ())
 				;
 
-			var PNull = Parse.IgnoreCase ("null");
+			var PNull = Parse.IgnoreCase ("null").Text ();
 			var PInteger = Parse.Number;
 			var PFloat =
 					from i in Parse.Number.Optional ()
@@ -166,19 +166,31 @@ namespace ParseProcs
 					select res
 				;
 
-			Ref<string> ExpressionRef = new Ref<string> ();
+			Ref<string> PExpressionRef = new Ref<string> ();
 
-			var PParents = ExpressionRef.Get.Contained (Parse.Char ('('), Parse.Char (')'));
-			var PBrackets = ExpressionRef.Get.Contained (Parse.Char ('['), Parse.Char (']'));
+			var PParents = PExpressionRef.Get.Contained (Parse.Char ('('), Parse.Char (')'));
+			var PBrackets = PExpressionRef.Get.Contained (Parse.Char ('['), Parse.Char (']'));
 
-			var PArithmeticalOperators = SpracheUtils.AnyToken (
-				"+", "-", "/", "*"
+			var PBinaryAdditionOperators = SpracheUtils.AnyToken ("+", "-");
+			var PBinaryMultiplicationOperators = SpracheUtils.AnyToken ("/", "*", "%");
+			var PBinaryExponentialOperators = SpracheUtils.AnyToken ("^");
+
+			var PBinaryComparisonOperators = SpracheUtils.AnyToken (
+				">", ">=", "<", "<=", "=", "<>", "!="
 				);
 
-			var PBooleanOperators = SpracheUtils.AnyToken (
-				">", ">=", "<", "<=", "=", "<>", "!=",
-				"is", "is not"
+			var PBinaryRangeOperators = SpracheUtils.AnyToken (
+				"like"
 			);
+
+			var PBinaryMatchingOperators = SpracheUtils.AnyToken (
+				"is"
+			);
+			var PNullMatchingOperators = SpracheUtils.AnyToken ("isnull", "not null");
+
+			var PNegation = SpracheUtils.AnyToken ("not");
+			var PBinaryConjunction = SpracheUtils.AnyToken ("and");
+			var PBinaryDisjunction = SpracheUtils.AnyToken ("or");
 
 			var PType =
 					from t in SpracheUtils.AnyToken (PSqlType.Map.Keys.ToArray ())
@@ -193,6 +205,14 @@ namespace ParseProcs
 					from op in Parse.String ("::")
 					from t in PType
 					select t
+				;
+
+			var PFunctionCall =
+					from n in PQualifiedIdentifier
+					from arg in PExpressionRef.Get
+						.DelimitedBy (Parse.Char (','))
+						.Contained (Parse.Char ('('), Parse.Char (')'))
+					select n
 				;
 
 			var s01 = PDoubleQuotedString.Parse ("\"\"");
