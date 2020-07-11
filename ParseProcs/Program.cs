@@ -6,6 +6,25 @@ using Sprache;
 
 namespace ParseProcs
 {
+	public enum PsqlOperatorPriority
+	{
+		None,
+		Or,
+		And,
+		Not,
+		Is,
+		Comparison,
+		Like,
+		General,
+		AddSub,
+		MulDiv,
+		Exp,
+		Unary,
+		Array,
+		Typecast,
+		NameSeparator
+	}
+
 	public static class SpracheUtils
 	{
 		public static Parser<string> AnyToken (params string[] Options)
@@ -59,6 +78,32 @@ namespace ParseProcs
 
 	public class RequestContext
 	{
+	}
+
+	public class OperatorProcessor
+	{
+		public int Precedence = 0;
+		public bool IsBinary = false;
+
+		public Func<
+			Func<RequestContext, PSqlType>,		// left
+			Func<RequestContext, PSqlType>,		// right (null for unary)
+			Func<RequestContext, PSqlType>		// result
+		> Processor = null;
+
+		public OperatorProcessor (PsqlOperatorPriority Precedence,
+			bool IsBinary,
+			Func<
+				Func<RequestContext, PSqlType>, // left
+				Func<RequestContext, PSqlType>, // right (null for unary)
+				Func<RequestContext, PSqlType> // result
+			> Processor
+		)
+		{
+			this.Precedence = (int)Precedence;
+			this.IsBinary = IsBinary;
+			this.Processor = Processor;
+		}
 	}
 
 	/*
@@ -187,6 +232,10 @@ namespace ParseProcs
 				"like"
 			);
 
+			var PBinaryGeneralTextOperators = SpracheUtils.AnyToken (
+				"||"
+			);
+
 			var PBinaryMatchingOperators = SpracheUtils.AnyToken (
 				"is"
 			);
@@ -229,6 +278,39 @@ namespace ParseProcs
 						.Or (PQualifiedIdentifier.ProduceTypeThrow ())
 						.Or (PParents.ProduceTypeThrow ())
 						.Or (PFunctionCall.ProduceTypeThrow ())
+				;
+
+			var PAtomicPrefixGroupOptional =
+					PSignPrefix
+						.Or (PNegation)
+						.Many ()
+						.Optional ()
+				;
+
+			var PAtomicPostfixOptional =
+				PBrackets.Select (b => new OperatorProcessor (PsqlOperatorPriority.None, false,
+						(l, r) => throw new NotImplementedException ()))
+					.Or (PSimpleTypeCast.Select (tc => new OperatorProcessor (PsqlOperatorPriority.Typecast, false,
+						(l, r) => rc => PSqlType.Map[tc])))
+					.Or (PNullMatchingOperators.Select (m => new OperatorProcessor (PsqlOperatorPriority.Is, false,
+						(l, r) => rc => PSqlType.Bool)))
+					.Optional ()
+				;
+
+			var PPolynom =
+					from pref1 in PAtomicPrefixGroupOptional
+					from at1 in PAtomic
+					from post1 in PAtomicPostfixOptional
+					from rest in
+					(
+						from op in Parse.Char ('+')
+
+						from prefN in PAtomicPrefixGroupOptional
+						from atN in PAtomic
+						from postN in PAtomicPostfixOptional
+						select 0
+					).Many ()
+					select 0
 				;
 
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
