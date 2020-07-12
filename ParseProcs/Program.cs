@@ -106,6 +106,19 @@ namespace ParseProcs
 		}
 	}
 
+	public class SPolynom
+	{
+		public class Operand
+		{
+			// ignore prefixes as irrelevant
+			public Func<RequestContext, PSqlType> Atomic;
+			public IOption<IEnumerable<OperatorProcessor>> Postfixes;
+		}
+
+		public List<Operand> Operands;
+		public List<OperatorProcessor> Operators;
+	}
+
 	/*
 	public abstract class TableExpression
 	{
@@ -294,7 +307,33 @@ namespace ParseProcs
 						(l, r) => rc => PSqlType.Map[tc])))
 					.Or (PNullMatchingOperators.Select (m => new OperatorProcessor (PsqlOperatorPriority.Is, false,
 						(l, r) => rc => PSqlType.Bool)))
+					.Many ()
 					.Optional ()
+				;
+
+			var PBinaryOperators =
+					PBinaryMultiplicationOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.MulDiv,
+							true,
+							(l, r) => throw new NotImplementedException ()))
+						.Or (PBinaryAdditionOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.AddSub,
+							true,
+							(l, r) => throw new NotImplementedException ())))
+						.Or (PBinaryExponentialOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.Exp,
+							true,
+							(l, r) => throw new NotImplementedException ())))
+						.Or (PBinaryComparisonOperators.Select (b => new OperatorProcessor (
+							PsqlOperatorPriority.Comparison, true,
+							(l, r) => rc => PSqlType.Bool)))
+						.Or (PBinaryRangeOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.Like, true,
+							(l, r) => rc => PSqlType.Bool)))
+						.Or (PBinaryMatchingOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.Is, true,
+							(l, r) => rc => PSqlType.Bool)))
+						.Or (PBinaryConjunction.Select (b => new OperatorProcessor (PsqlOperatorPriority.And, true,
+							(l, r) => rc => PSqlType.Bool)))
+						.Or (PBinaryDisjunction.Select (b => new OperatorProcessor (PsqlOperatorPriority.Or, true,
+							(l, r) => rc => PSqlType.Bool)))
+						.Or (PBinaryGeneralTextOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.General, true,
+							(l, r) => rc => PSqlType.VarChar)))
 				;
 
 			var PPolynom =
@@ -303,14 +342,20 @@ namespace ParseProcs
 					from post1 in PAtomicPostfixOptional
 					from rest in
 					(
-						from op in Parse.Char ('+')
+						from op in PBinaryOperators
 
 						from prefN in PAtomicPrefixGroupOptional
 						from atN in PAtomic
 						from postN in PAtomicPostfixOptional
-						select 0
+						select new { op, atN, postN }
 					).Many ()
-					select 0
+					select new SPolynom
+					{
+						Operators = rest.Select (e => e.op).ToList (),
+						Operands = new[] { new SPolynom.Operand { Atomic = at1, Postfixes = post1 } }
+							.Concat (rest.Select (e => new SPolynom.Operand { Atomic = e.atN, Postfixes = e.postN }))
+							.ToList ()
+					}
 				;
 
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
