@@ -5,7 +5,7 @@ using Npgsql;
 using NpgsqlTypes;
 
 /*
-https://stackoverflow.com/questions/49547761/create-procedure-to-execute-query-in-postgresql/56147768#56147768 
+https://stackoverflow.com/questions/49547761/create-procedure-to-execute-query-in-postgresql/56147768#56147768
 */
 
 namespace TryPsql
@@ -20,7 +20,7 @@ namespace TryPsql
 
 				using (var cmd = conn.CreateCommand ())
 				{
-					cmd.CommandText = "SELECT * FROM ext.Persons";
+					cmd.CommandText = "SELECT *, now()::time as span FROM ext.Persons";
 
 					using (var rdr = cmd.ExecuteReader ())
 					{
@@ -31,6 +31,7 @@ namespace TryPsql
 							string firstname = rdr["firstname"] as string;
 							DateTime? dob = rdr["dob"] as DateTime?;
 							long? tab_num = rdr["tab_num"] as long?;
+							object span = rdr["span"];
 						}
 					}
 				}

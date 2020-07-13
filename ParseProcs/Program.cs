@@ -301,14 +301,14 @@ namespace ParseProcs
 				;
 
 			var PAtomicPostfixOptional =
-				PBrackets.Select (b => new OperatorProcessor (PsqlOperatorPriority.None, false,
-						(l, r) => throw new NotImplementedException ()))
-					.Or (PSimpleTypeCast.Select (tc => new OperatorProcessor (PsqlOperatorPriority.Typecast, false,
-						(l, r) => rc => PSqlType.Map[tc])))
-					.Or (PNullMatchingOperators.Select (m => new OperatorProcessor (PsqlOperatorPriority.Is, false,
-						(l, r) => rc => PSqlType.Bool)))
-					.Many ()
-					.Optional ()
+					PBrackets.Select (b => new OperatorProcessor (PsqlOperatorPriority.None, false,
+							(l, r) => throw new NotImplementedException ()))
+						.Or (PSimpleTypeCast.Select (tc => new OperatorProcessor (PsqlOperatorPriority.Typecast, false,
+							(l, r) => rc => PSqlType.Map[tc])))
+						.Or (PNullMatchingOperators.Select (m => new OperatorProcessor (PsqlOperatorPriority.Is, false,
+							(l, r) => rc => PSqlType.Bool)))
+						.Many ()
+						.Optional ()
 				;
 
 			var PBinaryOperators =
