@@ -25,6 +25,49 @@ namespace ParseProcs
 		NameSeparator
 	}
 
+	public static class PSqlUtils
+	{
+		public static PSqlType GetBinaryOperationResultType (PSqlType Left, PSqlType Right, string Operator)
+		{
+			if (Left.IsNumber && Right.IsNumber)
+			{
+				return Left.NumericLevel > Right.NumericLevel
+					? Left
+					: Right;
+			}
+
+			if (Left.IsNumber && Right.IsText
+			    || Left.IsText && Right.IsNumber)
+			{
+				return Operator == "||"
+					? PSqlType.Text
+					: PSqlType.Int;
+			}
+
+			if (Left.IsDate && Right.IsTimeSpan)
+			{
+				return Left;
+			}
+
+			if (Left.IsTimeSpan && Right.IsDate)
+			{
+				return Right;
+			}
+
+			if (Left.IsTimeSpan && Right.IsTimeSpan)
+			{
+				return PSqlType.Interval;
+			}
+
+			if (Left.IsDate && Right.IsDate && Operator == "-")
+			{
+				return PSqlType.Interval;
+			}
+
+			return PSqlType.Null;
+		}
+	}
+
 	public static class SpracheUtils
 	{
 		public static Parser<string> AnyToken (params string[] Options)
@@ -103,6 +146,20 @@ namespace ParseProcs
 			this.Precedence = (int)Precedence;
 			this.IsBinary = IsBinary;
 			this.Processor = Processor;
+		}
+
+		public static Func<
+			Func<RequestContext, PSqlType>, // left
+			Func<RequestContext, PSqlType>, // right (null for unary)
+			Func<RequestContext, PSqlType> // result
+		> GetForBinaryOperator (string Operator)
+		{
+			return (l, r) => rc =>
+			{
+				PSqlType Left = l (rc);
+				PSqlType Right = r (rc);
+				return PSqlUtils.GetBinaryOperationResultType (Left, Right, Operator);
+			};
 		}
 	}
 
@@ -216,7 +273,7 @@ namespace ParseProcs
 
 			var PIdentifierEx = PSimpleIdentifier.Or (PDoubleQuotedString);
 
-			var PQualifiedIdentifier = Parse.DelimitedBy (PIdentifierEx, Parse.String ("."), 1, null)
+			var PQualifiedIdentifier = PIdentifierEx.DelimitedBy (Parse.String ("."), 1, null)
 					.Select (seq => seq.ToArray ())
 				;
 
@@ -287,7 +344,7 @@ namespace ParseProcs
 						.Or (PNull.ProduceType (PSqlType.Null))
 						.Or (PFloat.ProduceType (PSqlType.Decimal))
 						.Or (PBooleanLiteral.ProduceType (PSqlType.Bool))
-						.Or (PSingleQuotedString.ProduceType (PSqlType.VarChar))
+						.Or (PSingleQuotedString.ProduceType (PSqlType.Text))
 						.Or (PQualifiedIdentifier.ProduceTypeThrow ())
 						.Or (PParents.ProduceTypeThrow ())
 						.Or (PFunctionCall.ProduceTypeThrow ())
@@ -314,13 +371,13 @@ namespace ParseProcs
 			var PBinaryOperators =
 					PBinaryMultiplicationOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.MulDiv,
 							true,
-							(l, r) => throw new NotImplementedException ()))
+							OperatorProcessor.GetForBinaryOperator (b)))
 						.Or (PBinaryAdditionOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.AddSub,
 							true,
-							(l, r) => throw new NotImplementedException ())))
+							OperatorProcessor.GetForBinaryOperator (b))))
 						.Or (PBinaryExponentialOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.Exp,
 							true,
-							(l, r) => throw new NotImplementedException ())))
+							OperatorProcessor.GetForBinaryOperator (b))))
 						.Or (PBinaryComparisonOperators.Select (b => new OperatorProcessor (
 							PsqlOperatorPriority.Comparison, true,
 							(l, r) => rc => PSqlType.Bool)))
@@ -333,7 +390,7 @@ namespace ParseProcs
 						.Or (PBinaryDisjunction.Select (b => new OperatorProcessor (PsqlOperatorPriority.Or, true,
 							(l, r) => rc => PSqlType.Bool)))
 						.Or (PBinaryGeneralTextOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.General, true,
-							(l, r) => rc => PSqlType.VarChar)))
+							(l, r) => rc => PSqlType.Text)))
 				;
 
 			var PPolynom =
