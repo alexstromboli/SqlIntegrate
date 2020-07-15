@@ -174,6 +174,62 @@ namespace ParseProcs
 
 		public List<Operand> Operands;
 		public List<OperatorProcessor> Operators;
+
+		protected PSqlType ResultType = null;
+
+		public PSqlType GetResultType (RequestContext Context)
+		{
+			if (ResultType != null)
+			{
+				return ResultType;
+			}
+
+			Stack<Func<RequestContext, PSqlType>> OperandsStack = new Stack<Func<RequestContext, PSqlType>> ();
+			Stack<OperatorProcessor> OperatorsStack = new Stack<OperatorProcessor> ();
+			Action<int> Perform = n =>
+			{
+				while (OperatorsStack.Count > 0 && OperatorsStack.Peek ().Precedence >= n)
+				{
+					OperatorProcessor op = OperatorsStack.Pop ();
+					var r = OperandsStack.Pop ();
+					var l = OperandsStack.Pop ();
+					var res = op.Processor (l, r);
+					OperandsStack.Push (res);
+				}
+			};
+
+			Action<Operand> Process = arg =>
+			{
+				OperandsStack.Push (arg.Atomic);
+
+				if (arg.Postfixes.IsDefined)
+				{
+					foreach (var Postfix in arg.Postfixes.Get ())
+					{
+						Perform (Postfix.Precedence);
+						var l = OperandsStack.Pop ();
+						var res = Postfix.Processor (l, null);
+						OperandsStack.Push (res);
+					}
+				}
+			};
+
+			Process (Operands[0]);
+			for (int i = 0; i < Operators.Count; ++i)
+			{
+				var op = Operators[i];
+				Perform (op.Precedence);
+				OperatorsStack.Push (op);
+
+				var v = Operands[i + 1];
+				Process (v);
+			}
+
+			Perform (0);
+			var ResultFunc = OperandsStack.Pop ();
+			ResultType = ResultFunc (Context);
+			return ResultType;
+		}
 	}
 
 	/*
@@ -252,7 +308,7 @@ namespace ParseProcs
 
 			var PNull = Parse.IgnoreCase ("null").Text ();
 			var PInteger = Parse.Number;
-			var PFloat =
+			var PDecimal =
 					from i in Parse.Number.Optional ()
 					from p in Parse.Char ('.')
 					from f in Parse.Number.Optional ()
@@ -285,7 +341,7 @@ namespace ParseProcs
 					select res
 				;
 
-			Ref<string> PExpressionRef = new Ref<string> ();
+			Ref<SPolynom> PExpressionRef = new Ref<SPolynom> ();
 
 			var PParents = PExpressionRef.Get.Contained (Parse.Char ('('), Parse.Char (')'));
 			var PBrackets = PExpressionRef.Get.Contained (Parse.Char ('['), Parse.Char (']'));
@@ -295,7 +351,7 @@ namespace ParseProcs
 			var PBinaryExponentialOperators = SpracheUtils.AnyToken ("^");
 
 			var PBinaryComparisonOperators = SpracheUtils.AnyToken (
-				">", ">=", "<", "<=", "=", "<>", "!="
+				">=", ">", "<=", "<>", "<", "=", "!="
 				);
 
 			var PBinaryRangeOperators = SpracheUtils.AnyToken (
@@ -316,7 +372,7 @@ namespace ParseProcs
 			var PBinaryDisjunction = SpracheUtils.AnyToken ("or");
 
 			var PType =
-					from t in SpracheUtils.AnyToken (PSqlType.Map.Keys.ToArray ())
+					from t in SpracheUtils.AnyToken (PSqlType.Map.Keys.OrderByDescending (k => k.Length).ToArray ())
 					from p in Parse.Number
 						.DelimitedBy (Parse.Char (','))
 						.Contained (Parse.Char ('('), Parse.Char (')'))
@@ -340,14 +396,16 @@ namespace ParseProcs
 
 			//
 			var PAtomic =
-					PInteger.ProduceType (PSqlType.Int)
-						.Or (PNull.ProduceType (PSqlType.Null))
-						.Or (PFloat.ProduceType (PSqlType.Decimal))
+					PNull.ProduceType (PSqlType.Null)
+						.Or (PDecimal.ProduceType (PSqlType.Decimal))
+						// PInteger must be or-ed after PDecimal
+						.Or (PInteger.ProduceType (PSqlType.Int))
 						.Or (PBooleanLiteral.ProduceType (PSqlType.Bool))
 						.Or (PSingleQuotedString.ProduceType (PSqlType.Text))
-						.Or (PQualifiedIdentifier.ProduceTypeThrow ())
-						.Or (PParents.ProduceTypeThrow ())
+						.Or (PParents.Select<SPolynom, Func<RequestContext, PSqlType>> (p => rc => p.GetResultType (rc)))
 						.Or (PFunctionCall.ProduceTypeThrow ())
+						// PQualifiedIdentifier must be or-ed after PFunctionCall
+						.Or (PQualifiedIdentifier.ProduceTypeThrow ())
 				;
 
 			var PAtomicPrefixGroupOptional =
@@ -414,6 +472,31 @@ namespace ParseProcs
 							.ToList ()
 					}
 				;
+
+			PExpressionRef.Parser = PPolynom;
+
+			//
+			RequestContext rc = null;
+			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRef.Get.End ().Parse (s).GetResultType (rc) == t);
+			TestExpr ("5", PSqlType.Int);
+			TestExpr ("null::real", PSqlType.Real);
+			TestExpr ("2.5", PSqlType.Decimal);
+			TestExpr ("5::bigint", PSqlType.BigInt);
+			TestExpr ("5::bigint+7", PSqlType.BigInt);
+			TestExpr ("5::smallint+f(a,7,y.\"i\".\"ghost 01\",'test')::money+1.2*a.b.c::real", PSqlType.Money);
+			TestExpr ("5+4", PSqlType.Int);
+			TestExpr ("5+4*8", PSqlType.Int);
+			TestExpr ("(5+4)*8", PSqlType.Int);
+			TestExpr ("150-(5+4)::smallint*8", PSqlType.Int);
+			TestExpr ("150-(5+4)::bigint*8", PSqlType.BigInt);
+			TestExpr ("(150-(5+4)::smallint*8)||'tail'||'_more'", PSqlType.Text);
+			TestExpr ("''::interval+''::date", PSqlType.Date);
+			TestExpr ("'irrelevant'::date+'nonsense'::interval", PSqlType.Date);
+			TestExpr ("'irrelevant'::date+'nonsense'::time", PSqlType.Date);
+			TestExpr ("'irrelevant'::date-'nonsense'::date", PSqlType.Interval);
+			TestExpr ("5>6", PSqlType.Bool);
+			TestExpr ("5<=6", PSqlType.Bool);
+			//TestExpr ("'irrelevant'::date-'nonsense'::date", PSqlType.Text);
 
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
 
