@@ -78,7 +78,7 @@ namespace ParseProcs
 				Parser<string> Line = null;
 				foreach (string Token in Tokens)
 				{
-					var PT = Parse.IgnoreCase (Token).Text ();
+					var PT = Parse.IgnoreCase (Token).Text ().Token ();
 					Line = Line == null
 							? PT
 							: (from f in Line
@@ -329,7 +329,9 @@ namespace ParseProcs
 
 			var PIdentifierEx = PSimpleIdentifier.Or (PDoubleQuotedString);
 
-			var PQualifiedIdentifier = PIdentifierEx.DelimitedBy (Parse.String ("."), 1, null)
+			var PQualifiedIdentifier = PIdentifierEx
+					.Token ()
+					.DelimitedBy (Parse.String (".").Token (), 1, null)
 					.Select (seq => seq.ToArray ())
 				;
 
@@ -343,8 +345,8 @@ namespace ParseProcs
 
 			Ref<SPolynom> PExpressionRef = new Ref<SPolynom> ();
 
-			var PParents = PExpressionRef.Get.Contained (Parse.Char ('('), Parse.Char (')'));
-			var PBrackets = PExpressionRef.Get.Contained (Parse.Char ('['), Parse.Char (']'));
+			var PParents = PExpressionRef.Get.Contained (Parse.Char ('(').Token (), Parse.Char (')').Token ());
+			var PBrackets = PExpressionRef.Get.Contained (Parse.Char ('[').Token (), Parse.Char (']').Token ());
 
 			var PBinaryAdditionOperators = SpracheUtils.AnyToken ("+", "-");
 			var PBinaryMultiplicationOperators = SpracheUtils.AnyToken ("/", "*", "%");
@@ -373,24 +375,25 @@ namespace ParseProcs
 
 			var PType =
 					from t in SpracheUtils.AnyToken (PSqlType.Map.Keys.OrderByDescending (k => k.Length).ToArray ())
-					from p in Parse.Number
-						.DelimitedBy (Parse.Char (','))
-						.Contained (Parse.Char ('('), Parse.Char (')'))
+					from p in Parse.Number.Token ()
+						.DelimitedBy (Parse.Char (',').Token ())
+						.Contained (Parse.Char ('(').Token (), Parse.Char (')').Token ())
 						.Optional ()
 					select t
 				;
 
 			var PSimpleTypeCast =
-					from op in Parse.String ("::")
+					from op in Parse.String ("::").Token ()
 					from t in PType
 					select t
 				;
 
 			var PFunctionCall =
-					from n in PQualifiedIdentifier
+					from n in PQualifiedIdentifier.Token ()
 					from arg in PExpressionRef.Get
-						.DelimitedBy (Parse.Char (','))
-						.Contained (Parse.Char ('('), Parse.Char (')'))
+						.DelimitedBy (Parse.Char (',').Token ())
+						.Contained (Parse.Char ('(').Token (), Parse.Char (')').Token ())
+						.Token ()
 					select n
 				;
 
@@ -403,14 +406,15 @@ namespace ParseProcs
 						.Or (PBooleanLiteral.ProduceType (PSqlType.Bool))
 						.Or (PSingleQuotedString.ProduceType (PSqlType.Text))
 						.Or (PParents.Select<SPolynom, Func<RequestContext, PSqlType>> (p => rc => p.GetResultType (rc)))
-						.Or (PFunctionCall.ProduceTypeThrow ())
+						.Or (PFunctionCall.Token ().ProduceTypeThrow ())
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
-						.Or (PQualifiedIdentifier.ProduceTypeThrow ())
+						.Or (PQualifiedIdentifier.Token ().ProduceTypeThrow ())
+						.Token ()
 				;
 
 			var PAtomicPrefixGroupOptional =
-					PSignPrefix
-						.Or (PNegation)
+					PSignPrefix.Token ()
+						.Or (PNegation.Token ())
 						.Many ()
 						.Optional ()
 				;
@@ -449,6 +453,7 @@ namespace ParseProcs
 							(l, r) => rc => PSqlType.Bool)))
 						.Or (PBinaryGeneralTextOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.General, true,
 							(l, r) => rc => PSqlType.Text)))
+						.Token ()
 				;
 
 			var PPolynom =
@@ -480,10 +485,16 @@ namespace ParseProcs
 			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRef.Get.End ().Parse (s).GetResultType (rc) == t);
 			TestExpr ("5", PSqlType.Int);
 			TestExpr ("null::real", PSqlType.Real);
+			TestExpr (" null :: real ", PSqlType.Real);
 			TestExpr ("2.5", PSqlType.Decimal);
 			TestExpr ("5::bigint", PSqlType.BigInt);
 			TestExpr ("5::bigint+7", PSqlType.BigInt);
+			TestExpr (" 5 :: bigint + 7 ", PSqlType.BigInt);
 			TestExpr ("5::smallint+f(a,7,y.\"i\".\"ghost 01\",'test')::money+1.2*a.b.c::real", PSqlType.Money);
+			TestExpr (" 5 :: smallint + f(a,7,y.\"i\".\"ghost 01\",'test')::money + 1.2 * a . b . c :: real  ", PSqlType.Money);
+			TestExpr (" 5 :: smallint + f(a, 7,y.\"i\".\"ghost 01\",'test')::money + 1.2 * a . b . c :: real  ", PSqlType.Money);
+			TestExpr (" 5 :: smallint + f(a, 7 , y . \"i\".\"ghost 01\",'test')::money + 1.2 * a . b . c :: real  ", PSqlType.Money);
+			TestExpr (" 5 :: smallint + f ( a , 7 , y . \"i\" . \"ghost 01\" , 'test' ) :: money + 1.2 * a . b . c :: real  ", PSqlType.Money);
 			TestExpr ("5+4", PSqlType.Int);
 			TestExpr ("5+4*8", PSqlType.Int);
 			TestExpr ("(5+4)*8", PSqlType.Int);
