@@ -25,6 +25,16 @@ namespace ParseProcs
 		NameSeparator
 	}
 
+	public class SqlCommentParser : CommentParser
+	{
+		protected SqlCommentParser ()
+		{
+			this.Single = "--";
+		}
+
+		public static readonly SqlCommentParser Instance = new SqlCommentParser ();
+	}
+
 	public static class PSqlUtils
 	{
 		public static PSqlType GetBinaryOperationResultType (PSqlType Left, PSqlType Right, string Operator)
@@ -70,6 +80,24 @@ namespace ParseProcs
 
 	public static class SpracheUtils
 	{
+		public static Parser<T> SqlToken<T> (this Parser<T> Inner)
+		{
+			return Inner
+					.Commented (SqlCommentParser.Instance)
+					.Select (p => p.Value)
+				;
+		}
+
+		public static Parser<string> SqlToken (string Line)
+		{
+			return Parse
+					.IgnoreCase (Line)
+					.Text ()
+					.Select (l => l.ToLower ())
+					.SqlToken ()
+				;
+		}
+
 		public static Parser<string> AnyToken (params string[] Options)
 		{
 			Parser<string> Result = null;
@@ -78,7 +106,7 @@ namespace ParseProcs
 				Parser<string> Line = null;
 				foreach (string Token in Tokens)
 				{
-					var PT = Parse.IgnoreCase (Token).Text ().Token ();
+					var PT = SqlToken (Token);
 					Line = Line == null
 							? PT
 							: (from f in Line
@@ -330,8 +358,8 @@ namespace ParseProcs
 			var PIdentifierEx = PSimpleIdentifier.Or (PDoubleQuotedString);
 
 			var PQualifiedIdentifier = PIdentifierEx
-					.Token ()
-					.DelimitedBy (Parse.String (".").Token (), 1, null)
+					.SqlToken ()
+					.DelimitedBy (Parse.String (".").SqlToken (), 1, null)
 					.Select (seq => seq.ToArray ())
 				;
 
@@ -345,8 +373,8 @@ namespace ParseProcs
 
 			Ref<SPolynom> PExpressionRef = new Ref<SPolynom> ();
 
-			var PParents = PExpressionRef.Get.Contained (Parse.Char ('(').Token (), Parse.Char (')').Token ());
-			var PBrackets = PExpressionRef.Get.Contained (Parse.Char ('[').Token (), Parse.Char (']').Token ());
+			var PParents = PExpressionRef.Get.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ());
+			var PBrackets = PExpressionRef.Get.Contained (Parse.Char ('[').SqlToken (), Parse.Char (']').SqlToken ());
 
 			var PBinaryAdditionOperators = SpracheUtils.AnyToken ("+", "-");
 			var PBinaryMultiplicationOperators = SpracheUtils.AnyToken ("/", "*", "%");
@@ -375,25 +403,25 @@ namespace ParseProcs
 
 			var PType =
 					from t in SpracheUtils.AnyToken (PSqlType.Map.Keys.OrderByDescending (k => k.Length).ToArray ())
-					from p in Parse.Number.Token ()
-						.DelimitedBy (Parse.Char (',').Token ())
-						.Contained (Parse.Char ('(').Token (), Parse.Char (')').Token ())
+					from p in Parse.Number.SqlToken ()
+						.DelimitedBy (Parse.Char (',').SqlToken ())
+						.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ())
 						.Optional ()
 					select t
 				;
 
 			var PSimpleTypeCast =
-					from op in Parse.String ("::").Token ()
+					from op in Parse.String ("::").SqlToken ()
 					from t in PType
 					select t
 				;
 
 			var PFunctionCall =
-					from n in PQualifiedIdentifier.Token ()
+					from n in PQualifiedIdentifier.SqlToken ()
 					from arg in PExpressionRef.Get
-						.DelimitedBy (Parse.Char (',').Token ())
-						.Contained (Parse.Char ('(').Token (), Parse.Char (')').Token ())
-						.Token ()
+						.DelimitedBy (Parse.Char (',').SqlToken ())
+						.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ())
+						.SqlToken ()
 					select n
 				;
 
@@ -406,15 +434,15 @@ namespace ParseProcs
 						.Or (PBooleanLiteral.ProduceType (PSqlType.Bool))
 						.Or (PSingleQuotedString.ProduceType (PSqlType.Text))
 						.Or (PParents.Select<SPolynom, Func<RequestContext, PSqlType>> (p => rc => p.GetResultType (rc)))
-						.Or (PFunctionCall.Token ().ProduceTypeThrow ())
+						.Or (PFunctionCall.SqlToken ().ProduceTypeThrow ())
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
-						.Or (PQualifiedIdentifier.Token ().ProduceTypeThrow ())
-						.Token ()
+						.Or (PQualifiedIdentifier.SqlToken ().ProduceTypeThrow ())
+						.SqlToken ()
 				;
 
 			var PAtomicPrefixGroupOptional =
-					PSignPrefix.Token ()
-						.Or (PNegation.Token ())
+					PSignPrefix.SqlToken ()
+						.Or (PNegation.SqlToken ())
 						.Many ()
 						.Optional ()
 				;
@@ -453,7 +481,7 @@ namespace ParseProcs
 							(l, r) => rc => PSqlType.Bool)))
 						.Or (PBinaryGeneralTextOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.General, true,
 							(l, r) => rc => PSqlType.Text)))
-						.Token ()
+						.SqlToken ()
 				;
 
 			var PPolynom =
@@ -507,7 +535,12 @@ namespace ParseProcs
 			TestExpr ("'irrelevant'::date-'nonsense'::date", PSqlType.Interval);
 			TestExpr ("5>6", PSqlType.Bool);
 			TestExpr ("5<=6", PSqlType.Bool);
-			//TestExpr ("'irrelevant'::date-'nonsense'::date", PSqlType.Text);
+
+			TestExpr (
+@" 5 /* t 67 */  /* t 67 */  /* t 67 */ :: /* t 67 */ /* t 67 */ smallint + f ( a || '--' ,
+ /* t 67 */  7 , y . ""i"" .  /* t 67 */  /* t 67 */  ""ghost 01"" +  /* t 67 */  /* t 67 */ 8.30 ,		-- none
+ 'test /*' ) :: money + 1.2  /* t 67 */  * a . b . c :: real  /* t 67 */  ",
+				PSqlType.Money);
 
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
 
