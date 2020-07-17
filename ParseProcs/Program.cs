@@ -352,7 +352,9 @@ namespace ParseProcs
 			var PSimpleIdentifier =
 					from n in Parse.Char (c => char.IsLetterOrDigit (c) || c == '_', "").AtLeastOnce ()
 					where !char.IsDigit (n.First ())
-					select new string (n.ToArray ())
+					let res =new string (n.ToArray ())
+					where Keywords.CanBeIdentifier (res)
+					select res
 				;
 
 			var PIdentifierEx = PSimpleIdentifier.Or (PDoubleQuotedString);
@@ -517,6 +519,9 @@ namespace ParseProcs
 			TestExpr ("2.5", PSqlType.Decimal);
 			TestExpr ("5::bigint", PSqlType.BigInt);
 			TestExpr ("5::bigint+7", PSqlType.BigInt);
+			TestExpr ("1+-1.2", PSqlType.Decimal);
+			TestExpr ("1--1.2", PSqlType.Int);
+			TestExpr ("-1--1.2", PSqlType.Int);
 			TestExpr (" 5 :: bigint + 7 ", PSqlType.BigInt);
 			TestExpr ("5::smallint+f(a,7,y.\"i\".\"ghost 01\",'test')::money+1.2*a.b.c::real", PSqlType.Money);
 			TestExpr (" 5 :: smallint + f(a,7,y.\"i\".\"ghost 01\",'test')::money + 1.2 * a . b . c :: real  ", PSqlType.Money);
@@ -535,10 +540,11 @@ namespace ParseProcs
 			TestExpr ("'irrelevant'::date-'nonsense'::date", PSqlType.Interval);
 			TestExpr ("5>6", PSqlType.Bool);
 			TestExpr ("5<=6", PSqlType.Bool);
+			TestExpr (" 5 <= 2*3 AnD NOT 4.5 isnull ", PSqlType.Bool);
 
 			TestExpr (
 @" 5 /* t 67 */  /* t 67 */  /* t 67 */ :: /* t 67 */ /* t 67 */ smallint + f ( a || '--' ,
- /* t 67 */  7 , y . ""i"" .  /* t 67 */  /* t 67 */  ""ghost 01"" +  /* t 67 */  /* t 67 */ 8.30 ,		-- none
+ /* t 67 */  7 , y . ""as"" .  /* t 67 */  /* t 67 */  ""ghost 01"" +  /* t 67 */  /* t 67 */ 8.30 ,		-- none
  'test /*' ) :: money + 1.2  /* t 67 */  * a . b . c :: real  /* t 67 */  ",
 				PSqlType.Money);
 
