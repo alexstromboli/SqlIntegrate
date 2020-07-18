@@ -70,6 +70,10 @@ namespace ParseProcs
 			ReadDatabase (ConnectionString, TablesDict, ProceduresDict);
 
 			//
+
+			// postfix ST means that the result is 'SQL token',
+			// i.e. duly processes comments and whitespaces
+
 			var PDoubleQuotedString =
 					from _1 in Parse.Char ('"')
 					from s in Parse.CharExcept ("\"\\").Or (Parse.Char ('\\').Then (c => Parse.AnyChar)).Many ()
@@ -125,7 +129,7 @@ namespace ParseProcs
 					.Or (PDoubleQuotedString)
 				;
 
-			var PQualifiedIdentifier = PValidIdentifierEx
+			var PQualifiedIdentifierST = PValidIdentifierEx
 					.SqlToken ()
 					.DelimitedBy (Parse.String (".").SqlToken (), 1, null)
 					.Select (seq => seq.ToArray ())
@@ -139,38 +143,38 @@ namespace ParseProcs
 					select res
 				;
 
-			Ref<SPolynom> PExpressionRef = new Ref<SPolynom> ();
+			Ref<SPolynom> PExpressionRefST = new Ref<SPolynom> ();
 
-			var PParents = PExpressionRef.Get.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ());
-			var PBrackets = PExpressionRef.Get.Contained (Parse.Char ('[').SqlToken (), Parse.Char (']').SqlToken ());
+			var PParentsST = PExpressionRefST.Get.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ());
+			var PBracketsST = PExpressionRefST.Get.Contained (Parse.Char ('[').SqlToken (), Parse.Char (']').SqlToken ());
 
-			var PBinaryAdditionOperators = SpracheUtils.AnyToken ("+", "-");
-			var PBinaryMultiplicationOperators = SpracheUtils.AnyToken ("/", "*", "%");
-			var PBinaryExponentialOperators = SpracheUtils.AnyToken ("^");
+			var PBinaryAdditionOperatorsST = SpracheUtils.AnyTokenST ("+", "-");
+			var PBinaryMultiplicationOperatorsST = SpracheUtils.AnyTokenST ("/", "*", "%");
+			var PBinaryExponentialOperatorsST = SpracheUtils.AnyTokenST ("^");
 
-			var PBinaryComparisonOperators = SpracheUtils.AnyToken (
+			var PBinaryComparisonOperatorsST = SpracheUtils.AnyTokenST (
 				">=", ">", "<=", "<>", "<", "=", "!="
 				);
 
-			var PBinaryRangeOperators = SpracheUtils.AnyToken (
+			var PBinaryRangeOperatorsST = SpracheUtils.AnyTokenST (
 				"like"
 			);
 
-			var PBinaryGeneralTextOperators = SpracheUtils.AnyToken (
+			var PBinaryGeneralTextOperatorsST = SpracheUtils.AnyTokenST (
 				"||"
 			);
 
-			var PBinaryMatchingOperators = SpracheUtils.AnyToken (
+			var PBinaryMatchingOperatorsST = SpracheUtils.AnyTokenST (
 				"is"
 			);
-			var PNullMatchingOperators = SpracheUtils.AnyToken ("isnull", "not null");
+			var PNullMatchingOperatorsST = SpracheUtils.AnyTokenST ("isnull", "not null");
 
-			var PNegation = SpracheUtils.AnyToken ("not");
-			var PBinaryConjunction = SpracheUtils.AnyToken ("and");
-			var PBinaryDisjunction = SpracheUtils.AnyToken ("or");
+			var PNegationST = SpracheUtils.AnyTokenST ("not");
+			var PBinaryConjunctionST = SpracheUtils.AnyTokenST ("and");
+			var PBinaryDisjunctionST = SpracheUtils.AnyTokenST ("or");
 
-			var PType =
-					from t in SpracheUtils.AnyToken (PSqlType.Map.Keys.OrderByDescending (k => k.Length).ToArray ())
+			var PTypeST =
+					from t in SpracheUtils.AnyTokenST (PSqlType.Map.Keys.OrderByDescending (k => k.Length).ToArray ())
 					from p in Parse.Number.SqlToken ()
 						.DelimitedBy (Parse.Char (',').SqlToken ())
 						.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ())
@@ -178,15 +182,15 @@ namespace ParseProcs
 					select t
 				;
 
-			var PSimpleTypeCast =
+			var PSimpleTypeCastST =
 					from op in Parse.String ("::").SqlToken ()
-					from t in PType
+					from t in PTypeST
 					select t
 				;
 
-			var PFunctionCall =
-					from n in PQualifiedIdentifier.SqlToken ()
-					from arg in PExpressionRef.Get
+			var PFunctionCallST =
+					from n in PQualifiedIdentifierST.SqlToken ()
+					from arg in PExpressionRefST.Get
 						.DelimitedBy (Parse.Char (',').SqlToken ())
 						.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ())
 						.SqlToken ()
@@ -194,75 +198,73 @@ namespace ParseProcs
 				;
 
 			//
-			var PAtomic =
-					PNull.ProduceType (PSqlType.Null)
-						.Or (PDecimal.ProduceType (PSqlType.Decimal))
+			var PAtomicST =
+					PNull.SqlToken ().ProduceType (PSqlType.Null)
+						.Or (PDecimal.SqlToken ().ProduceType (PSqlType.Decimal))
 						// PInteger must be or-ed after PDecimal
-						.Or (PInteger.ProduceType (PSqlType.Int))
-						.Or (PBooleanLiteral.ProduceType (PSqlType.Bool))
-						.Or (PSingleQuotedString.ProduceType (PSqlType.Text))
-						.Or (PParents.Select<SPolynom, Func<RequestContext, PSqlType>> (p => rc => p.GetResultType (rc)))
-						.Or (PFunctionCall.SqlToken ().ProduceTypeThrow ())
+						.Or (PInteger.SqlToken ().ProduceType (PSqlType.Int))
+						.Or (PBooleanLiteral.SqlToken ().ProduceType (PSqlType.Bool))
+						.Or (PSingleQuotedString.SqlToken ().ProduceType (PSqlType.Text))
+						.Or (PParentsST.Select<SPolynom, Func<RequestContext, PSqlType>> (p => rc => p.GetResultType (rc)))
+						.Or (PFunctionCallST.ProduceTypeThrow ())
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
-						.Or (PQualifiedIdentifier.SqlToken ().ProduceTypeThrow ())
-						.SqlToken ()
+						.Or (PQualifiedIdentifierST.ProduceTypeThrow ())
 				;
 
-			var PAtomicPrefixGroupOptional =
+			var PAtomicPrefixGroupOptionalST =
 					PSignPrefix.SqlToken ()
-						.Or (PNegation.SqlToken ())
+						.Or (PNegationST)
 						.Many ()
 						.Optional ()
 				;
 
-			var PAtomicPostfixOptional =
-					PBrackets.Select (b => new OperatorProcessor (PSqlOperatorPriority.None, false,
+			var PAtomicPostfixOptionalST =
+					PBracketsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.None, false,
 							(l, r) => throw new NotImplementedException ()))
-						.Or (PSimpleTypeCast.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
+						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
 							(l, r) => rc => PSqlType.Map[tc])))
-						.Or (PNullMatchingOperators.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
+						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
 							(l, r) => rc => PSqlType.Bool)))
 						.Many ()
 						.Optional ()
 				;
 
-			var PBinaryOperators =
-					PBinaryMultiplicationOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.MulDiv,
+			var PBinaryOperatorsST =
+					PBinaryMultiplicationOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.MulDiv,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b)))
-						.Or (PBinaryAdditionOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.AddSub,
+						.Or (PBinaryAdditionOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.AddSub,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b))))
-						.Or (PBinaryExponentialOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.Exp,
+						.Or (PBinaryExponentialOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Exp,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b))))
-						.Or (PBinaryComparisonOperators.Select (b => new OperatorProcessor (
+						.Or (PBinaryComparisonOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.Comparison, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryRangeOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.Like, true,
+						.Or (PBinaryRangeOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Like, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryMatchingOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.Is, true,
+						.Or (PBinaryMatchingOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Is, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryConjunction.Select (b => new OperatorProcessor (PSqlOperatorPriority.And, true,
+						.Or (PBinaryConjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.And, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryDisjunction.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
+						.Or (PBinaryDisjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryGeneralTextOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.General, true,
+						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General, true,
 							(l, r) => rc => PSqlType.Text)))
-						.SqlToken ()
 				;
 
-			var PPolynom =
-					from pref1 in PAtomicPrefixGroupOptional
-					from at1 in PAtomic
-					from post1 in PAtomicPostfixOptional
+			var PPolynomST =
+					from pref1 in PAtomicPrefixGroupOptionalST
+					from at1 in PAtomicST
+					from post1 in PAtomicPostfixOptionalST
 					from rest in
 					(
-						from op in PBinaryOperators
+						from op in PBinaryOperatorsST
 
-						from prefN in PAtomicPrefixGroupOptional
-						from atN in PAtomic
-						from postN in PAtomicPostfixOptional
+						from prefN in PAtomicPrefixGroupOptionalST
+						from atN in PAtomicST
+						from postN in PAtomicPostfixOptionalST
 						select new { op, atN, postN }
 					).Many ()
 					select new SPolynom
@@ -274,11 +276,37 @@ namespace ParseProcs
 					}
 				;
 
-			PExpressionRef.Parser = PPolynom;
+			PExpressionRefST.Parser = PPolynomST;
+
+			//
+			var PAsteriskSelectEntryST =
+					from qual in
+					(
+						from qual in PQualifiedIdentifierST
+						from dot in Parse.Char ('.').SqlToken ()
+						select qual
+					).Optional ()
+					from ast in Parse.Char ('*').SqlToken ()
+					select 0
+				;
+			var PSingleSelectEntryST =
+					from exp in PExpressionRefST.Get
+					from alias_cl in
+						(
+							from as_t in SpracheUtils.AnyTokenST ("as")
+							from id in PExpectedIdentifierEx.SqlToken ()
+							select id
+						)
+						.Or
+						(
+							PValidIdentifierEx.SqlToken ()
+						)
+					select 0
+				;
 
 			//
 			RequestContext rc = null;
-			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRef.Get.End ().Parse (s).GetResultType (rc) == t);
+			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResultType (rc) == t);
 			TestExpr ("5", PSqlType.Int);
 			TestExpr ("null::real", PSqlType.Real);
 			TestExpr (" null :: real ", PSqlType.Real);

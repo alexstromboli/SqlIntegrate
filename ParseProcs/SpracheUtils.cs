@@ -25,7 +25,9 @@ namespace ParseProcs
 				;
 		}
 
-		public static Parser<string> AnyToken (params string[] Options)
+		// postfix ST means that the result is 'SQL token',
+		// i.e. duly processes comments and whitespaces
+		public static Parser<string> AnyTokenST (params string[] Options)
 		{
 			Parser<string> Result = null;
 			foreach (string[] Tokens in Options.Select (s => s.Split (' ', StringSplitOptions.RemoveEmptyEntries)))
