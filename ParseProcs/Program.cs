@@ -6,258 +6,8 @@ using Sprache;
 
 namespace ParseProcs
 {
-	public enum PsqlOperatorPriority
-	{
-		None,
-		Or,
-		And,
-		Not,
-		Is,
-		Comparison,
-		Like,
-		General,
-		AddSub,
-		MulDiv,
-		Exp,
-		Unary,
-		Array,
-		Typecast,
-		NameSeparator
-	}
-
-	public class SqlCommentParser : CommentParser
-	{
-		protected SqlCommentParser ()
-		{
-			this.Single = "--";
-		}
-
-		public static readonly SqlCommentParser Instance = new SqlCommentParser ();
-	}
-
-	public static class PSqlUtils
-	{
-		public static PSqlType GetBinaryOperationResultType (PSqlType Left, PSqlType Right, string Operator)
-		{
-			if (Left.IsNumber && Right.IsNumber)
-			{
-				return Left.NumericLevel > Right.NumericLevel
-					? Left
-					: Right;
-			}
-
-			if (Left.IsNumber && Right.IsText
-			    || Left.IsText && Right.IsNumber)
-			{
-				return Operator == "||"
-					? PSqlType.Text
-					: PSqlType.Int;
-			}
-
-			if (Left.IsDate && Right.IsTimeSpan)
-			{
-				return Left;
-			}
-
-			if (Left.IsTimeSpan && Right.IsDate)
-			{
-				return Right;
-			}
-
-			if (Left.IsTimeSpan && Right.IsTimeSpan)
-			{
-				return PSqlType.Interval;
-			}
-
-			if (Left.IsDate && Right.IsDate && Operator == "-")
-			{
-				return PSqlType.Interval;
-			}
-
-			return PSqlType.Null;
-		}
-	}
-
-	public static class SpracheUtils
-	{
-		public static Parser<T> SqlToken<T> (this Parser<T> Inner)
-		{
-			return Inner
-					.Commented (SqlCommentParser.Instance)
-					.Select (p => p.Value)
-				;
-		}
-
-		public static Parser<string> SqlToken (string Line)
-		{
-			return Parse
-					.IgnoreCase (Line)
-					.Text ()
-					.Select (l => l.ToLower ())
-					.SqlToken ()
-				;
-		}
-
-		public static Parser<string> AnyToken (params string[] Options)
-		{
-			Parser<string> Result = null;
-			foreach (string[] Tokens in Options.Select (s => s.Split (' ', StringSplitOptions.RemoveEmptyEntries)))
-			{
-				Parser<string> Line = null;
-				foreach (string Token in Tokens)
-				{
-					var PT = SqlToken (Token);
-					Line = Line == null
-							? PT
-							: (from f in Line
-								from n in PT
-								select f + " " + n)
-						;
-				}
-
-				Result = Result == null
-						? Line
-						: Result.Or (Line)
-					;
-			}
-
-			return Result;
-		}
-
-		public static Parser<Func<RequestContext, PSqlType>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
-		{
-			return Parser.Select<T, Func<RequestContext, PSqlType>> (t => rc => Type);
-		}
-
-		public static Parser<Func<RequestContext, PSqlType>> ProduceTypeThrow<T> (this Parser<T> Parser)
-		{
-			return Parser.Select<T, Func<RequestContext, PSqlType>> (t => rc => throw new NotImplementedException ());
-		}
-	}
-
-	public class Ref<T>
-	{
-		public Parser<T> Parser = null;
-
-		public Parser<T> Get { get; }
-
-		public Ref ()
-		{
-			Get = Parse.Ref (() => Parser);
-		}
-	}
-
 	public class RequestContext
 	{
-	}
-
-	public class OperatorProcessor
-	{
-		public int Precedence = 0;
-		public bool IsBinary = false;
-
-		public Func<
-			Func<RequestContext, PSqlType>,		// left
-			Func<RequestContext, PSqlType>,		// right (null for unary)
-			Func<RequestContext, PSqlType>		// result
-		> Processor = null;
-
-		public OperatorProcessor (PsqlOperatorPriority Precedence,
-			bool IsBinary,
-			Func<
-				Func<RequestContext, PSqlType>, // left
-				Func<RequestContext, PSqlType>, // right (null for unary)
-				Func<RequestContext, PSqlType> // result
-			> Processor
-		)
-		{
-			this.Precedence = (int)Precedence;
-			this.IsBinary = IsBinary;
-			this.Processor = Processor;
-		}
-
-		public static Func<
-			Func<RequestContext, PSqlType>, // left
-			Func<RequestContext, PSqlType>, // right (null for unary)
-			Func<RequestContext, PSqlType> // result
-		> GetForBinaryOperator (string Operator)
-		{
-			return (l, r) => rc =>
-			{
-				PSqlType Left = l (rc);
-				PSqlType Right = r (rc);
-				return PSqlUtils.GetBinaryOperationResultType (Left, Right, Operator);
-			};
-		}
-	}
-
-	public class SPolynom
-	{
-		public class Operand
-		{
-			// ignore prefixes as irrelevant
-			public Func<RequestContext, PSqlType> Atomic;
-			public IOption<IEnumerable<OperatorProcessor>> Postfixes;
-		}
-
-		public List<Operand> Operands;
-		public List<OperatorProcessor> Operators;
-
-		protected PSqlType ResultType = null;
-
-		public PSqlType GetResultType (RequestContext Context)
-		{
-			if (ResultType != null)
-			{
-				return ResultType;
-			}
-
-			Stack<Func<RequestContext, PSqlType>> OperandsStack = new Stack<Func<RequestContext, PSqlType>> ();
-			Stack<OperatorProcessor> OperatorsStack = new Stack<OperatorProcessor> ();
-			Action<int> Perform = n =>
-			{
-				while (OperatorsStack.Count > 0 && OperatorsStack.Peek ().Precedence >= n)
-				{
-					OperatorProcessor op = OperatorsStack.Pop ();
-					var r = OperandsStack.Pop ();
-					var l = OperandsStack.Pop ();
-					var res = op.Processor (l, r);
-					OperandsStack.Push (res);
-				}
-			};
-
-			Action<Operand> Process = arg =>
-			{
-				OperandsStack.Push (arg.Atomic);
-
-				if (arg.Postfixes.IsDefined)
-				{
-					foreach (var Postfix in arg.Postfixes.Get ())
-					{
-						Perform (Postfix.Precedence);
-						var l = OperandsStack.Pop ();
-						var res = Postfix.Processor (l, null);
-						OperandsStack.Push (res);
-					}
-				}
-			};
-
-			Process (Operands[0]);
-			for (int i = 0; i < Operators.Count; ++i)
-			{
-				var op = Operators[i];
-				Perform (op.Precedence);
-				OperatorsStack.Push (op);
-
-				var v = Operands[i + 1];
-				Process (v);
-			}
-
-			Perform (0);
-			var ResultFunc = OperandsStack.Pop ();
-			ResultType = ResultFunc (Context);
-			return ResultType;
-		}
 	}
 
 	/*
@@ -349,17 +99,33 @@ namespace ParseProcs
 					.Text ()
 				;
 
-			var PSimpleIdentifier =
+			// any id readable without quotes
+			var PBasicIdentifier =
 					from n in Parse.Char (c => char.IsLetterOrDigit (c) || c == '_', "").AtLeastOnce ()
 					where !char.IsDigit (n.First ())
-					let res =new string (n.ToArray ())
-					where Keywords.CanBeIdentifier (res)
-					select res
+					select new string (n.ToArray ())
 				;
 
-			var PIdentifierEx = PSimpleIdentifier.Or (PDoubleQuotedString);
+			// any id readable without quotes, except keywords
+			var PBasicValidIdentifier =
+					PBasicIdentifier
+						.Where (n => Keywords.CanBeIdentifier (n))
+				;
 
-			var PQualifiedIdentifier = PIdentifierEx
+			// any id readable without quotes, except keywords,
+			// or in quotes
+			var PValidIdentifierEx = PBasicValidIdentifier
+					.Or (PDoubleQuotedString)
+				;
+
+			// any id readable without quotes, including keywords
+			// (which is valid when identifier is expected, like after AS),
+			// or in quotes
+			var PExpectedIdentifierEx = PBasicIdentifier
+					.Or (PDoubleQuotedString)
+				;
+
+			var PQualifiedIdentifier = PValidIdentifierEx
 					.SqlToken ()
 					.DelimitedBy (Parse.String (".").SqlToken (), 1, null)
 					.Select (seq => seq.ToArray ())
@@ -450,38 +216,38 @@ namespace ParseProcs
 				;
 
 			var PAtomicPostfixOptional =
-					PBrackets.Select (b => new OperatorProcessor (PsqlOperatorPriority.None, false,
+					PBrackets.Select (b => new OperatorProcessor (PSqlOperatorPriority.None, false,
 							(l, r) => throw new NotImplementedException ()))
-						.Or (PSimpleTypeCast.Select (tc => new OperatorProcessor (PsqlOperatorPriority.Typecast, false,
+						.Or (PSimpleTypeCast.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
 							(l, r) => rc => PSqlType.Map[tc])))
-						.Or (PNullMatchingOperators.Select (m => new OperatorProcessor (PsqlOperatorPriority.Is, false,
+						.Or (PNullMatchingOperators.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
 							(l, r) => rc => PSqlType.Bool)))
 						.Many ()
 						.Optional ()
 				;
 
 			var PBinaryOperators =
-					PBinaryMultiplicationOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.MulDiv,
+					PBinaryMultiplicationOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.MulDiv,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b)))
-						.Or (PBinaryAdditionOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.AddSub,
+						.Or (PBinaryAdditionOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.AddSub,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b))))
-						.Or (PBinaryExponentialOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.Exp,
+						.Or (PBinaryExponentialOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.Exp,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b))))
 						.Or (PBinaryComparisonOperators.Select (b => new OperatorProcessor (
-							PsqlOperatorPriority.Comparison, true,
+							PSqlOperatorPriority.Comparison, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryRangeOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.Like, true,
+						.Or (PBinaryRangeOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.Like, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryMatchingOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.Is, true,
+						.Or (PBinaryMatchingOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.Is, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryConjunction.Select (b => new OperatorProcessor (PsqlOperatorPriority.And, true,
+						.Or (PBinaryConjunction.Select (b => new OperatorProcessor (PSqlOperatorPriority.And, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryDisjunction.Select (b => new OperatorProcessor (PsqlOperatorPriority.Or, true,
+						.Or (PBinaryDisjunction.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
 							(l, r) => rc => PSqlType.Bool)))
-						.Or (PBinaryGeneralTextOperators.Select (b => new OperatorProcessor (PsqlOperatorPriority.General, true,
+						.Or (PBinaryGeneralTextOperators.Select (b => new OperatorProcessor (PSqlOperatorPriority.General, true,
 							(l, r) => rc => PSqlType.Text)))
 						.SqlToken ()
 				;
