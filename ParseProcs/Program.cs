@@ -293,7 +293,7 @@ namespace ParseProcs
 						select qual
 					).Optional ()
 					from ast in Parse.Char ('*').SqlToken ()
-					select 0
+					select (Func<RequestContext, IList<NamedTyped>>)(rc => new NamedTyped[0])		// not implemented yet
 				;
 			var PSingleSelectEntryST =
 					from exp in PExpressionRefST.Get
@@ -306,8 +306,28 @@ namespace ParseProcs
 						.Or
 						(
 							PValidIdentifierEx.SqlToken ()
+						).Optional ()
+					select (Func<RequestContext, IList<NamedTyped>>)(rc =>
+							{
+								var nt = exp.GetResultType (rc);
+								var res = alias_cl.IsDefined
+									? new NamedTyped (alias_cl.Get (), nt.Type)
+									: nt;
+
+								return new[] {res};
+							}
 						)
-					select 0
+				;
+
+			var PSelectListST =
+					PAsteriskSelectEntryST
+						.Or (PSingleSelectEntryST)
+						.DelimitedBy (Parse.Char (',').SqlToken ())
+						.Select<IEnumerable<Func<RequestContext, IList<NamedTyped>>>, Func<RequestContext, IList<NamedTyped>>> (
+							list => rc => list
+								.SelectMany (e => e (rc))
+								.ToArray ()
+							)
 				;
 
 			//
