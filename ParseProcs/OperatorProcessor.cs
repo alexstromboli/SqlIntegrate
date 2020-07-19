@@ -8,17 +8,17 @@ namespace ParseProcs
 		public bool IsBinary = false;
 
 		public Func<
-			Func<RequestContext, PSqlType>,		// left
-			Func<RequestContext, PSqlType>,		// right (null for unary)
-			Func<RequestContext, PSqlType>		// result
+			Func<RequestContext, NamedTyped>,		// left
+			Func<RequestContext, NamedTyped>,		// right (null for unary)
+			Func<RequestContext, NamedTyped>		// result
 		> Processor = null;
 
 		public OperatorProcessor (PSqlOperatorPriority Precedence,
 			bool IsBinary,
 			Func<
-				Func<RequestContext, PSqlType>, // left
-				Func<RequestContext, PSqlType>, // right (null for unary)
-				Func<RequestContext, PSqlType> // result
+				Func<RequestContext, NamedTyped>, // left
+				Func<RequestContext, NamedTyped>, // right (null for unary)
+				Func<RequestContext, NamedTyped> // result
 			> Processor
 		)
 		{
@@ -28,16 +28,16 @@ namespace ParseProcs
 		}
 
 		public static Func<
-			Func<RequestContext, PSqlType>, // left
-			Func<RequestContext, PSqlType>, // right (null for unary)
-			Func<RequestContext, PSqlType> // result
+			Func<RequestContext, NamedTyped>, // left
+			Func<RequestContext, NamedTyped>, // right (null for unary)
+			Func<RequestContext, NamedTyped> // result
 		> GetForBinaryOperator (string Operator)
 		{
 			return (l, r) => rc =>
 			{
-				PSqlType Left = l (rc);
-				PSqlType Right = r (rc);
-				return PSqlUtils.GetBinaryOperationResultType (Left, Right, Operator);
+				PSqlType Left = l (rc).Type;
+				PSqlType Right = r (rc).Type;
+				return new NamedTyped (PSqlUtils.GetBinaryOperationResultType (Left, Right, Operator));
 			};
 		}
 	}

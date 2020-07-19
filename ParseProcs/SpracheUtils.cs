@@ -53,14 +53,9 @@ namespace ParseProcs
 			return Result;
 		}
 
-		public static Parser<Func<RequestContext, PSqlType>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
+		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
 		{
-			return Parser.Select<T, Func<RequestContext, PSqlType>> (t => rc => Type);
-		}
-
-		public static Parser<Func<RequestContext, PSqlType>> ProduceTypeThrow<T> (this Parser<T> Parser)
-		{
-			return Parser.Select<T, Func<RequestContext, PSqlType>> (t => rc => throw new NotImplementedException ());
+			return Parser.Select<T, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type));
 		}
 	}
 }

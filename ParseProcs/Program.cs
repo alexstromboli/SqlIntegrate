@@ -205,10 +205,15 @@ namespace ParseProcs
 						.Or (PInteger.SqlToken ().ProduceType (PSqlType.Int))
 						.Or (PBooleanLiteral.SqlToken ().ProduceType (PSqlType.Bool))
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (PSqlType.Text))
-						.Or (PParentsST.Select<SPolynom, Func<RequestContext, PSqlType>> (p => rc => p.GetResultType (rc)))
-						.Or (PFunctionCallST.ProduceTypeThrow ())
+						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
+							rc => p.GetResultType (rc)))
+						.Or (PFunctionCallST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
+							new NamedTyped (p[^1], null // type inference not implemented yet
+							)))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
-						.Or (PQualifiedIdentifierST.ProduceTypeThrow ())
+						.Or (PQualifiedIdentifierST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
+							new NamedTyped (p[^1], null // type inference not implemented yet
+							)))
 				;
 
 			var PAtomicPrefixGroupOptionalST =
@@ -220,11 +225,12 @@ namespace ParseProcs
 
 			var PAtomicPostfixOptionalST =
 					PBracketsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.None, false,
-							(l, r) => throw new NotImplementedException ()))
+							(l, r) => rc => new NamedTyped (l (rc).Name, null // type inference not implemented yet
+							)))
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
-							(l, r) => rc => PSqlType.Map[tc])))
+							(l, r) => rc => new NamedTyped (l (rc).Name, PSqlType.Map[tc]))))
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
-							(l, r) => rc => PSqlType.Bool)))
+							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Many ()
 						.Optional ()
 				;
@@ -241,17 +247,17 @@ namespace ParseProcs
 							OperatorProcessor.GetForBinaryOperator (b))))
 						.Or (PBinaryComparisonOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.Comparison, true,
-							(l, r) => rc => PSqlType.Bool)))
+							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryRangeOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Like, true,
-							(l, r) => rc => PSqlType.Bool)))
+							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryMatchingOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Is, true,
-							(l, r) => rc => PSqlType.Bool)))
+							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryConjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.And, true,
-							(l, r) => rc => PSqlType.Bool)))
+							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryDisjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
-							(l, r) => rc => PSqlType.Bool)))
+							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General, true,
-							(l, r) => rc => PSqlType.Text)))
+							(l, r) => rc => new NamedTyped (PSqlType.Text))))
 				;
 
 			var PPolynomST =
@@ -306,7 +312,7 @@ namespace ParseProcs
 
 			//
 			RequestContext rc = null;
-			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResultType (rc) == t);
+			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResultType (rc).Type == t);
 			TestExpr ("5", PSqlType.Int);
 			TestExpr ("null::real", PSqlType.Real);
 			TestExpr (" null :: real ", PSqlType.Real);
