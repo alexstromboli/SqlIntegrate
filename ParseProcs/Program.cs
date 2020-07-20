@@ -6,8 +6,59 @@ using Sprache;
 
 namespace ParseProcs
 {
-	public class RequestContext
+	public interface IRequestContext
 	{
+		NamedTyped GetFunction (string[] FunctionName);
+		NamedTyped GetScalar (string[] ScalarName);
+		IReadOnlyList<NamedTyped> GetAsterisk (string[] Qualifier);
+	}
+
+	public class ModuleContext
+	{
+		public string ModuleName { get; protected set; }
+		public string DefaultSchemaName { get; protected set; }
+
+		protected List<Table> _Tables;
+		public IReadOnlyList<Table> Tables => _Tables;
+
+		protected List<NamedTyped> _Variables;
+		public IReadOnlyList<NamedTyped> Variables => _Variables;
+
+		public ModuleContext (string ModuleName, string DefaultSchemaName,
+			IEnumerable<Table> Tables,
+			IEnumerable<NamedTyped> Variables
+			)
+		{
+			this.ModuleName = ModuleName.ToLower ();
+			this.DefaultSchemaName = DefaultSchemaName.ToLower ();
+			_Tables = new List<Table> (Tables);
+			_Variables = new List<NamedTyped> (Variables);
+		}
+	}
+
+	public class RequestContext : IRequestContext
+	{
+		protected ModuleContext ModuleContext;
+
+		public RequestContext (ModuleContext ModuleContext)
+		{
+			this.ModuleContext = ModuleContext;
+		}
+
+		public NamedTyped GetFunction (string[] FunctionName)
+		{
+			throw new NotImplementedException ();
+		}
+
+		public NamedTyped GetScalar (string[] ScalarName)
+		{
+			throw new NotImplementedException ();
+		}
+
+		public IReadOnlyList<NamedTyped> GetAsterisk (string[] Qualifier)
+		{
+			throw new NotImplementedException ();
+		}
 	}
 
 	/*
@@ -30,12 +81,6 @@ namespace ParseProcs
 			this.Table = Table;
 			this.NameFragmentsImpl = NameFragmentsImpl;
 		}
-	}
-
-	public class RequestContext
-	{
-		public IReadOnlyList<NamedTyped> Variables;
-		public IReadOnlyList<TableExpression> Tables;
 	}
 
 	public interface IOutputNamedTypedColumns
@@ -205,15 +250,15 @@ namespace ParseProcs
 						.Or (PInteger.SqlToken ().ProduceType (PSqlType.Int))
 						.Or (PBooleanLiteral.SqlToken ().ProduceType (PSqlType.Bool))
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (PSqlType.Text))
-						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
+						.Or (PParentsST.Select<SPolynom, Func<IRequestContext, NamedTyped>> (p =>
 							rc => p.GetResultType (rc)))
-						.Or (PFunctionCallST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
-							new NamedTyped (p[^1], null // type inference not implemented yet
-							)))
+						.Or (PFunctionCallST.Select<string[], Func<IRequestContext, NamedTyped>> (p => rc =>
+							rc.GetFunction (p)
+							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
-						.Or (PQualifiedIdentifierST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
-							new NamedTyped (p[^1], null // type inference not implemented yet
-							)))
+						.Or (PQualifiedIdentifierST.Select<string[], Func<IRequestContext, NamedTyped>> (p => rc =>
+							rc.GetScalar (p)
+							))
 				;
 
 			var PAtomicPrefixGroupOptionalST =
@@ -293,7 +338,7 @@ namespace ParseProcs
 						select qual
 					).Optional ()
 					from ast in Parse.Char ('*').SqlToken ()
-					select (Func<RequestContext, IList<NamedTyped>>)(rc => new NamedTyped[0])		// not implemented yet
+					select (Func<IRequestContext, IReadOnlyList<NamedTyped>>)(rc => rc.GetAsterisk (qual.GetOrElse (new string[0])))
 				;
 			var PSingleSelectEntryST =
 					from exp in PExpressionRefST.Get
@@ -307,7 +352,7 @@ namespace ParseProcs
 						(
 							PValidIdentifierEx.SqlToken ()
 						).Optional ()
-					select (Func<RequestContext, IList<NamedTyped>>)(rc =>
+					select (Func<IRequestContext, IReadOnlyList<NamedTyped>>)(rc =>
 							{
 								var nt = exp.GetResultType (rc);
 								var res = alias_cl.IsDefined
@@ -323,7 +368,7 @@ namespace ParseProcs
 					PAsteriskSelectEntryST
 						.Or (PSingleSelectEntryST)
 						.DelimitedBy (Parse.Char (',').SqlToken ())
-						.Select<IEnumerable<Func<RequestContext, IList<NamedTyped>>>, Func<RequestContext, IList<NamedTyped>>> (
+						.Select<IEnumerable<Func<IRequestContext, IReadOnlyList<NamedTyped>>>, Func<IRequestContext, IReadOnlyList<NamedTyped>>> (
 							list => rc => list
 								.SelectMany (e => e (rc))
 								.ToArray ()
