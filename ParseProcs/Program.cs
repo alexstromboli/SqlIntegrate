@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-
+using System.Security.Cryptography;
 using Sprache;
 
 namespace ParseProcs
@@ -373,6 +373,66 @@ namespace ParseProcs
 								.SelectMany (e => e (rc))
 								.ToArray ()
 							)
+				;
+
+			var PFromTableExpressionST =
+				from table in PQualifiedIdentifierST
+				from alias_cl in
+					(
+						from as_t in SpracheUtils.AnyTokenST ("as")
+						from id in PExpectedIdentifierEx.SqlToken ()
+						select id
+					)
+					.Or
+					(
+						PValidIdentifierEx.SqlToken ()
+					).Optional ()
+				select new {table, alias = alias_cl.GetOrDefault ()};
+
+			var PFromClauseOptionalST =
+					from f in SpracheUtils.SqlToken ("from")
+					from t1 in PFromTableExpressionST
+					from tail in (
+						from jN in SpracheUtils.AnyTokenST ("join", "inner join", "left join", "right join")
+						from tN in PFromTableExpressionST
+						from condN in (
+							from onN in SpracheUtils.SqlToken ("on")
+							from condexpN in PExpressionRefST.Get
+							select 0
+						).Optional ()
+						select tN
+					).Many ()
+					select new[] {t1}.Concat (tail).ToArray ()
+				;
+
+			var PWhereClauseOptionalST =
+				(
+					from f in SpracheUtils.SqlToken ("where")
+					from cond in PExpressionRefST.Get
+					select 0
+				).Optional ()
+				;
+
+			var PGroupByClauseOptionalST =
+				(
+					from f in SpracheUtils.AnyTokenST ("group by")
+					from grp in PExpressionRefST.Get.DelimitedBy (Parse.Char (',').SqlToken ())
+					select 0
+				).Optional ()
+				;
+
+			var POrderByClauseOptionalST =
+				(
+					from f in SpracheUtils.AnyTokenST ("order by")
+					from grp in
+						(
+							from _1 in PExpressionRefST.Get
+							from _2 in SpracheUtils.AnyTokenST ("asc", "desc").Optional ()
+							select 0
+						)
+						.DelimitedBy (Parse.Char (',').SqlToken ())
+					select 0
+				).Optional ()
 				;
 
 			//
