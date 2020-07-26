@@ -1,5 +1,32 @@
 \c dummy01;
 
+WITH RECURSIVE C AS
+(
+    SELECT 5 AS done
+)
+, R AS
+(
+    SELECT  id,
+            id_parent,
+            name,
+            1 AS "order"
+    FROM Depts
+    WHERE id = 9
+
+    UNION ALL
+
+    SELECT  D.id,
+            D.id_parent,
+            D.name,
+            R."order" + 1
+    FROM R
+        INNER JOIN Depts AS D ON D.id = R.id_parent
+)
+SELECT  id,
+        name
+FROM R
+ORDER BY R.order;
+
 SELECT  table_schema,
         table_name
 FROM information_schema.tables

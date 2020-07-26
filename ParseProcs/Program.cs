@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Security.Cryptography;
+
 using Sprache;
 
 namespace ParseProcs
@@ -174,6 +174,7 @@ namespace ParseProcs
 					.Or (PDoubleQuotedString)
 				;
 
+			// here: allow keywords after dot, like R.order
 			var PQualifiedIdentifierST = PValidIdentifierEx
 					.SqlToken ()
 					.DelimitedBy (Parse.String (".").SqlToken (), 1, null)
@@ -190,7 +191,7 @@ namespace ParseProcs
 
 			Ref<SPolynom> PExpressionRefST = new Ref<SPolynom> ();
 
-			var PParentsST = PExpressionRefST.Get.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ());
+			var PParentsST = PExpressionRefST.Get.InParentsST ();
 			var PBracketsST = PExpressionRefST.Get.Contained (Parse.Char ('[').SqlToken (), Parse.Char (']').SqlToken ());
 
 			var PBinaryAdditionOperatorsST = SpracheUtils.AnyTokenST ("+", "-");
@@ -221,8 +222,8 @@ namespace ParseProcs
 			var PTypeST =
 					from t in SpracheUtils.AnyTokenST (PSqlType.Map.Keys.OrderByDescending (k => k.Length).ToArray ())
 					from p in Parse.Number.SqlToken ()
-						.DelimitedBy (Parse.Char (',').SqlToken ())
-						.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ())
+						.CommaDelimitedST ()
+						.InParentsST ()
 						.Optional ()
 					select t
 				;
@@ -236,8 +237,8 @@ namespace ParseProcs
 			var PFunctionCallST =
 					from n in PQualifiedIdentifierST.SqlToken ()
 					from arg in PExpressionRefST.Get
-						.DelimitedBy (Parse.Char (',').SqlToken ())
-						.Contained (Parse.Char ('(').SqlToken (), Parse.Char (')').SqlToken ())
+						.CommaDelimitedST ()
+						.InParentsST ()
 						.SqlToken ()
 					select n
 				;
@@ -344,7 +345,7 @@ namespace ParseProcs
 					from exp in PExpressionRefST.Get
 					from alias_cl in
 						(
-							from as_t in SpracheUtils.AnyTokenST ("as")
+							from kw_as in SpracheUtils.AnyTokenST ("as")
 							from id in PExpectedIdentifierEx.SqlToken ()
 							select id
 						)
@@ -367,7 +368,7 @@ namespace ParseProcs
 			var PSelectListST =
 					PAsteriskSelectEntryST
 						.Or (PSingleSelectEntryST)
-						.DelimitedBy (Parse.Char (',').SqlToken ())
+						.CommaDelimitedST ()
 						.Select<IEnumerable<Func<IRequestContext, IReadOnlyList<NamedTyped>>>, Func<IRequestContext, IReadOnlyList<NamedTyped>>> (
 							list => rc => list
 								.SelectMany (e => e (rc))
@@ -379,7 +380,7 @@ namespace ParseProcs
 				from table in PQualifiedIdentifierST
 				from alias_cl in
 					(
-						from as_t in SpracheUtils.AnyTokenST ("as")
+						from kw_as in SpracheUtils.AnyTokenST ("as")
 						from id in PExpectedIdentifierEx.SqlToken ()
 						select id
 					)
@@ -390,13 +391,13 @@ namespace ParseProcs
 				select new {table, alias = alias_cl.GetOrDefault ()};
 
 			var PFromClauseOptionalST =
-					from f in SpracheUtils.SqlToken ("from")
+					from kw_from in SpracheUtils.SqlToken ("from")
 					from t1 in PFromTableExpressionST
 					from tail in (
-						from jN in SpracheUtils.AnyTokenST ("join", "inner join", "left join", "right join")
+						from kw_joinN in SpracheUtils.AnyTokenST ("join", "inner join", "left join", "right join")
 						from tN in PFromTableExpressionST
 						from condN in (
-							from onN in SpracheUtils.SqlToken ("on")
+							from kw_onN in SpracheUtils.SqlToken ("on")
 							from condexpN in PExpressionRefST.Get
 							select 0
 						).Optional ()
@@ -407,7 +408,7 @@ namespace ParseProcs
 
 			var PWhereClauseOptionalST =
 				(
-					from f in SpracheUtils.SqlToken ("where")
+					from kw_where in SpracheUtils.SqlToken ("where")
 					from cond in PExpressionRefST.Get
 					select 0
 				).Optional ()
@@ -415,8 +416,8 @@ namespace ParseProcs
 
 			var PGroupByClauseOptionalST =
 				(
-					from f in SpracheUtils.AnyTokenST ("group by")
-					from grp in PExpressionRefST.Get.DelimitedBy (Parse.Char (',').SqlToken ())
+					from kw_groupby in SpracheUtils.AnyTokenST ("group by")
+					from grp in PExpressionRefST.Get.CommaDelimitedST ()
 					select 0
 				).Optional ()
 				;
@@ -430,10 +431,76 @@ namespace ParseProcs
 							from _2 in SpracheUtils.AnyTokenST ("asc", "desc").Optional ()
 							select 0
 						)
-						.DelimitedBy (Parse.Char (',').SqlToken ())
+						.CommaDelimitedST ()
 					select 0
 				).Optional ()
 				;
+
+			var POrdinarySelectST =
+					from kw_select in SpracheUtils.SqlToken ("select")
+					from list in PSelectListST
+					from from_cl in PFromClauseOptionalST
+					from _w in PWhereClauseOptionalST
+					from _g in PGroupByClauseOptionalST
+					select new {list, from_cl}
+				;
+
+			var PSelectST =
+					from seq in POrdinarySelectST
+						.DelimitedBy (SpracheUtils.AnyTokenST ("union all", "union", "except", "subtract"))
+						.Select (ss => ss.ToArray ())
+					from ord in POrderByClauseOptionalST
+					select new {list = seq[0].list, from_cl = seq[0].from_cl, is_many = seq.Length > 1}
+				;
+
+			var PCteLevelST =
+					from name in PValidIdentifierEx
+					from kw_as in SpracheUtils.SqlToken ("as")
+					from select_exp in PSelectST.InParentsST ()
+					select new {name, table = select_exp}
+				;
+
+			var PCteTopOptionalST =
+				(
+					from kw_with in SpracheUtils.SqlToken ("with")
+					from kw_recursive in SpracheUtils.SqlToken ("recursive").Optional ()
+					from levels in PCteLevelST.CommaDelimitedST ()
+					select levels
+				).Optional ()
+				;
+
+			var PSelectFullST =
+					from cte in PCteTopOptionalST
+					from select_body in PSelectST
+					select new { cte, select_body }
+				;
+
+			var POpenDatasetST =
+					from kw_open in SpracheUtils.SqlToken ("open")
+					from name in PValidIdentifierEx
+					from _cm1 in SpracheUtils.AllCommentsST ()
+					from kw_for in Parse.IgnoreCase ("for")
+					from _cm2 in SpracheUtils.AllCommentsST ()
+					select new {name, last_comment = _cm2.LastOrDefault ()}
+				;
+
+			//
+			var opr01 = POpenDatasetST.Parse ("open ref01 for select 654");
+			var opr02 = POpenDatasetST.Parse ("OPEn ref01 foR /* r */ /* this */ select kjfgh");
+			var opr03 = POpenDatasetST.Parse (
+@"-- minus
+/* ghfghfhdfyjhrt */
+OPEn ref01
+/* dfghdfghdrhrt */
+-- rtyertyrtyrtghe
+foR	-- that
+/* r */ /* this
+is the one
+*/
+SELECT
+done
+"
+);
 
 			//
 			RequestContext rc = null;

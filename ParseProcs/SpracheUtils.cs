@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 using Sprache;
 
@@ -22,6 +23,28 @@ namespace ParseProcs
 					.Text ()
 					.Select (l => l.ToLower ())
 					.SqlToken ()
+				;
+		}
+
+		public static Parser<T> InParentsST<T> (this Parser<T> Inner)
+		{
+			return Inner.Contained (
+				Parse.Char ('(').SqlToken (),
+				Parse.Char (')').SqlToken ()
+			);
+		}
+
+		public static Parser<IEnumerable<T>> CommaDelimitedST<T> (this Parser<T> Inner)
+		{
+			return Inner.DelimitedBy (Parse.Char (',').SqlToken ());
+		}
+
+		public static Parser<IEnumerable<string>> AllCommentsST ()
+		{
+			return SqlCommentParser.Instance.AnyComment
+					.Or (Parse.WhiteSpace.Return ((string)null))
+					.Many ()
+					.Select (seq => seq.Where (l => l != null))
 				;
 		}
 
