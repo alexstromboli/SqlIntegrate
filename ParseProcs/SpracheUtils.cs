@@ -34,9 +34,16 @@ namespace ParseProcs
 			);
 		}
 
-		public static Parser<IEnumerable<T>> CommaDelimitedST<T> (this Parser<T> Inner)
+		public static Parser<IEnumerable<T>> CommaDelimitedST<T> (this Parser<T> Inner, bool CanBeEmpty = false)
 		{
-			return Inner.DelimitedBy (Parse.Char (',').SqlToken ());
+			var Result = Inner.DelimitedBy (Parse.Char (',').SqlToken ());
+
+			if (CanBeEmpty)
+			{
+				Result = Result.Optional ().Select (seq => seq.GetOrElse (new T[0]));
+			}
+
+			return Result;
 		}
 
 		public static Parser<IEnumerable<string>> AllCommentsST ()

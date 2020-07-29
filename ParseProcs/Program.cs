@@ -17,11 +17,11 @@ namespace ParseProcs
 	{
 		public string ModuleName { get; }
 
-		protected List<Table> _Tables;
-		public IReadOnlyList<Table> Tables => _Tables;
+		protected Dictionary<string, Table> _Tables;
+		public IReadOnlyDictionary<string, Table> Tables => _Tables;
 
-		protected List<NamedTyped> _Variables;
-		public IReadOnlyList<NamedTyped> Variables => _Variables;
+		protected Dictionary<string, NamedTyped> _Variables;
+		public IReadOnlyDictionary<string, NamedTyped> Variables => _Variables;
 
 		protected Dictionary<string, PSqlType> _FunctionsDict;
 		public IReadOnlyDictionary<string, PSqlType> FunctionsDict => _FunctionsDict;
@@ -32,16 +32,16 @@ namespace ParseProcs
 		public ModuleContext (
 			string ModuleName,
 			IEnumerable<string> SchemaOrder,
-			IEnumerable<Table> Tables,
+			IReadOnlyDictionary<string, Table> TablesDict,
 			IReadOnlyDictionary<string, PSqlType> FunctionsDict,
-			IEnumerable<NamedTyped> Variables
+			IReadOnlyDictionary<string, NamedTyped> VariablesDict
 			)
 		{
 			this.ModuleName = ModuleName.ToLower ();
 			_SchemaOrder = new List<string> (SchemaOrder);
-			_Tables = new List<Table> (Tables);
+			_Tables = new Dictionary<string, Table> (TablesDict);
 			_FunctionsDict = new Dictionary<string, PSqlType> (FunctionsDict);
-			_Variables = new List<NamedTyped> (Variables);
+			_Variables = new Dictionary<string, NamedTyped> (VariablesDict);
 		}
 
 		public NamedTyped GetFunction (string[] FunctionName)
@@ -274,7 +274,7 @@ namespace ParseProcs
 			var PFunctionCallST =
 					from n in PQualifiedIdentifierST.SqlToken ()
 					from arg in PExpressionRefST.Get
-						.CommaDelimitedST ()
+						.CommaDelimitedST (true)
 						.InParentsST ()
 						.SqlToken ()
 					select n
@@ -540,9 +540,19 @@ done
 );
 
 			//
-			RequestContext rc = null;
+			ModuleContext mc = new ModuleContext (
+				"test",
+				SchemaOrder,
+				TablesDict,
+				FunctionsDict,
+				new Dictionary<string, NamedTyped> ()
+			);
+			RequestContext rc = new RequestContext (mc);
 			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResultType (rc).Type == t);
 			TestExpr ("5", PSqlType.Int);
+			TestExpr ("NOW()", PSqlType.Date);
+			TestExpr ("EXT.sum(2,5)", PSqlType.Decimal);
+			TestExpr ("suM(2,5)", PSqlType.BigInt);
 			TestExpr ("null::real", PSqlType.Real);
 			TestExpr (" null :: real ", PSqlType.Real);
 			TestExpr ("2.5", PSqlType.Decimal);
