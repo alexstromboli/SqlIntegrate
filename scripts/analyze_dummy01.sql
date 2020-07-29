@@ -79,3 +79,10 @@ order by procedure_schema,
          proc.specific_name,
          procedure_name,
          args.ordinal_position;
+
+SELECT routines.routine_schema, routines.routine_name, data_type
+FROM information_schema.routines
+WHERE routines.routine_type='FUNCTION'
+ORDER BY routines.routine_schema, routines.routine_name;
+
+SHOW search_path;

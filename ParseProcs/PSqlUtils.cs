@@ -20,6 +20,20 @@ namespace ParseProcs
 			return string.Join ('.', Segments.Select (s => s.ToLower ().PSqlEscape ()));
 		}
 
+		public static string PSqlQualifiedName (params string[] Segments)
+		{
+			return Segments.PSqlQualifiedName ();
+		}
+
+		public static object ExecuteScalar (this Npgsql.NpgsqlConnection conn, string CommandText)
+		{
+			using (var cmd = conn.CreateCommand ())
+			{
+				cmd.CommandText = CommandText;
+				return cmd.ExecuteScalar ();
+			}
+		}
+
 		public static PSqlType GetBinaryOperationResultType (PSqlType Left, PSqlType Right, string Operator)
 		{
 			if (Left.IsNumber && Right.IsNumber)

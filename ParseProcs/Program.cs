@@ -15,8 +15,7 @@ namespace ParseProcs
 
 	public class ModuleContext
 	{
-		public string ModuleName { get; protected set; }
-		public string DefaultSchemaName { get; protected set; }
+		public string ModuleName { get; }
 
 		protected List<Table> _Tables;
 		public IReadOnlyList<Table> Tables => _Tables;
@@ -24,15 +23,51 @@ namespace ParseProcs
 		protected List<NamedTyped> _Variables;
 		public IReadOnlyList<NamedTyped> Variables => _Variables;
 
-		public ModuleContext (string ModuleName, string DefaultSchemaName,
+		protected Dictionary<string, PSqlType> _FunctionsDict;
+		public IReadOnlyDictionary<string, PSqlType> FunctionsDict => _FunctionsDict;
+
+		protected List<string> _SchemaOrder;
+		public IReadOnlyList<string> SchemaOrder => _SchemaOrder;
+
+		public ModuleContext (
+			string ModuleName,
+			IEnumerable<string> SchemaOrder,
 			IEnumerable<Table> Tables,
+			IReadOnlyDictionary<string, PSqlType> FunctionsDict,
 			IEnumerable<NamedTyped> Variables
 			)
 		{
 			this.ModuleName = ModuleName.ToLower ();
-			this.DefaultSchemaName = DefaultSchemaName.ToLower ();
+			_SchemaOrder = new List<string> (SchemaOrder);
 			_Tables = new List<Table> (Tables);
+			_FunctionsDict = new Dictionary<string, PSqlType> (FunctionsDict);
 			_Variables = new List<NamedTyped> (Variables);
+		}
+
+		public NamedTyped GetFunction (string[] FunctionName)
+		{
+			string Name = FunctionName[^1].ToLower ();
+			string Key = FunctionName.PSqlQualifiedName ();
+
+			PSqlType Type = null;
+			if (!FunctionsDict.TryGetValue (Key, out Type))
+			{
+				if (FunctionName.Length == 1)
+				{
+					foreach (string sch in SchemaOrder)
+					{
+						string SchKey = new[] { sch }.Concat (FunctionName).PSqlQualifiedName ();
+						if (FunctionsDict.TryGetValue (SchKey, out Type))
+						{
+							break;
+						}
+					}
+				}
+			}
+
+			Type ??= PSqlType.Null;
+
+			return new NamedTyped (Name, Type);
 		}
 	}
 
@@ -47,7 +82,7 @@ namespace ParseProcs
 
 		public NamedTyped GetFunction (string[] FunctionName)
 		{
-			throw new NotImplementedException ();
+			return ModuleContext.GetFunction (FunctionName);
 		}
 
 		public NamedTyped GetScalar (string[] ScalarName)
@@ -111,8 +146,10 @@ namespace ParseProcs
 
 			Dictionary<string, Table> TablesDict = new Dictionary<string, Table> ();
 			Dictionary<string, Procedure> ProceduresDict = new Dictionary<string, Procedure> ();
+			Dictionary<string, PSqlType> FunctionsDict = new Dictionary<string, PSqlType> ();
+			List<string> SchemaOrder = new List<string> ();
 
-			ReadDatabase (ConnectionString, TablesDict, ProceduresDict);
+			ReadDatabase (ConnectionString, TablesDict, ProceduresDict, FunctionsDict, SchemaOrder);
 
 			//
 

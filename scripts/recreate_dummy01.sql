@@ -4,6 +4,8 @@ CREATE DATABASE dummy01;
 \c dummy01;
 
 CREATE SCHEMA ext;
+CREATE SCHEMA postgres;
+
 CREATE TABLE ext.Persons
 (
     id uuid,
@@ -107,12 +109,29 @@ AS $$
     DECLARE
         dt date;
         over int := 9;
+        "g h" real;
     BEGIN
         dt := now();
         --SELECT 6 as done;
         --SELECT 't' as over;
     END;
 $$;
+
+CREATE FUNCTION ext.Sum (a money, b money)
+RETURNS decimal
+AS $$
+    BEGIN
+        RETURN a + b;
+    END
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION postgres.Sum (a money, b money)
+    RETURNS bigint
+AS $$
+    BEGIN
+        RETURN (a + b * 1.3)::decimal::bigint;
+    END
+$$ LANGUAGE plpgsql;
 
 -- DROP PROCEDURE RoomsForPerson;
 CREATE PROCEDURE RoomsForPerson (id_person uuid,

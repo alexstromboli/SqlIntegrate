@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 
 using Npgsql;
@@ -8,7 +9,10 @@ namespace ParseProcs
 	{
 		private static void ReadDatabase (string ConnectionString,
 			Dictionary<string, Table> TablesDict,
-			Dictionary<string, Procedure> ProceduresDict)
+			Dictionary<string, Procedure> ProceduresDict,
+			Dictionary<string, PSqlType> FunctionsDict,
+			List<string> SchemaOrder
+			)
 		{
 			using (var conn = new NpgsqlConnection (ConnectionString))
 			{
@@ -137,6 +141,56 @@ ORDER BY procedure_schema,
 
 							Argument c = new Argument (ArgumentName, PSqlType.Map[Type], Direction);
 							p.AddArgument (c);
+						}
+					}
+				}
+
+				//
+				string SchemaPath = (string)conn.ExecuteScalar ("SHOW search_path;");
+
+				SchemaOrder.AddRange (
+					SchemaPath.Split (',')
+						.Select (s => s.Trim (' ', '"'))
+						.Where (s => !string.IsNullOrWhiteSpace (s))
+				);
+				SchemaOrder.Add ("pg_catalog");
+
+				for (int i = 0; i < SchemaOrder.Count; ++i)
+				{
+					string s = SchemaOrder[i];
+					if (s.StartsWith ('$'))
+					{
+						s = (string)conn.ExecuteScalar ("SELECT " + s.Substring (1) + ";");
+						SchemaOrder[i] = s;
+					}
+				}
+
+				//
+				using (var cmd = conn.CreateCommand ())
+				{
+					cmd.CommandText = @"
+SELECT routines.routine_schema, routines.routine_name, data_type
+FROM information_schema.routines
+WHERE routines.routine_type='FUNCTION'
+ORDER BY routines.routine_schema, routines.routine_name;
+";
+
+					using (var rdr = cmd.ExecuteReader ())
+					{
+						while (rdr.Read ())
+						{
+							// presumed to be lowercase
+							string Schema = (string)rdr["routine_schema"];
+							string RoutineName = (string)rdr["routine_name"];
+							string TypeName = (string)rdr["data_type"];
+
+							if (!PSqlType.Map.TryGetValue (TypeName, out PSqlType Type))
+							{
+								continue;
+							}
+
+							string QualName = PSqlUtils.PSqlQualifiedName (Schema, RoutineName);
+							FunctionsDict[QualName] = Type;
 						}
 					}
 				}
