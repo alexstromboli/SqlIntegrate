@@ -7,9 +7,9 @@ namespace ParseProcs
 
 		public static string GetDisplay (string Schema, string Name)
 		{
-			return $"{Schema}.{Name}";
+			return PSqlUtils.PSqlQualifiedName (Schema, Name);
 		}
-		
+
 		public string Display { get; protected set; }
 		public override string ToString () => Display;
 

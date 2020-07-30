@@ -44,20 +44,19 @@ namespace ParseProcs
 			_Variables = new Dictionary<string, NamedTyped> (VariablesDict);
 		}
 
-		public NamedTyped GetFunction (string[] FunctionName)
+		protected T GetSchemaEntity<T> (IReadOnlyDictionary<string, T> Dict, string[] NameSegments)
 		{
-			string Name = FunctionName[^1].ToLower ();
-			string Key = FunctionName.PSqlQualifiedName ();
+			string Key = NameSegments.PSqlQualifiedName ();
 
-			PSqlType Type = null;
-			if (!FunctionsDict.TryGetValue (Key, out Type))
+			T Result;
+			if (!Dict.TryGetValue (Key, out Result))
 			{
-				if (FunctionName.Length == 1)
+				if (NameSegments.Length == 1)
 				{
 					foreach (string sch in SchemaOrder)
 					{
-						string SchKey = new[] { sch }.Concat (FunctionName).PSqlQualifiedName ();
-						if (FunctionsDict.TryGetValue (SchKey, out Type))
+						string SchKey = new[] { sch }.Concat (NameSegments).PSqlQualifiedName ();
+						if (Dict.TryGetValue (SchKey, out Result))
 						{
 							break;
 						}
@@ -65,7 +64,13 @@ namespace ParseProcs
 				}
 			}
 
-			Type ??= PSqlType.Null;
+			return Result;
+		}
+
+		public NamedTyped GetFunction (string[] FunctionName)
+		{
+			string Name = FunctionName[^1].ToLower ();
+			PSqlType Type = GetSchemaEntity (FunctionsDict, FunctionName) ?? PSqlType.Null;
 
 			return new NamedTyped (Name, Type);
 		}
