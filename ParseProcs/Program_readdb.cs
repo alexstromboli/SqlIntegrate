@@ -61,7 +61,7 @@ ORDER BY table_schema, table_name, ordinal_position;
 							string ColumnName = (string) rdr["column_name"];
 							string Type = (string) rdr["data_type"];
 
-							if (!TablesDict.TryGetValue (Table.GetDisplay (Schema, TableName), out Table t))
+							if (!TablesDict.TryGetValue (SchemaEntity.GetDisplay (Schema, TableName), out Table t))
 							{
 								continue;
 							}
@@ -123,12 +123,12 @@ ORDER BY procedure_schema,
 						while (rdr.Read ())
 						{
 							string Schema = (string) rdr["procedure_schema"];
-							string TableName = (string) rdr["procedure_name"];
+							string ProcedureName = (string) rdr["procedure_name"];
 							string ArgumentDirection = (string) rdr["parameter_mode"];
 							string ArgumentName = (string) rdr["parameter_name"];
 							string Type = (string) rdr["data_type"];
 
-							if (!ProceduresDict.TryGetValue (SchemaEntity.GetDisplay (Schema, TableName),
+							if (!ProceduresDict.TryGetValue (SchemaEntity.GetDisplay (Schema, ProcedureName),
 								out Procedure p))
 							{
 								continue;

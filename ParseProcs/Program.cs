@@ -17,11 +17,11 @@ namespace ParseProcs
 	{
 		public string ModuleName { get; }
 
-		protected Dictionary<string, Table> _Tables;
-		public IReadOnlyDictionary<string, Table> Tables => _Tables;
+		protected Dictionary<string, Table> _TablesDict;
+		public IReadOnlyDictionary<string, Table> TablesDict => _TablesDict;
 
-		protected Dictionary<string, NamedTyped> _Variables;
-		public IReadOnlyDictionary<string, NamedTyped> Variables => _Variables;
+		protected Dictionary<string, NamedTyped> _VariablesDict;
+		public IReadOnlyDictionary<string, NamedTyped> VariablesDict => _VariablesDict;
 
 		protected Dictionary<string, PSqlType> _FunctionsDict;
 		public IReadOnlyDictionary<string, PSqlType> FunctionsDict => _FunctionsDict;
@@ -39,9 +39,9 @@ namespace ParseProcs
 		{
 			this.ModuleName = ModuleName.ToLower ();
 			_SchemaOrder = new List<string> (SchemaOrder);
-			_Tables = new Dictionary<string, Table> (TablesDict);
+			_TablesDict = new Dictionary<string, Table> (TablesDict);
 			_FunctionsDict = new Dictionary<string, PSqlType> (FunctionsDict);
-			_Variables = new Dictionary<string, NamedTyped> (VariablesDict);
+			_VariablesDict = new Dictionary<string, NamedTyped> (VariablesDict);
 		}
 
 		protected T GetSchemaEntity<T> (IReadOnlyDictionary<string, T> Dict, string[] NameSegments)
@@ -67,12 +67,17 @@ namespace ParseProcs
 			return Result;
 		}
 
-		public NamedTyped GetFunction (string[] FunctionName)
+		public NamedTyped GetFunction (string[] NameSegments)
 		{
-			string Name = FunctionName[^1].ToLower ();
-			PSqlType Type = GetSchemaEntity (FunctionsDict, FunctionName) ?? PSqlType.Null;
+			string Name = NameSegments[^1].ToLower ();
+			PSqlType Type = GetSchemaEntity (FunctionsDict, NameSegments) ?? PSqlType.Null;
 
 			return new NamedTyped (Name, Type);
+		}
+
+		public Table GetTable (string[] NameSegments)
+		{
+			return GetSchemaEntity (TablesDict, NameSegments);
 		}
 	}
 
@@ -101,53 +106,11 @@ namespace ParseProcs
 		}
 	}
 
-	/*
-	public abstract class TableExpression
-	{
-		public abstract IReadOnlyList<string> NameFragments { get; }
-		public abstract IReadOnlyDictionary<string, NamedTyped> ColumnsDict { get; }
-	}
-
-	public class DbTableExpression : TableExpression
-	{
-		protected Table Table;
-		protected string[] NameFragmentsImpl;
-
-		public override IReadOnlyList<string> NameFragments => NameFragmentsImpl;
-		public override IReadOnlyDictionary<string, NamedTyped> ColumnsDict => Table.ColumnsDict;
-
-		public DbTableExpression (Table Table, string[] NameFragmentsImpl)
-		{
-			this.Table = Table;
-			this.NameFragmentsImpl = NameFragmentsImpl;
-		}
-	}
-
-	public interface IOutputNamedTypedColumns
-	{
-		IReadOnlyList<NamedTyped> Get (RequestContext Context);
-	}
-	*/
-
-	public class SProcedure
-	{
-		public List<SVarDeclaration> Variables;
-		public List<SInstruction> Instructions;
-	}
-
-	public class SInstruction
-	{
-	}
-
-	public class SVarDeclaration
-	{
-	}
-
 	partial class Program
 	{
 		static void Main (string[] args)
 		{
-			string ConnectionString = "server=127.0.0.1;port=5432;database=dummy01;uid=postgres;pwd=Yakunichev";
+			string ConnectionString = "server=127.0.0.1;port=5432;database=dummy01;uid=alexey;pwd=1234";
 
 			Dictionary<string, Table> TablesDict = new Dictionary<string, Table> ();
 			Dictionary<string, Procedure> ProceduresDict = new Dictionary<string, Procedure> ();
@@ -200,7 +163,7 @@ namespace ParseProcs
 			// any id readable without quotes, except keywords
 			var PBasicValidIdentifier =
 					PBasicIdentifier
-						.Where (n => Keywords.CanBeIdentifier (n))
+						.Where (n => n.CanBeIdentifier ())
 				;
 
 			// any id readable without quotes, except keywords,
@@ -555,7 +518,7 @@ done
 			RequestContext rc = new RequestContext (mc);
 			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResultType (rc).Type == t);
 			TestExpr ("5", PSqlType.Int);
-			TestExpr ("NOW()", PSqlType.Date);
+			TestExpr ("NOW()", PSqlType.TimestampTz);
 			TestExpr ("EXT.sum(2,5)", PSqlType.Decimal);
 			TestExpr ("suM(2,5)", PSqlType.BigInt);
 			TestExpr ("null::real", PSqlType.Real);
@@ -585,6 +548,9 @@ done
 			TestExpr ("5>6", PSqlType.Bool);
 			TestExpr ("5<=6", PSqlType.Bool);
 			TestExpr (" 5 <= 2*3 AnD NOT 4.5 isnull ", PSqlType.Bool);
+
+			TestExpr ("a.b.c::bigint", PSqlType.BigInt);		// test irrelevance of the left part of a type cast
+			TestExpr ("('{6, 9, 3}'::int[])[1]", PSqlType.Int);		// test irrelevance of the left part of a type cast
 
 			TestExpr (
 @" 5 /* t 67 */  /* t 67 */  /* t 67 */ :: /* t 67 */ /* t 67 */ smallint + f ( a || '--' ,

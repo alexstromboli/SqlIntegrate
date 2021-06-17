@@ -4,7 +4,7 @@ CREATE DATABASE dummy01;
 \c dummy01;
 
 CREATE SCHEMA ext;
-CREATE SCHEMA postgres;
+CREATE SCHEMA alexey;     -- for test, needs to match the username
 
 CREATE TABLE ext.Persons
 (
@@ -125,7 +125,7 @@ AS $$
     END
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION postgres.Sum (a money, b money)
+CREATE FUNCTION alexey.Sum (a money, b money)
     RETURNS bigint
 AS $$
     BEGIN

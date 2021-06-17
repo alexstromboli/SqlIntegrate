@@ -2,12 +2,12 @@ using System.Collections.Generic;
 
 namespace ParseProcs
 {
-	public class Keywords
+	public static class Keywords
 	{
 		// https://www.postgresql.org/docs/12/sql-keywords-appendix.html
-		protected static SortedSet<string> SqlKeywords;		// lowercase
+		private static SortedSet<string> SqlKeywords;		// lowercase
 
-		public static bool CanBeIdentifier (string Line)
+		public static bool CanBeIdentifier (this string Line)
 		{
 			return !SqlKeywords.Contains (Line.ToLower ());
 		}

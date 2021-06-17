@@ -8,12 +8,13 @@ namespace ParseProcs
 	{
 		public static string PSqlEscape (this string Literal)
 		{
-			if (Literal.All (c =>
-				c >= 'A' && c <= 'Z'
-				|| c >= 'a' && c <= 'z'
-				|| c >= '0' && c <= '9'
-				|| c == '_'
-			))
+			if (Literal.CanBeIdentifier ()
+				&& Literal.All (c =>
+					c >= 'A' && c <= 'Z'
+					|| c >= 'a' && c <= 'z'
+					|| c >= '0' && c <= '9'
+					|| c == '_'
+				))
 			{
 				return Literal;
 			}
@@ -46,6 +47,8 @@ namespace ParseProcs
 
 		public static PSqlType GetBinaryOperationResultType (PSqlType Left, PSqlType Right, string Operator)
 		{
+			// here: text + text ?
+
 			if (Left.IsNumber && Right.IsNumber)
 			{
 				return Left.NumericLevel > Right.NumericLevel
