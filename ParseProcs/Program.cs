@@ -97,7 +97,8 @@ namespace ParseProcs
 
 		public NamedTyped GetScalar (string[] ScalarName)
 		{
-			throw new NotImplementedException ();
+			string Name = ScalarName[^1].ToLower ();
+			return new NamedLazyTyped (Name, () => throw new NotImplementedException ("No typing for scalars"));
 		}
 
 		public IReadOnlyList<NamedTyped> GetAsterisk (string[] Qualifier)
@@ -550,7 +551,7 @@ done
 			TestExpr (" 5 <= 2*3 AnD NOT 4.5 isnull ", PSqlType.Bool);
 
 			TestExpr ("a.b.c::bigint", PSqlType.BigInt);		// test irrelevance of the left part of a type cast
-			TestExpr ("('{6, 9, 3}'::int[])[1]", PSqlType.Int);		// test irrelevance of the left part of a type cast
+			TestExpr ("('{6, 9, 3}'::int[])[1]", PSqlType.Int);		// test taking an array item
 
 			TestExpr (
 @" 5 /* t 67 */  /* t 67 */  /* t 67 */ :: /* t 67 */ /* t 67 */ smallint + f ( a || '--' ,

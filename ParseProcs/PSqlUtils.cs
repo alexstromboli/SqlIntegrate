@@ -47,8 +47,6 @@ namespace ParseProcs
 
 		public static PSqlType GetBinaryOperationResultType (PSqlType Left, PSqlType Right, string Operator)
 		{
-			// here: text + text ?
-
 			if (Left.IsNumber && Right.IsNumber)
 			{
 				return Left.NumericLevel > Right.NumericLevel
