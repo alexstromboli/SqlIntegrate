@@ -19,7 +19,8 @@ CREATE TABLE ext.Persons
 CREATE TABLE Rooms
 (
     id int,
-    name varchar(30)
+    name varchar(30),
+    extents int[]
 );
 
 CREATE TABLE Own
@@ -110,6 +111,7 @@ AS $$
         dt date;
         over int := 9;
         "g h" real;
+        bwahaha int[];
     BEGIN
         dt := now();
         --SELECT 6 as done;
@@ -137,6 +139,8 @@ $$ LANGUAGE plpgsql;
 CREATE PROCEDURE RoomsForPerson (id_person uuid,
         INOUT res01 refcursor,
         INOUT res02 refcursor,
+        bwahaha int[],
+        INOUT get_array int[],
         name varchar(100) = 'none',
         over bool = true,
         dt01 date = null,
@@ -158,7 +162,8 @@ AS $$
                 lastname,
                 firstname,
                 dob,
-                tab_num
+                tab_num,
+                '{5, 8, 2, 0, 1}'::int[]
         FROM ext.Persons
         WHERE id = id_person
         ;
@@ -183,5 +188,6 @@ AS $$
         sample := sample + 1;
         came := 31 + sample;
         done := came::varchar;
+        get_array := '{5, 8, 2, 0, 1}'::int[];
     END;
 $$;

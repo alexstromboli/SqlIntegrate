@@ -47,7 +47,7 @@ SELECT  table_schema,
         table_name,
         column_name,
         ordinal_position,
-        data_type
+        udt_name::regtype::varchar AS data_type
 FROM information_schema.columns
 ORDER BY table_schema, table_name, ordinal_position;
 ";
@@ -66,7 +66,7 @@ ORDER BY table_schema, table_name, ordinal_position;
 								continue;
 							}
 
-							NamedTyped c = new NamedTyped (ColumnName, PSqlType.Map[Type]);
+							NamedTyped c = new NamedTyped (ColumnName, PSqlType.GetForSqlTypeName(Type));
 							t.AddColumn (c);
 						}
 					}
@@ -105,7 +105,7 @@ SELECT proc.specific_schema AS procedure_schema,
        proc.routine_name AS procedure_name,
        args.parameter_mode,
        args.parameter_name,
-       args.data_type
+       args.udt_name::regtype::varchar AS data_type
 FROM information_schema.routines proc
 	INNER JOIN information_schema.parameters args
           ON proc.specific_schema = args.specific_schema
@@ -139,7 +139,8 @@ ORDER BY procedure_schema,
 									: Argument.DirectionType.In
 								;
 
-							Argument c = new Argument (ArgumentName, PSqlType.Map[Type], Direction);
+							// here: arrays?
+							Argument c = new Argument (ArgumentName, PSqlType.GetForSqlTypeName(Type), Direction);
 							p.AddArgument (c);
 						}
 					}
@@ -169,9 +170,10 @@ ORDER BY procedure_schema,
 				using (var cmd = conn.CreateCommand ())
 				{
 					cmd.CommandText = @"
-SELECT routines.routine_schema, routines.routine_name, data_type
+SELECT routines.routine_schema, routines.routine_name, type_udt_name::regtype::varchar AS data_type
 FROM information_schema.routines
 WHERE routines.routine_type='FUNCTION'
+    AND type_udt_name NOT IN ('any')
 ORDER BY routines.routine_schema, routines.routine_name;
 ";
 
@@ -184,7 +186,8 @@ ORDER BY routines.routine_schema, routines.routine_name;
 							string RoutineName = (string)rdr["routine_name"];
 							string TypeName = (string)rdr["data_type"];
 
-							if (!PSqlType.Map.TryGetValue (TypeName, out PSqlType Type))
+							PSqlType Type = PSqlType.GetForSqlTypeName (TypeName);
+							if (Type == null)
 							{
 								continue;
 							}

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace ParseProcs
@@ -16,6 +17,10 @@ namespace ParseProcs
 			Float,
 			Money
 		}
+
+		public bool IsArray { get; protected set; } = false;
+		public PSqlType BaseType { get; protected set; }		// can be self
+		public PSqlType ArrayType { get; protected set; }			// can be self
 
 		public string Display { get; protected set; }
 		public Type ClrType { get; protected set; }
@@ -46,23 +51,36 @@ namespace ParseProcs
 		}
 
 		protected static Dictionary<string, PSqlType> _Map;
-		public static IReadOnlyDictionary<string, PSqlType> Map => _Map;
 
-		static PSqlType ()
+		public static PSqlType GetForSqlTypeName (string PSqlTypeNameL)
 		{
+			return _Map.TryGetValue (PSqlTypeNameL, out PSqlType Result) ? Result : null;
 		}
 
+		public static string[] GetAllKeys ()
+		{
+			return _Map.Keys.OrderByDescending (k => k.Length).ToArray ();
+		}
+
+		// https://dba.stackexchange.com/questions/90230/postgresql-determine-column-type-when-data-type-is-set-to-array
 		protected static PSqlType Add (Type ClrType, params string[] Keys)
 		{
 			_Map ??= new Dictionary<string, PSqlType> ();
 
-			PSqlType Type = new PSqlType { Display = Keys[0], ClrType = ClrType };
+			PSqlType BaseType = new PSqlType { Display = Keys[0], ClrType = ClrType };
+			PSqlType ArrayType = new PSqlType { Display = Keys[0] + "[]", ClrType = ClrType, IsArray = true };
+			BaseType.BaseType = BaseType;
+			BaseType.ArrayType = ArrayType;
+			ArrayType.BaseType = BaseType;
+			ArrayType.ArrayType = ArrayType;
+
 			foreach (string Key in Keys)
 			{
-				_Map[Key] = Type;
+				_Map[Key] = BaseType;
+				_Map[Key + "[]"] = ArrayType;
 			}
 
-			return Type;
+			return BaseType;
 		}
 
 		public static readonly PSqlType Null = Add (typeof (object), "unknown");

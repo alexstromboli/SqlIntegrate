@@ -225,13 +225,26 @@ namespace ParseProcs
 			var PBinaryConjunctionST = SpracheUtils.AnyTokenST ("and");
 			var PBinaryDisjunctionST = SpracheUtils.AnyTokenST ("or");
 
-			var PTypeST =
-					from t in SpracheUtils.AnyTokenST (PSqlType.Map.Keys.OrderByDescending (k => k.Length).ToArray ())
+			var PBaseTypeST =
+					from t in SpracheUtils.AnyTokenST (PSqlType.GetAllKeys ())
 					from p in Parse.Number.SqlToken ()
 						.CommaDelimitedST ()
 						.InParentsST ()
 						.Optional ()
 					select t
+				;
+
+			var PTypeST =
+					from t in PBaseTypeST
+					from array in
+						(
+							from _1 in Parse.String ("[").SqlToken ()
+							from _2 in Parse.String ("]").SqlToken ()
+							select 1
+						)
+						.AtLeastOnce ()
+						.Optional ()
+					select t + (array.IsDefined ? "[]" : "");
 				;
 
 			var PSimpleTypeCastST =
@@ -277,10 +290,13 @@ namespace ParseProcs
 
 			var PAtomicPostfixOptionalST =
 					PBracketsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.None, false,
-							(l, r) => rc => new NamedTyped (l (rc).Name, null // type inference not implemented yet
-							)))
+							(l, r) => rc =>
+							{
+								var NamedTyped = l (rc);
+								return new NamedTyped (NamedTyped.Name, NamedTyped.Type.BaseType);
+							}))
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
-							(l, r) => rc => new NamedTyped (l (rc).Name, PSqlType.Map[tc]))))
+							(l, r) => rc => new NamedTyped (l (rc).Name, PSqlType.GetForSqlTypeName(tc)))))
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
 							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Many ()
@@ -523,7 +539,7 @@ done
 			TestExpr ("EXT.sum(2,5)", PSqlType.Decimal);
 			TestExpr ("suM(2,5)", PSqlType.BigInt);
 			TestExpr ("null::real", PSqlType.Real);
-			TestExpr (" null :: real ", PSqlType.Real);
+			TestExpr (" null :: REAL ", PSqlType.Real);
 			TestExpr ("2.5", PSqlType.Decimal);
 			TestExpr ("5::bigint", PSqlType.BigInt);
 			TestExpr ("5::bigint+7", PSqlType.BigInt);
