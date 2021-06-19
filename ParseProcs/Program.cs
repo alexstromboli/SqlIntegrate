@@ -263,7 +263,27 @@ namespace ParseProcs
 				;
 
 			//
-			var PAtomicST =
+
+			var PAsteriskSelectEntryST =
+					from qual in
+					(
+						from qual in PQualifiedIdentifierST
+						from dot in Parse.Char ('.').SqlToken ()
+						select qual
+					).Optional ()
+					from ast in Parse.Char ('*').SqlToken ()
+					select (Func<IRequestContext, IReadOnlyList<NamedTyped>>)(rc => rc.GetAsterisk (qual.GetOrElse (new string[0])))
+				;
+
+			var PGroupByClauseOptionalST =
+				(
+					from kw_groupby in SpracheUtils.AnyTokenST ("group by")
+					from grp in PExpressionRefST.Get.CommaDelimitedST ()
+					select 0
+				).Optional ()
+				;
+
+			var PBaseAtomicST =
 					PNull.SqlToken ().ProduceType (PSqlType.Null)
 						.Or (PDecimal.SqlToken ().ProduceType (PSqlType.Decimal))
 						// PInteger must be or-ed after PDecimal
@@ -271,7 +291,7 @@ namespace ParseProcs
 						.Or (PBooleanLiteral.SqlToken ().ProduceType (PSqlType.Bool))
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (PSqlType.Text))
 						.Or (PParentsST.Select<SPolynom, Func<IRequestContext, NamedTyped>> (p =>
-							rc => p.GetResultType (rc)))
+							rc => p.GetResult (rc)))
 						.Or (PFunctionCallST.Select<string[], Func<IRequestContext, NamedTyped>> (p => rc =>
 							rc.GetFunction (p)
 							))
@@ -279,6 +299,38 @@ namespace ParseProcs
 						.Or (PQualifiedIdentifierST.Select<string[], Func<IRequestContext, NamedTyped>> (p => rc =>
 							rc.GetScalar (p)
 							))
+				;
+
+			var PAtomicST = PBaseAtomicST
+					.Or (
+							from rn in SpracheUtils.SqlToken ("row_number")
+							from _1 in SpracheUtils.AnyTokenST ("( ) over (")
+							from _2 in
+								(
+									from _3 in SpracheUtils.AnyTokenST ("partition by")
+									from _4 in PExpressionRefST.Get.CommaDelimitedST ()
+									select 0
+								).Optional ()
+							from _5 in PGroupByClauseOptionalST
+							from _6 in SpracheUtils.SqlToken (")")
+							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (rn, PSqlType.Int))
+						)
+					.Or (
+							from f in SpracheUtils.AnyTokenST ("sum", "min", "max")
+							from _1 in SpracheUtils.AnyTokenST ("(")
+							from _2 in SpracheUtils.AnyTokenST ("distinct").Optional ()
+							from exp in PExpressionRefST.Get
+							from _3 in SpracheUtils.AnyTokenST (")")
+							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
+						)
+					.Or (
+							from f in SpracheUtils.AnyTokenST ("count")
+							from _1 in SpracheUtils.AnyTokenST ("(")
+							from _2 in SpracheUtils.AnyTokenST ("distinct").Optional ()
+							from exp in PExpressionRefST.Get.Return (0).Or (PAsteriskSelectEntryST.Return (0))
+							from _3 in SpracheUtils.AnyTokenST (")")
+							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
+						)
 				;
 
 			var PAtomicPrefixGroupOptionalST =
@@ -353,16 +405,6 @@ namespace ParseProcs
 			PExpressionRefST.Parser = PPolynomST;
 
 			//
-			var PAsteriskSelectEntryST =
-					from qual in
-					(
-						from qual in PQualifiedIdentifierST
-						from dot in Parse.Char ('.').SqlToken ()
-						select qual
-					).Optional ()
-					from ast in Parse.Char ('*').SqlToken ()
-					select (Func<IRequestContext, IReadOnlyList<NamedTyped>>)(rc => rc.GetAsterisk (qual.GetOrElse (new string[0])))
-				;
 			var PSingleSelectEntryST =
 					from exp in PExpressionRefST.Get
 					from alias_cl in
@@ -377,7 +419,7 @@ namespace ParseProcs
 						).Optional ()
 					select (Func<IRequestContext, IReadOnlyList<NamedTyped>>)(rc =>
 							{
-								var nt = exp.GetResultType (rc);
+								var nt = exp.GetResult (rc);
 								var res = alias_cl.IsDefined
 									? new NamedTyped (alias_cl.Get (), nt.Type)
 									: nt;
@@ -413,6 +455,7 @@ namespace ParseProcs
 				select new {table, alias = alias_cl.GetOrDefault ()};
 
 			var PFromClauseOptionalST =
+				(
 					from kw_from in SpracheUtils.SqlToken ("from")
 					from t1 in PFromTableExpressionST
 					from tail in (
@@ -426,20 +469,13 @@ namespace ParseProcs
 						select tN
 					).Many ()
 					select new[] {t1}.Concat (tail).ToArray ()
+				).Optional ()
 				;
 
 			var PWhereClauseOptionalST =
 				(
 					from kw_where in SpracheUtils.SqlToken ("where")
 					from cond in PExpressionRefST.Get
-					select 0
-				).Optional ()
-				;
-
-			var PGroupByClauseOptionalST =
-				(
-					from kw_groupby in SpracheUtils.AnyTokenST ("group by")
-					from grp in PExpressionRefST.Get.CommaDelimitedST ()
 					select 0
 				).Optional ()
 				;
@@ -460,6 +496,7 @@ namespace ParseProcs
 
 			var POrdinarySelectST =
 					from kw_select in SpracheUtils.SqlToken ("select")
+					from distinct in SpracheUtils.SqlToken ("distinct").Optional ()
 					from list in PSelectListST
 					from from_cl in PFromClauseOptionalST
 					from _w in PWhereClauseOptionalST
@@ -472,6 +509,7 @@ namespace ParseProcs
 						.DelimitedBy (SpracheUtils.AnyTokenST ("union all", "union", "except", "subtract"))
 						.Select (ss => ss.ToArray ())
 					from ord in POrderByClauseOptionalST
+					from limit in SpracheUtils.SqlToken ("limit").Then (p => Parse.Number.SqlToken ()).Optional ()
 					select new {list = seq[0].list, from_cl = seq[0].from_cl, is_many = seq.Length > 1}
 				;
 
@@ -506,6 +544,49 @@ namespace ParseProcs
 					select new {name, last_comment = _cm2.LastOrDefault ()}
 				;
 
+			var PDataReturnStatementST =
+					from open in POpenDatasetST
+					from p_select in PSelectFullST
+					select new { open, p_select }
+				;
+
+			//
+			var sel01 = PDataReturnStatementST.Parse ("open ref01 for select 654");
+			var sel02 = PDataReturnStatementST.Parse ("open ref01 for select DISTINCT t");
+			var sel05 = PDataReturnStatementST.Parse (@"
+open ref01 for
+-- pfizer
+WITH F AS
+(
+	SELECT 'y' AS pink
+), Q AS
+(
+	SELECT 2.3
+)
+select	a.b,
+		b,		-- repeat
+		45,
+		'45',
+		NOW() + '02:30'::interval drain,
+		SUM(done.best),
+		SUM(done.best) AS troy,
+		SUM(DISTINCT done.best + 9) AS troy,
+		U.*
+UNION ALL
+select DISTINCT
+		a.b,
+		b,
+		45 AS done,
+		'45' AS most
+FROM F
+	INNER JOIN dbo.Users AS U ON U.id = F.id_author
+WHERE a.b > 10
+		OR zen
+GROUP BY name
+ORDER BY name
+LIMIT 10
+");
+
 			//
 			var opr01 = POpenDatasetST.Parse ("open ref01 for select 654");
 			var opr02 = POpenDatasetST.Parse ("OPEn ref01 foR /* r */ /* this */ select kjfgh");
@@ -533,7 +614,7 @@ done
 				new Dictionary<string, NamedTyped> ()
 			);
 			RequestContext rc = new RequestContext (mc);
-			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResultType (rc).Type == t);
+			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResult (rc).Type == t);
 			TestExpr ("5", PSqlType.Int);
 			TestExpr ("NOW()", PSqlType.TimestampTz);
 			TestExpr ("EXT.sum(2,5)", PSqlType.Decimal);

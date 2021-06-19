@@ -68,6 +68,20 @@ INSERT INTO Own VALUES ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 12);
 INSERT INTO Own VALUES ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 20);
 INSERT INTO Own VALUES ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 2);
 
+-- DROP PROCEDURE Persons_GetAll
+CREATE PROCEDURE Persons_GetAll (INOUT Users refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN Users FOR
+    SELECT  ROW_NUMBER() OVER (ORDER BY id) AS num,
+            *
+    FROM Persons
+    ;
+END;
+$$;
+
+-- DROP PROCEDURE GetDeptChain
 CREATE PROCEDURE GetDeptChain (id int, INOUT res01 refcursor)
 LANGUAGE 'plpgsql'
 AS $$
@@ -78,7 +92,7 @@ BEGIN
         (
             SELECT 5 AS done
         )
-       , R AS
+        , R AS
         (
             SELECT  id,
                     id_parent,
@@ -163,7 +177,11 @@ AS $$
                 firstname,
                 dob,
                 tab_num,
-                '{5, 8, 2, 0, 1}'::int[]
+                '{5, 8, 2, 0, 1}'::int[] AS them_all,
+                ('{5, 8, 2, 0, 1}'::int [/* inside */ ] )[3] AS piece,
+                sample,
+                sample::reAL,
+                sample + 45 AS "had it"
         FROM ext.Persons
         WHERE id = id_person
         ;

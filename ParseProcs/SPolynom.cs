@@ -19,7 +19,7 @@ namespace ParseProcs
 
 		protected NamedTyped ResultNameType = null;
 
-		public NamedTyped GetResultType (IRequestContext Context)
+		public NamedTyped GetResult (IRequestContext Context)
 		{
 			if (ResultNameType != null)
 			{
