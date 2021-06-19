@@ -97,8 +97,9 @@ BEGIN
             SELECT  id,
                     id_parent,
                     name,
-                    1 AS "order"
+                    C.done AS "order"
             FROM Depts
+                CROSS JOIN C
             WHERE id = GetDeptChain.id
 
             UNION ALL

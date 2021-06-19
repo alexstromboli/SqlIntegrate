@@ -8,7 +8,7 @@ namespace ParseProcs
 	partial class Program
 	{
 		private static void ReadDatabase (string ConnectionString,
-			Dictionary<string, Table> TablesDict,
+			Dictionary<string, DbTable> TablesDict,
 			Dictionary<string, Procedure> ProceduresDict,
 			Dictionary<string, PSqlType> FunctionsDict,
 			List<string> SchemaOrder
@@ -34,7 +34,7 @@ WHERE table_schema NOT IN ('pg_catalog', 'information_schema');
 							string Schema = (string) rdr["table_schema"];
 							string Name = (string) rdr["table_name"];
 
-							Table t = new Table (Schema, Name);
+							DbTable t = new DbTable (Schema, Name);
 							TablesDict[t.Display] = t;
 						}
 					}
@@ -61,7 +61,7 @@ ORDER BY table_schema, table_name, ordinal_position;
 							string ColumnName = (string) rdr["column_name"];
 							string Type = (string) rdr["data_type"];
 
-							if (!TablesDict.TryGetValue (SchemaEntity.GetDisplay (Schema, TableName), out Table t))
+							if (!TablesDict.TryGetValue (SchemaEntity.GetDisplay (Schema, TableName), out DbTable t))
 							{
 								continue;
 							}

@@ -17,8 +17,8 @@ namespace ParseProcs
 	{
 		public string ModuleName { get; }
 
-		protected Dictionary<string, Table> _TablesDict;
-		public IReadOnlyDictionary<string, Table> TablesDict => _TablesDict;
+		protected Dictionary<string, DbTable> _TablesDict;
+		public IReadOnlyDictionary<string, DbTable> TablesDict => _TablesDict;
 
 		protected Dictionary<string, NamedTyped> _VariablesDict;
 		public IReadOnlyDictionary<string, NamedTyped> VariablesDict => _VariablesDict;
@@ -32,14 +32,14 @@ namespace ParseProcs
 		public ModuleContext (
 			string ModuleName,
 			IEnumerable<string> SchemaOrder,
-			IReadOnlyDictionary<string, Table> TablesDict,
+			IReadOnlyDictionary<string, DbTable> TablesDict,
 			IReadOnlyDictionary<string, PSqlType> FunctionsDict,
 			IReadOnlyDictionary<string, NamedTyped> VariablesDict
 			)
 		{
 			this.ModuleName = ModuleName.ToLower ();
 			_SchemaOrder = new List<string> (SchemaOrder);
-			_TablesDict = new Dictionary<string, Table> (TablesDict);
+			_TablesDict = new Dictionary<string, DbTable> (TablesDict);
 			_FunctionsDict = new Dictionary<string, PSqlType> (FunctionsDict);
 			_VariablesDict = new Dictionary<string, NamedTyped> (VariablesDict);
 		}
@@ -75,7 +75,7 @@ namespace ParseProcs
 			return new NamedTyped (Name, Type);
 		}
 
-		public Table GetTable (string[] NameSegments)
+		public DbTable GetTable (string[] NameSegments)
 		{
 			return GetSchemaEntity (TablesDict, NameSegments);
 		}
@@ -107,13 +107,99 @@ namespace ParseProcs
 		}
 	}
 
+	public class OpenDataset
+	{
+		public string Name { get; }
+		public string LastComment { get; }
+
+		public OpenDataset (string Name, string LastComment)
+		{
+			this.Name = Name;
+			this.LastComment = LastComment;
+		}
+	}
+
+	public class FromTableExpression
+	{
+		public string[] Table { get; }
+		public string Alias { get; }
+
+		public FromTableExpression (string[] Table, string Alias)
+		{
+			this.Table = Table;
+			this.Alias = Alias;
+		}
+	}
+
+	public class OrdinarySelect
+	{
+		public Func<IRequestContext, IReadOnlyList<NamedTyped>> List { get; }
+		public IOption<FromTableExpression[]> FromClause { get; }
+
+		public OrdinarySelect (Func<IRequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause)
+		{
+			this.List = List;
+			this.FromClause = FromClause;
+		}
+	}
+
+	public class SelectStatement
+	{
+		public Func<IRequestContext, IReadOnlyList<NamedTyped>> List { get; }
+		public IOption<FromTableExpression[]> FromClause { get; }
+		public bool IsMany { get; }
+
+		public SelectStatement (Func<IRequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause, bool IsMany)
+		{
+			this.List = List;
+			this.FromClause = FromClause;
+			this.IsMany = IsMany;
+		}
+	}
+
+	public class CteLevel
+	{
+		public string Name { get; }
+		public SelectStatement Table { get; }
+
+		public CteLevel (string Name, SelectStatement Table)
+		{
+			this.Name = Name;
+			this.Table = Table;
+		}
+	}
+
+	public class FullSelectStatement
+	{
+		public IOption<IEnumerable<CteLevel>> Cte { get; }
+		public SelectStatement SelectBody { get; }
+
+		public FullSelectStatement (IOption<IEnumerable<CteLevel>> Cte, SelectStatement SelectBody)
+		{
+			this.Cte = Cte;
+			this.SelectBody = SelectBody;
+		}
+	}
+
+	public class DataReturnStatement
+	{
+		public OpenDataset Open { get; }
+		public FullSelectStatement FullSelect { get; }
+
+		public DataReturnStatement (OpenDataset Open, FullSelectStatement FullSelect)
+		{
+			this.Open = Open;
+			this.FullSelect = FullSelect;
+		}
+	}
+
 	partial class Program
 	{
 		static void Main (string[] args)
 		{
 			string ConnectionString = "server=127.0.0.1;port=5432;database=dummy01;uid=alexey;pwd=1234";
 
-			Dictionary<string, Table> TablesDict = new Dictionary<string, Table> ();
+			Dictionary<string, DbTable> TablesDict = new Dictionary<string, DbTable> ();
 			Dictionary<string, Procedure> ProceduresDict = new Dictionary<string, Procedure> ();
 			Dictionary<string, PSqlType> FunctionsDict = new Dictionary<string, PSqlType> ();
 			List<string> SchemaOrder = new List<string> ();
@@ -452,7 +538,7 @@ namespace ParseProcs
 					(
 						PValidIdentifierEx.SqlToken ()
 					).Optional ()
-				select new {table, alias = alias_cl.GetOrDefault ()};
+				select new FromTableExpression (table, alias_cl.GetOrDefault ());
 
 			var PFromClauseOptionalST =
 				(
@@ -501,7 +587,7 @@ namespace ParseProcs
 					from from_cl in PFromClauseOptionalST
 					from _w in PWhereClauseOptionalST
 					from _g in PGroupByClauseOptionalST
-					select new {list, from_cl}
+					select new OrdinarySelect (list, from_cl)
 				;
 
 			var PSelectST =
@@ -510,14 +596,14 @@ namespace ParseProcs
 						.Select (ss => ss.ToArray ())
 					from ord in POrderByClauseOptionalST
 					from limit in SpracheUtils.SqlToken ("limit").Then (p => Parse.Number.SqlToken ()).Optional ()
-					select new {list = seq[0].list, from_cl = seq[0].from_cl, is_many = seq.Length > 1}
+					select new SelectStatement (seq[0].List, seq[0].FromClause, seq.Length > 1)
 				;
 
 			var PCteLevelST =
 					from name in PValidIdentifierEx
 					from kw_as in SpracheUtils.SqlToken ("as")
 					from select_exp in PSelectST.InParentsST ()
-					select new {name, table = select_exp}
+					select new CteLevel (name, select_exp)
 				;
 
 			var PCteTopOptionalST =
@@ -532,7 +618,7 @@ namespace ParseProcs
 			var PSelectFullST =
 					from cte in PCteTopOptionalST
 					from select_body in PSelectST
-					select new { cte, select_body }
+					select new FullSelectStatement (cte, select_body)
 				;
 
 			var POpenDatasetST =
@@ -541,13 +627,13 @@ namespace ParseProcs
 					from _cm1 in SpracheUtils.AllCommentsST ()
 					from kw_for in Parse.IgnoreCase ("for")
 					from _cm2 in SpracheUtils.AllCommentsST ()
-					select new {name, last_comment = _cm2.LastOrDefault ()}
+					select new OpenDataset (name, _cm2.LastOrDefault ())
 				;
 
 			var PDataReturnStatementST =
 					from open in POpenDatasetST
 					from p_select in PSelectFullST
-					select new { open, p_select }
+					select new DataReturnStatement (open, p_select)
 				;
 
 			//
