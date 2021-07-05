@@ -84,10 +84,12 @@ namespace ParseProcs
 	public class RequestContext : IRequestContext
 	{
 		protected ModuleContext ModuleContext;
+		protected FromTableExpression[] Froms;
 
-		public RequestContext (ModuleContext ModuleContext)
+		public RequestContext (ModuleContext ModuleContext, FromTableExpression[] Froms)
 		{
 			this.ModuleContext = ModuleContext;
+			this.Froms = Froms;
 		}
 
 		public NamedTyped GetFunction (string[] FunctionName)
@@ -104,6 +106,67 @@ namespace ParseProcs
 		public IReadOnlyList<NamedTyped> GetAsterisk (string[] Qualifier)
 		{
 			throw new NotImplementedException ();
+		}
+	}
+
+	public class ExtraTableRequestContext : IRequestContext
+	{
+		protected IRequestContext NextContext;
+		protected string TableName;
+		protected ITable Table;
+
+		public ExtraTableRequestContext (IRequestContext NextContext, string TableName, ITable Table)
+		{
+			this.NextContext = NextContext;
+			this.TableName = TableName;
+			this.Table = Table;
+		}
+
+		public NamedTyped GetFunction (string[] FunctionName)
+		{
+			return NextContext.GetFunction (FunctionName);
+		}
+
+		public NamedTyped GetScalar (string[] ScalarName)
+		{
+			// no check for uniqueness
+
+			if (ScalarName.Length == 1 && Table.ColumnsDict.TryGetValue (ScalarName[0], out NamedTyped Scalar))
+			{
+				return Scalar;
+			}
+
+			if (ScalarName.Length == 2
+			    && ScalarName[0] == TableName
+			    && Table.ColumnsDict.TryGetValue (ScalarName[1], out Scalar)
+			    )
+			{
+				return Scalar;
+			}
+
+			return NextContext.GetScalar (ScalarName);
+		}
+
+		public IReadOnlyList<NamedTyped> GetAsterisk (string[] Qualifier)
+		{
+			if (Qualifier.Length == 1)
+			{
+				if (Qualifier[0] == TableName)
+				{
+					return Table.Columns;
+				}
+
+				return NextContext.GetAsterisk (Qualifier);
+			}
+
+			var ChainResult = NextContext.GetAsterisk (Qualifier);
+
+			if (Qualifier.Length == 0)
+			{
+				return Table.Columns.Concat (ChainResult).ToArray ();
+			}
+
+			return ChainResult;
 		}
 	}
 
@@ -190,6 +253,11 @@ namespace ParseProcs
 		{
 			this.Open = Open;
 			this.FullSelect = FullSelect;
+		}
+
+		public ITable GetResult (IRequestContext rc)
+		{
+			throw new NotImplementedException ();
 		}
 	}
 
@@ -699,7 +767,7 @@ done
 				FunctionsDict,
 				new Dictionary<string, NamedTyped> ()
 			);
-			RequestContext rc = new RequestContext (mc);
+			RequestContext rc = new RequestContext (mc, null);
 			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResult (rc).Type == t);
 			TestExpr ("5", PSqlType.Int);
 			TestExpr ("NOW()", PSqlType.TimestampTz);
