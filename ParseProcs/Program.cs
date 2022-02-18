@@ -85,11 +85,13 @@ namespace ParseProcs
 	{
 		protected ModuleContext ModuleContext;
 		protected FromTableExpression[] Froms;
+		protected Dictionary<string, ITable> LocalTablesDict;
 
 		public RequestContext (ModuleContext ModuleContext, FromTableExpression[] Froms)
 		{
 			this.ModuleContext = ModuleContext;
 			this.Froms = Froms;
+			this.LocalTablesDict = new Dictionary<string, ITable> ();
 		}
 
 		public NamedTyped GetFunction (string[] FunctionName)
@@ -109,67 +111,6 @@ namespace ParseProcs
 		}
 	}
 
-	public class ExtraTableRequestContext : IRequestContext
-	{
-		protected IRequestContext NextContext;
-		protected string TableName;
-		protected ITable Table;
-
-		public ExtraTableRequestContext (IRequestContext NextContext, string TableName, ITable Table)
-		{
-			this.NextContext = NextContext;
-			this.TableName = TableName;
-			this.Table = Table;
-		}
-
-		public NamedTyped GetFunction (string[] FunctionName)
-		{
-			return NextContext.GetFunction (FunctionName);
-		}
-
-		public NamedTyped GetScalar (string[] ScalarName)
-		{
-			// no check for uniqueness
-
-			if (ScalarName.Length == 1 && Table.ColumnsDict.TryGetValue (ScalarName[0], out NamedTyped Scalar))
-			{
-				return Scalar;
-			}
-
-			if (ScalarName.Length == 2
-			    && ScalarName[0] == TableName
-			    && Table.ColumnsDict.TryGetValue (ScalarName[1], out Scalar)
-			    )
-			{
-				return Scalar;
-			}
-
-			return NextContext.GetScalar (ScalarName);
-		}
-
-		public IReadOnlyList<NamedTyped> GetAsterisk (string[] Qualifier)
-		{
-			if (Qualifier.Length == 1)
-			{
-				if (Qualifier[0] == TableName)
-				{
-					return Table.Columns;
-				}
-
-				return NextContext.GetAsterisk (Qualifier);
-			}
-
-			var ChainResult = NextContext.GetAsterisk (Qualifier);
-
-			if (Qualifier.Length == 0)
-			{
-				return Table.Columns.Concat (ChainResult).ToArray ();
-			}
-
-			return ChainResult;
-		}
-	}
-
 	public class OpenDataset
 	{
 		public string Name { get; }
@@ -184,12 +125,12 @@ namespace ParseProcs
 
 	public class FromTableExpression
 	{
-		public string[] Table { get; }
+		public ITableRetriever TableRetriever { get; }
 		public string Alias { get; }
 
-		public FromTableExpression (string[] Table, string Alias)
+		public FromTableExpression (ITableRetriever TableRetriever, string Alias)
 		{
-			this.Table = Table;
+			this.TableRetriever = TableRetriever;
 			this.Alias = Alias;
 		}
 	}
@@ -485,6 +426,13 @@ namespace ParseProcs
 							from _3 in SpracheUtils.AnyTokenST (")")
 							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
 						)
+					.Or (
+							from f in SpracheUtils.AnyTokenST ("unnest")
+							from _1 in SpracheUtils.AnyTokenST ("(")
+							from exp in PExpressionRefST.Get
+							from _3 in SpracheUtils.AnyTokenST (")")
+							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type.BaseType))
+						)
 				;
 
 			var PAtomicPrefixGroupOptionalST =
@@ -606,7 +554,7 @@ namespace ParseProcs
 					(
 						PValidIdentifierEx.SqlToken ()
 					).Optional ()
-				select new FromTableExpression (table, alias_cl.GetOrDefault ());
+				select new FromTableExpression (new DbTableRetriever (table), alias_cl.GetOrDefault ());
 
 			var PFromClauseOptionalST =
 				(
