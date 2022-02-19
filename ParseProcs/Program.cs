@@ -173,7 +173,7 @@ namespace ParseProcs
 		}
 	}
 
-	public class FullSelectStatement
+	public class FullSelectStatement : ITableRetriever
 	{
 		public IOption<IEnumerable<CteLevel>> Cte { get; }
 		public SelectStatement SelectBody { get; }
@@ -182,6 +182,11 @@ namespace ParseProcs
 		{
 			this.Cte = Cte;
 			this.SelectBody = SelectBody;
+		}
+
+		public ITable GetTable (IRequestContext Context)
+		{
+			throw new NotImplementedException ();
 		}
 	}
 
@@ -291,6 +296,7 @@ namespace ParseProcs
 				;
 
 			Ref<SPolynom> PExpressionRefST = new Ref<SPolynom> ();
+			Ref<FullSelectStatement> PFullSelectStatement = new Ref<FullSelectStatement> ();
 
 			var PParentsST = PExpressionRefST.Get.InParentsST ();
 			var PBracketsST = PExpressionRefST.Get.Contained (Parse.Char ('[').SqlToken (), Parse.Char (']').SqlToken ());
@@ -378,6 +384,15 @@ namespace ParseProcs
 				).Optional ()
 				;
 
+			var PUnnestST =
+					from f in SpracheUtils.AnyTokenST ("unnest")
+					from _1 in SpracheUtils.AnyTokenST ("(")
+					from exp in PExpressionRefST.Get
+					from _3 in SpracheUtils.AnyTokenST (")")
+					select (Func<IRequestContext, NamedTyped>)(rc =>
+						new NamedTyped (f, exp.GetResult (rc).Type.BaseType))
+				;
+
 			var PBaseAtomicST =
 					PNull.SqlToken ().ProduceType (PSqlType.Null)
 						.Or (PDecimal.SqlToken ().ProduceType (PSqlType.Decimal))
@@ -394,6 +409,9 @@ namespace ParseProcs
 						.Or (PQualifiedIdentifierST.Select<string[], Func<IRequestContext, NamedTyped>> (p => rc =>
 							rc.GetScalar (p)
 							))
+						.Or (PFullSelectStatement.Get.Select<FullSelectStatement, Func<IRequestContext, NamedTyped>> (fss => rc =>
+							fss.GetTable (rc).Columns[0]
+						))
 				;
 
 			var PAtomicST = PBaseAtomicST
@@ -426,12 +444,15 @@ namespace ParseProcs
 							from _3 in SpracheUtils.AnyTokenST (")")
 							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
 						)
+					.Or (PUnnestST)
 					.Or (
-							from f in SpracheUtils.AnyTokenST ("unnest")
+							from f in SpracheUtils.AnyTokenST ("coalesce")
 							from _1 in SpracheUtils.AnyTokenST ("(")
 							from exp in PExpressionRefST.Get
+							from _2 in SpracheUtils.AnyTokenST (",")
+							from subst in PExpressionRefST.Get
 							from _3 in SpracheUtils.AnyTokenST (")")
-							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type.BaseType))
+							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
 						)
 				;
 
@@ -543,7 +564,13 @@ namespace ParseProcs
 				;
 
 			var PFromTableExpressionST =
-				from table in PQualifiedIdentifierST
+				from table in
+					(
+						PUnnestST.Select<Func<IRequestContext, NamedTyped>, ITableRetriever> (p => new UnnestTableRetriever (p))
+							// or-ed after unnest
+							.Or (PQualifiedIdentifierST.Select (qi => new DbTableRetriever (qi)))
+							.Or (PFullSelectStatement.Get.InParentsST ())
+					)
 				from alias_cl in
 					(
 						from kw_as in SpracheUtils.AnyTokenST ("as")
@@ -554,7 +581,7 @@ namespace ParseProcs
 					(
 						PValidIdentifierEx.SqlToken ()
 					).Optional ()
-				select new FromTableExpression (new DbTableRetriever (table), alias_cl.GetOrDefault ());
+				select new FromTableExpression (table, alias_cl.GetOrDefault ());
 
 			var PFromClauseOptionalST =
 				(
@@ -636,6 +663,7 @@ namespace ParseProcs
 					from select_body in PSelectST
 					select new FullSelectStatement (cte, select_body)
 				;
+			PFullSelectStatement.Parser = PSelectFullST;
 
 			var POpenDatasetST =
 					from kw_open in SpracheUtils.SqlToken ("open")
@@ -667,7 +695,7 @@ WITH F AS
 )
 select	a.b,
 		b,		-- repeat
-		45,
+		(select 45 as retry),
 		'45',
 		NOW() + '02:30'::interval drain,
 		SUM(done.best),
@@ -681,6 +709,7 @@ select DISTINCT
 		45 AS done,
 		'45' AS most
 FROM F
+	LEFT JOIN (WITH r as (select 6 as mark) select mark from r) log on 5=9
 	INNER JOIN dbo.Users AS U ON U.id = F.id_author
 WHERE a.b > 10
 		OR zen

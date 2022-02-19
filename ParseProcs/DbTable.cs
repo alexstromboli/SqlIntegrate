@@ -6,17 +6,20 @@ namespace ParseProcs
 	{
 		public IReadOnlyList<NamedTyped> Columns { get; }
 		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict  { get; }
-
-		//public NamedTyped AddColumn (NamedTyped Column);
 	}
 
-	public class Table : ITable
+	public abstract class BasicTable : ITable
 	{
-		protected List<NamedTyped> _Columns;
-		public IReadOnlyList<NamedTyped> Columns => Columns;
+		public abstract IReadOnlyList<NamedTyped> Columns { get; }
 
 		protected Dictionary<string, NamedTyped> _ColumnsDict;
 		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict => ColumnsDict;
+	}
+
+	public class Table : BasicTable
+	{
+		protected List<NamedTyped> _Columns;
+		public override IReadOnlyList<NamedTyped> Columns => Columns;
 
 		public Table ()
 		{
