@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 
 namespace ParseProcs
@@ -13,13 +14,24 @@ namespace ParseProcs
 		public abstract IReadOnlyList<NamedTyped> Columns { get; }
 
 		protected Dictionary<string, NamedTyped> _ColumnsDict;
-		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict => ColumnsDict;
+		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict
+		{
+			get
+			{
+				if (_ColumnsDict == null)
+				{
+					_ColumnsDict = Columns.ToDictionary (c => c.Name);
+				}
+
+				return _ColumnsDict;
+			}
+		}
 	}
 
 	public class Table : BasicTable
 	{
 		protected List<NamedTyped> _Columns;
-		public override IReadOnlyList<NamedTyped> Columns => Columns;
+		public override IReadOnlyList<NamedTyped> Columns => _Columns;
 
 		public Table ()
 		{
