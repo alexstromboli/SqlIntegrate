@@ -7,6 +7,7 @@ namespace ParseProcs
 	{
 		public IReadOnlyList<NamedTyped> Columns { get; }
 		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict  { get; }
+		NamedTyped[] GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null);
 	}
 
 	public abstract class BasicTable : ITable
@@ -25,6 +26,18 @@ namespace ParseProcs
 
 				return _ColumnsDict;
 			}
+		}
+
+		public virtual NamedTyped[] GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+		{
+			List<NamedTyped> Result = new List<NamedTyped> (Columns);
+
+			if (Alias != null)
+			{
+				Result.AddRange (Columns.Select (c => new NamedTyped (Alias + "." + c.Name, c.Type)));
+			}
+
+			return Result.ToArray ();
 		}
 	}
 
@@ -65,6 +78,27 @@ namespace ParseProcs
 
 		public IReadOnlyList<NamedTyped> Columns => ((ITable)ColumnsHolder).Columns;
 		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict => ((ITable)ColumnsHolder).ColumnsDict;
+
+		public NamedTyped[] GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+		{
+			if (Alias != null)
+			{
+				return ColumnsHolder.GetAllColumnReferences (ModuleContext, Alias);
+			}
+
+			List<NamedTyped> Result = new List<NamedTyped> (ColumnsHolder.GetAllColumnReferences (ModuleContext, Alias));
+
+			bool CanMissSchema = !ModuleContext.SchemaOrder.TakeWhile (s => s != Schema).Any (s => ModuleContext.TablesDict.ContainsKey (s + "." + Name));
+
+			if (CanMissSchema)
+			{
+				Result.AddRange (Columns.Select (c => new NamedTyped (Name + "." + c.Name, c.Type)));
+			}
+
+			Result.AddRange (Columns.Select (c => new NamedTyped (Schema + "." + Name + "." + c.Name, c.Type)));
+
+			return Result.ToArray ();
+		}
 
 		public NamedTyped AddColumn (NamedTyped ColumnL)
 		{

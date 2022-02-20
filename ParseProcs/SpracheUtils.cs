@@ -8,6 +8,11 @@ namespace ParseProcs
 {
 	public static class SpracheUtils
 	{
+		public static Parser<string> ToLower (this Parser<string> Inner)
+		{
+			return Inner.Select (s => s.ToLower ());
+		}
+
 		public static Parser<T> SqlToken<T> (this Parser<T> Inner)
 		{
 			return Inner

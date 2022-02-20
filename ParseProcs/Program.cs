@@ -8,6 +8,7 @@ namespace ParseProcs
 {
 	public interface IRequestContext
 	{
+		ModuleContext ModuleContext { get; }
 		NamedTyped GetFunction (string[] FunctionName);
 		NamedTyped GetScalar (string[] ScalarName);
 		IReadOnlyList<NamedTyped> GetAsterisk (string[] Qualifier);
@@ -83,7 +84,7 @@ namespace ParseProcs
 
 	public class RequestContext : IRequestContext
 	{
-		protected ModuleContext ModuleContext;
+		public ModuleContext ModuleContext { get; protected set; }
 		protected FromTableExpression[] Froms;
 		protected Dictionary<string, ITable> LocalTablesDict;
 
@@ -147,7 +148,7 @@ namespace ParseProcs
 		}
 	}
 
-	public class SelectStatement
+	public class SelectStatement : ITableRetriever
 	{
 		public Func<IRequestContext, IReadOnlyList<NamedTyped>> List { get; }
 		public IOption<FromTableExpression[]> FromClause { get; }
@@ -158,6 +159,11 @@ namespace ParseProcs
 			this.List = List;
 			this.FromClause = FromClause;
 			this.IsMany = IsMany;
+		}
+
+		public ITable GetTable (IRequestContext Context)
+		{
+			throw new NotImplementedException ();
 		}
 	}
 
@@ -255,33 +261,37 @@ namespace ParseProcs
 				;
 
 			// any id readable without quotes
-			var PBasicIdentifier =
+			// lowercase
+			var PBasicIdentifierL =
 					from n in Parse.Char (c => char.IsLetterOrDigit (c) || c == '_', "").AtLeastOnce ()
 					where !char.IsDigit (n.First ())
-					select new string (n.ToArray ())
+					select new string (n.ToArray ()).ToLower ()
 				;
 
 			// any id readable without quotes, except keywords
-			var PBasicValidIdentifier =
-					PBasicIdentifier
+			// lowercase
+			var PBasicValidIdentifierL =
+					PBasicIdentifierL
 						.Where (n => n.CanBeIdentifier ())
 				;
 
 			// any id readable without quotes, except keywords,
 			// or in quotes
-			var PValidIdentifierEx = PBasicValidIdentifier
-					.Or (PDoubleQuotedString)
+			// lowercase
+			var PValidIdentifierExL = PBasicValidIdentifierL
+					.Or (PDoubleQuotedString.ToLower ())
 				;
 
 			// any id readable without quotes, including keywords
 			// (which is valid when identifier is expected, like after AS),
 			// or in quotes
-			var PExpectedIdentifierEx = PBasicIdentifier
-					.Or (PDoubleQuotedString)
+			var PExpectedIdentifierExL = PBasicIdentifierL
+					.Or (PDoubleQuotedString.ToLower ())
 				;
 
 			// here: allow keywords after dot, like R.order
-			var PQualifiedIdentifierST = PValidIdentifierEx
+			// lowercase
+			var PQualifiedIdentifierST = PValidIdentifierExL
 					.SqlToken ()
 					.DelimitedBy (Parse.String (".").SqlToken (), 1, null)
 					.Select (seq => seq.ToArray ())
@@ -533,12 +543,12 @@ namespace ParseProcs
 					from alias_cl in
 						(
 							from kw_as in SpracheUtils.AnyTokenST ("as")
-							from id in PExpectedIdentifierEx.SqlToken ()
+							from id in PExpectedIdentifierExL.SqlToken ()
 							select id
 						)
 						.Or
 						(
-							PValidIdentifierEx.SqlToken ()
+							PValidIdentifierExL.SqlToken ()
 						).Optional ()
 					select (Func<IRequestContext, IReadOnlyList<NamedTyped>>)(rc =>
 							{
@@ -568,18 +578,18 @@ namespace ParseProcs
 					(
 						PUnnestST.Select<Func<IRequestContext, NamedTyped>, ITableRetriever> (p => new UnnestTableRetriever (p))
 							// or-ed after unnest
-							.Or (PQualifiedIdentifierST.Select (qi => new DbTableRetriever (qi)))
+							.Or (PQualifiedIdentifierST.Select (qi => new NamedTableRetriever (qi)))
 							.Or (PFullSelectStatement.Get.InParentsST ())
 					)
 				from alias_cl in
 					(
 						from kw_as in SpracheUtils.AnyTokenST ("as")
-						from id in PExpectedIdentifierEx.SqlToken ()
+						from id in PExpectedIdentifierExL.SqlToken ()
 						select id
 					)
 					.Or
 					(
-						PValidIdentifierEx.SqlToken ()
+						PValidIdentifierExL.SqlToken ()
 					).Optional ()
 				select new FromTableExpression (table, alias_cl.GetOrDefault ());
 
@@ -643,7 +653,7 @@ namespace ParseProcs
 				;
 
 			var PCteLevelST =
-					from name in PValidIdentifierEx
+					from name in PValidIdentifierExL
 					from kw_as in SpracheUtils.SqlToken ("as")
 					from select_exp in PSelectST.InParentsST ()
 					select new CteLevel (name, select_exp)
@@ -667,7 +677,7 @@ namespace ParseProcs
 
 			var POpenDatasetST =
 					from kw_open in SpracheUtils.SqlToken ("open")
-					from name in PValidIdentifierEx
+					from name in PValidIdentifierExL
 					from _cm1 in SpracheUtils.AllCommentsST ()
 					from kw_for in Parse.IgnoreCase ("for")
 					from _cm2 in SpracheUtils.AllCommentsST ()

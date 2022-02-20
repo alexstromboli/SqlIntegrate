@@ -8,13 +8,13 @@ namespace ParseProcs
 		ITable GetTable (IRequestContext Context);
 	}
 
-	public class DbTableRetriever : ITableRetriever
+	public class NamedTableRetriever : ITableRetriever
 	{
-		public string[] Name;
+		public string[] NameL;
 
-		public DbTableRetriever (string[] Name)
+		public NamedTableRetriever (string[] NameL)
 		{
-			this.Name = Name;
+			this.NameL = NameL;
 		}
 
 		public ITable GetTable (IRequestContext Context)
@@ -32,6 +32,13 @@ namespace ParseProcs
 			public Table (NamedTyped SingleColumn)
 			{
 				Columns = new[] { SingleColumn };
+			}
+
+			public override NamedTyped[] GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+			{
+				string Name = Alias ?? Columns[0].Name;
+				PSqlType Type = Columns[0].Type;
+				return new [] { new NamedTyped (Name, Type), new NamedTyped (Name + "." + Name, Type) };
 			}
 		}
 
