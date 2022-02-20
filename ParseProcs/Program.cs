@@ -85,6 +85,7 @@ namespace ParseProcs
 		{
 			this.ModuleContext = ModuleContext;
 
+			// table, as accessible in ModuleContext, considering schema order
 			this.TableRefChain = ((IReadOnlyDictionary<string, ITable>)ModuleContext
 					.TablesDict.Select (t => new { name = t.Key, table = t.Value })
 					.Concat (ModuleContext.TablesDict.Values.Where (t =>
@@ -96,26 +97,27 @@ namespace ParseProcs
 				;
 
 			this.NamedDict = ModuleContext.VariablesDict;
+			// asterisks only appear in in-select contexts
 			this.Asterisks = new Dictionary<string, IReadOnlyList<NamedTyped>> ();
 		}
 
 		public RequestContext (RequestContext ParentContext,
-			IReadOnlyDictionary<string, ITable> TableRefs,
-			IReadOnlyDictionary<string, NamedTyped> NamedDict,
-			IReadOnlyDictionary<string, IReadOnlyList<NamedTyped>> Asterisks
+			IReadOnlyDictionary<string, ITable> TableRefsToPrepend = null,
+			IReadOnlyDictionary<string, NamedTyped> NamedDictToOverride = null,
+			IReadOnlyDictionary<string, IReadOnlyList<NamedTyped>> Asterisks = null
 		)
 		{
 			this.ModuleContext = ParentContext.ModuleContext;
 
-			this.TableRefChain = TableRefs == null
+			this.TableRefChain = TableRefsToPrepend == null
 				? ParentContext.TableRefChain
-				: TableRefs.ToTrivialArray ()
+				: TableRefsToPrepend.ToTrivialArray ()
 					.Concat (ParentContext.TableRefChain)
 					.ToArray ()
 				;
 
-			this.NamedDict = NamedDict ?? ModuleContext.VariablesDict;
-			this.Asterisks = Asterisks;
+			this.NamedDict = NamedDictToOverride ?? ModuleContext.VariablesDict;
+			this.Asterisks = Asterisks ?? ParentContext.Asterisks;
 		}
 
 		public IReadOnlyList<NamedTyped> GetAsterisk (string AsteriskEntry)
@@ -255,8 +257,31 @@ namespace ParseProcs
 
 		public ITable GetTable (RequestContext Context)
 		{
-			throw new NotImplementedException ();
+			RequestContext CurrentContext = Context;
+
+			if (Cte.IsDefined)
+			{
+				var Levels = Cte.Get ();
+				if (Levels != null)
+				{
+					foreach (var l in Levels)
+					{
+						ITable t = l.Table.GetTable (CurrentContext);
+						CurrentContext = new RequestContext (CurrentContext, new Dictionary<string, ITable> { [l.Name] = t });
+					}
+				}
+			}
+
+			var Result = SelectBody.GetTable (CurrentContext);
+			return Result;
 		}
+	}
+
+	public class NamedDataReturn
+	{
+		public string Name;
+		public ITable Table;
+		public string ServiceComment;
 	}
 
 	public class DataReturnStatement
@@ -270,9 +295,16 @@ namespace ParseProcs
 			this.FullSelect = FullSelect;
 		}
 
-		public ITable GetResult (RequestContext rc)
+		public NamedDataReturn GetResult (RequestContext rc)
 		{
-			throw new NotImplementedException ();
+			var Result = new NamedDataReturn
+			{
+				Name = Open.Name,
+				ServiceComment = Open.LastComment,
+				Table = FullSelect.GetTable (rc)
+			};
+
+			return Result;
 		}
 	}
 
