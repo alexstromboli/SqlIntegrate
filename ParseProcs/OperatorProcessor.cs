@@ -8,17 +8,17 @@ namespace ParseProcs
 		public bool IsBinary = false;
 
 		public Func<
-			Func<IRequestContext, NamedTyped>,		// left
-			Func<IRequestContext, NamedTyped>,		// right (null for unary)
-			Func<IRequestContext, NamedTyped>		// result
+			Func<RequestContext, NamedTyped>,		// left
+			Func<RequestContext, NamedTyped>,		// right (null for unary)
+			Func<RequestContext, NamedTyped>		// result
 		> Processor = null;
 
 		public OperatorProcessor (PSqlOperatorPriority Precedence,
 			bool IsBinary,
 			Func<
-				Func<IRequestContext, NamedTyped>, // left
-				Func<IRequestContext, NamedTyped>, // right (null for unary)
-				Func<IRequestContext, NamedTyped> // result
+				Func<RequestContext, NamedTyped>, // left
+				Func<RequestContext, NamedTyped>, // right (null for unary)
+				Func<RequestContext, NamedTyped> // result
 			> Processor
 		)
 		{
@@ -28,9 +28,9 @@ namespace ParseProcs
 		}
 
 		public static Func<
-			Func<IRequestContext, NamedTyped>, // left
-			Func<IRequestContext, NamedTyped>, // right (null for unary)
-			Func<IRequestContext, NamedTyped> // result
+			Func<RequestContext, NamedTyped>, // left
+			Func<RequestContext, NamedTyped>, // right (null for unary)
+			Func<RequestContext, NamedTyped> // result
 		> GetForBinaryOperator (string Operator)
 		{
 			return (l, r) => rc =>

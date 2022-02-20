@@ -10,7 +10,7 @@ namespace ParseProcs
 		public class Operand
 		{
 			// ignore prefixes as irrelevant
-			public Func<IRequestContext, NamedTyped> Atomic;
+			public Func<RequestContext, NamedTyped> Atomic;
 			public IOption<IEnumerable<OperatorProcessor>> Postfixes;
 		}
 
@@ -19,14 +19,14 @@ namespace ParseProcs
 
 		protected NamedTyped ResultNameType = null;
 
-		public NamedTyped GetResult (IRequestContext Context)
+		public NamedTyped GetResult (RequestContext Context)
 		{
 			if (ResultNameType != null)
 			{
 				return ResultNameType;
 			}
 
-			Stack<Func<IRequestContext, NamedTyped>> OperandsStack = new Stack<Func<IRequestContext, NamedTyped>> ();
+			Stack<Func<RequestContext, NamedTyped>> OperandsStack = new Stack<Func<RequestContext, NamedTyped>> ();
 			Stack<OperatorProcessor> OperatorsStack = new Stack<OperatorProcessor> ();
 			Action<int> Perform = n =>
 			{

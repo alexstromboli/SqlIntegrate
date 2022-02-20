@@ -1,25 +1,33 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace ParseProcs
 {
 	public interface ITableRetriever
 	{
-		ITable GetTable (IRequestContext Context);
+		ITable GetTable (RequestContext Context);
 	}
 
 	public class NamedTableRetriever : ITableRetriever
 	{
 		public string[] NameL;
+		public string FullName;
 
 		public NamedTableRetriever (string[] NameL)
 		{
 			this.NameL = NameL;
+			FullName = this.NameL.JoinDot ();
 		}
 
-		public ITable GetTable (IRequestContext Context)
+		public ITable GetTable (RequestContext Context)
 		{
-			throw new NotImplementedException ();
+			return Context
+				.TableRefChain
+				.SelectMany (c => c)
+				.First (c => c.Key == FullName)
+				.Value
+				;
 		}
 	}
 
@@ -31,27 +39,37 @@ namespace ParseProcs
 
 			public Table (NamedTyped SingleColumn)
 			{
-				Columns = new[] { SingleColumn };
+				Columns = SingleColumn.ToTrivialArray ();
 			}
 
-			public override NamedTyped[] GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+			public override ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
 			{
 				string Name = Alias ?? Columns[0].Name;
 				PSqlType Type = Columns[0].Type;
-				return new [] { new NamedTyped (Name, Type), new NamedTyped (Name + "." + Name, Type) };
+				NamedTyped Column = new NamedTyped (Name, Type);
+				NamedTyped[] ColumnsArray = { Column, new NamedTyped (Name + "." + Name, Type) };
+				return new ITable.ColumnReferences
+				{
+					Columns = ColumnsArray,
+					Asterisks = new Dictionary<string, NamedTyped[]>
+					{
+						["*"] = Column.ToTrivialArray (),
+						[Name + ".*"] = Column.ToTrivialArray ()
+					}
+				};
 			}
 		}
 
 		public string FunctionName;
-		public Func<IRequestContext, NamedTyped> Parameter;
+		public Func<RequestContext, NamedTyped> Parameter;
 
-		public UnnestTableRetriever (Func<IRequestContext, NamedTyped> Parameter, string FunctionName = null)
+		public UnnestTableRetriever (Func<RequestContext, NamedTyped> Parameter, string FunctionName = null)
 		{
 			this.FunctionName = FunctionName ?? "unnest";
 			this.Parameter = Parameter;
 		}
 
-		public ITable GetTable (IRequestContext Context)
+		public ITable GetTable (RequestContext Context)
 		{
 			return new Table (new NamedTyped (FunctionName, Parameter (Context).Type));
 		}

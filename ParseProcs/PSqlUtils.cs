@@ -28,7 +28,7 @@ namespace ParseProcs
 
 		public static string PSqlQualifiedName (this IEnumerable<string> Segments)
 		{
-			return string.Join ('.', Segments.Select (s => s.ToLower ().PSqlEscape ()));
+			return Segments.Select (s => s.ToLower ().PSqlEscape ()).JoinDot ();
 		}
 
 		public static string PSqlQualifiedName (params string[] Segments)

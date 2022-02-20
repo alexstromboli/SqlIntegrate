@@ -7,7 +7,21 @@ namespace ParseProcs
 	{
 		public IReadOnlyList<NamedTyped> Columns { get; }
 		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict  { get; }
-		NamedTyped[] GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null);
+
+		class ColumnReferences
+		{
+			// column name
+			// (table name or alias).(column name)
+			// (schema name).(table name).(column name)
+			public NamedTyped[] Columns;
+
+			// column name
+			// (table name or alias).*
+			// (schema name).(table name).*
+			public Dictionary<string, NamedTyped[]> Asterisks;
+		}
+
+		ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null);
 	}
 
 	public abstract class BasicTable : ITable
@@ -28,16 +42,25 @@ namespace ParseProcs
 			}
 		}
 
-		public virtual NamedTyped[] GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+		public virtual ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
 		{
 			List<NamedTyped> Result = new List<NamedTyped> (Columns);
+			Dictionary<string, NamedTyped[]> Asterisks = new Dictionary<string, NamedTyped[]> ();
+
+			var ColumnsArray = Columns.ToArray ();
+			Asterisks["*"] = ColumnsArray;
 
 			if (Alias != null)
 			{
 				Result.AddRange (Columns.Select (c => new NamedTyped (Alias + "." + c.Name, c.Type)));
+				Asterisks[Alias + ".*"] = ColumnsArray;
 			}
 
-			return Result.ToArray ();
+			return new ITable.ColumnReferences
+			{
+				Columns = Result.ToArray (),
+				Asterisks = Asterisks
+			};
 		}
 	}
 
@@ -79,25 +102,34 @@ namespace ParseProcs
 		public IReadOnlyList<NamedTyped> Columns => ((ITable)ColumnsHolder).Columns;
 		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict => ((ITable)ColumnsHolder).ColumnsDict;
 
-		public NamedTyped[] GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+		public ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
 		{
+			var BaseResult = ColumnsHolder.GetAllColumnReferences (ModuleContext, Alias);
+
 			if (Alias != null)
 			{
-				return ColumnsHolder.GetAllColumnReferences (ModuleContext, Alias);
+				return BaseResult;
 			}
 
-			List<NamedTyped> Result = new List<NamedTyped> (ColumnsHolder.GetAllColumnReferences (ModuleContext, Alias));
+			List<NamedTyped> AllColumns = new List<NamedTyped> (BaseResult.Columns);
+			Dictionary<string, NamedTyped[]> Asterisks = BaseResult.Asterisks;
 
 			bool CanMissSchema = !ModuleContext.SchemaOrder.TakeWhile (s => s != Schema).Any (s => ModuleContext.TablesDict.ContainsKey (s + "." + Name));
 
 			if (CanMissSchema)
 			{
-				Result.AddRange (Columns.Select (c => new NamedTyped (Name + "." + c.Name, c.Type)));
+				AllColumns.AddRange (Columns.Select (c => new NamedTyped (Name + "." + c.Name, c.Type)));
+				Asterisks[Name + ".*"] = Asterisks["*"];
 			}
 
-			Result.AddRange (Columns.Select (c => new NamedTyped (Schema + "." + Name + "." + c.Name, c.Type)));
+			AllColumns.AddRange (Columns.Select (c => new NamedTyped (Schema + "." + Name + "." + c.Name, c.Type)));
+			Asterisks[Schema + "." + Name + ".*"] = Asterisks["*"];
 
-			return Result.ToArray ();
+			return new ITable.ColumnReferences
+			{
+				Columns = AllColumns.ToArray (),
+				Asterisks = Asterisks
+			};
 		}
 
 		public NamedTyped AddColumn (NamedTyped ColumnL)

@@ -6,14 +6,6 @@ using Sprache;
 
 namespace ParseProcs
 {
-	public interface IRequestContext
-	{
-		ModuleContext ModuleContext { get; }
-		NamedTyped GetFunction (string[] FunctionName);
-		NamedTyped GetScalar (string[] ScalarName);
-		IReadOnlyList<NamedTyped> GetAsterisk (string[] Qualifier);
-	}
-
 	public class ModuleContext
 	{
 		public string ModuleName { get; }
@@ -56,7 +48,7 @@ namespace ParseProcs
 				{
 					foreach (string sch in SchemaOrder)
 					{
-						string SchKey = new[] { sch }.Concat (NameSegments).PSqlQualifiedName ();
+						string SchKey = sch.ToTrivialArray ().Concat (NameSegments).PSqlQualifiedName ();
 						if (Dict.TryGetValue (SchKey, out Result))
 						{
 							break;
@@ -82,33 +74,53 @@ namespace ParseProcs
 		}
 	}
 
-	public class RequestContext : IRequestContext
+	public class RequestContext
 	{
-		public ModuleContext ModuleContext { get; protected set; }
-		protected FromTableExpression[] Froms;
-		protected Dictionary<string, ITable> LocalTablesDict;
+		public ModuleContext ModuleContext { get; }
+		public IReadOnlyDictionary<string, ITable>[] TableRefChain { get; }
+		public IReadOnlyDictionary<string, NamedTyped> NamedDict { get; }
+		public IReadOnlyDictionary<string, IReadOnlyList<NamedTyped>> Asterisks { get; }
 
-		public RequestContext (ModuleContext ModuleContext, FromTableExpression[] Froms)
+		public RequestContext (ModuleContext ModuleContext)
 		{
 			this.ModuleContext = ModuleContext;
-			this.Froms = Froms;
-			this.LocalTablesDict = new Dictionary<string, ITable> ();
+
+			this.TableRefChain = ((IReadOnlyDictionary<string, ITable>)ModuleContext
+					.TablesDict.Select (t => new { name = t.Key, table = t.Value })
+					.Concat (ModuleContext.TablesDict.Values.Where (t =>
+							!ModuleContext.SchemaOrder.TakeWhile (s => s != t.Schema).Any (s => ModuleContext.TablesDict.ContainsKey (s + "." + t.Name)))
+						.Select (t => new { name = t.Name, table = t })
+					)
+					.ToDictionary (t => t.name, t => t.table))
+					.ToTrivialArray ()
+				;
+
+			this.NamedDict = ModuleContext.VariablesDict;
+			this.Asterisks = new Dictionary<string, IReadOnlyList<NamedTyped>> ();
 		}
 
-		public NamedTyped GetFunction (string[] FunctionName)
+		public RequestContext (RequestContext ParentContext,
+			IReadOnlyDictionary<string, ITable> TableRefs,
+			IReadOnlyDictionary<string, NamedTyped> NamedDict,
+			IReadOnlyDictionary<string, IReadOnlyList<NamedTyped>> Asterisks
+		)
 		{
-			return ModuleContext.GetFunction (FunctionName);
+			this.ModuleContext = ParentContext.ModuleContext;
+
+			this.TableRefChain = TableRefs == null
+				? ParentContext.TableRefChain
+				: TableRefs.ToTrivialArray ()
+					.Concat (ParentContext.TableRefChain)
+					.ToArray ()
+				;
+
+			this.NamedDict = NamedDict ?? ModuleContext.VariablesDict;
+			this.Asterisks = Asterisks;
 		}
 
-		public NamedTyped GetScalar (string[] ScalarName)
+		public IReadOnlyList<NamedTyped> GetAsterisk (string AsteriskEntry)
 		{
-			string Name = ScalarName[^1].ToLower ();
-			return new NamedLazyTyped (Name, () => throw new NotImplementedException ("No typing for scalars"));
-		}
-
-		public IReadOnlyList<NamedTyped> GetAsterisk (string[] Qualifier)
-		{
-			throw new NotImplementedException ();
+			return Asterisks[AsteriskEntry];
 		}
 	}
 
@@ -138,10 +150,10 @@ namespace ParseProcs
 
 	public class OrdinarySelect
 	{
-		public Func<IRequestContext, IReadOnlyList<NamedTyped>> List { get; }
+		public Func<RequestContext, IReadOnlyList<NamedTyped>> List { get; }
 		public IOption<FromTableExpression[]> FromClause { get; }
 
-		public OrdinarySelect (Func<IRequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause)
+		public OrdinarySelect (Func<RequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause)
 		{
 			this.List = List;
 			this.FromClause = FromClause;
@@ -150,20 +162,71 @@ namespace ParseProcs
 
 	public class SelectStatement : ITableRetriever
 	{
-		public Func<IRequestContext, IReadOnlyList<NamedTyped>> List { get; }
+		public Func<RequestContext, IReadOnlyList<NamedTyped>> List { get; }
 		public IOption<FromTableExpression[]> FromClause { get; }
 		public bool IsMany { get; }
 
-		public SelectStatement (Func<IRequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause, bool IsMany)
+		public SelectStatement (Func<RequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause, bool IsMany)
 		{
 			this.List = List;
 			this.FromClause = FromClause;
 			this.IsMany = IsMany;
 		}
 
-		public ITable GetTable (IRequestContext Context)
+		public ITable GetTable (RequestContext Context)
 		{
-			throw new NotImplementedException ();
+			List<NamedTyped> AllColumns = new List<NamedTyped> ();
+			Dictionary<string, IReadOnlyList<NamedTyped>> Asterisks =
+				new Dictionary<string, IReadOnlyList<NamedTyped>> ();
+
+			if (FromClause.IsDefined)
+			{
+				FromTableExpression[] Froms = FromClause.Get ();
+
+				if (Froms != null && Froms.Length > 0)
+				{
+					foreach (var f in Froms)
+					{
+						ITable Table = f.TableRetriever.GetTable (Context);
+						var Refs = Table.GetAllColumnReferences (Context.ModuleContext, f.Alias);
+						AllColumns.AddRange (Refs.Columns);
+
+						foreach (var ast in Refs.Asterisks)
+						{
+							if (ast.Key != "*")
+							{
+								Asterisks[ast.Key] = ast.Value;
+							}
+						}
+					}
+				}
+			}
+
+			// found immediate columns
+			// + variables
+			var AllNamedDict = AllColumns
+				.Concat (Context.ModuleContext.VariablesDict.Values)
+				.ToLookup (c => c.Name)
+				.Where (g => g.Count () == 1)
+				.ToDictionary (g => g.Key, g => g.First ())
+				;
+
+			Asterisks["*"] = AllColumns;
+
+			RequestContext NewContext = new RequestContext (Context, null, AllNamedDict, Asterisks);
+
+			SortedSet<string> FoundNames = new SortedSet<string> ();
+			Table Result = new Table ();
+			foreach (var nt in List (NewContext))
+			{
+				if (nt.Name != null && !FoundNames.Contains (nt.Name))
+				{
+					FoundNames.Add (nt.Name);
+					Result.AddColumn (nt);
+				}
+			}
+
+			return Result;
 		}
 	}
 
@@ -190,7 +253,7 @@ namespace ParseProcs
 			this.SelectBody = SelectBody;
 		}
 
-		public ITable GetTable (IRequestContext Context)
+		public ITable GetTable (RequestContext Context)
 		{
 			throw new NotImplementedException ();
 		}
@@ -207,7 +270,7 @@ namespace ParseProcs
 			this.FullSelect = FullSelect;
 		}
 
-		public ITable GetResult (IRequestContext rc)
+		public ITable GetResult (RequestContext rc)
 		{
 			throw new NotImplementedException ();
 		}
@@ -383,7 +446,7 @@ namespace ParseProcs
 						select qual
 					).Optional ()
 					from ast in Parse.Char ('*').SqlToken ()
-					select (Func<IRequestContext, IReadOnlyList<NamedTyped>>)(rc => rc.GetAsterisk (qual.GetOrElse (new string[0])))
+					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc => rc.GetAsterisk (qual.GetOrElse (new string[0]).JoinDot () + ".*"))
 				;
 
 			var PGroupByClauseOptionalST =
@@ -399,7 +462,7 @@ namespace ParseProcs
 					from _1 in SpracheUtils.AnyTokenST ("(")
 					from exp in PExpressionRefST.Get
 					from _3 in SpracheUtils.AnyTokenST (")")
-					select (Func<IRequestContext, NamedTyped>)(rc =>
+					select (Func<RequestContext, NamedTyped>)(rc =>
 						new NamedTyped (f, exp.GetResult (rc).Type.BaseType))
 				;
 
@@ -410,16 +473,16 @@ namespace ParseProcs
 						.Or (PInteger.SqlToken ().ProduceType (PSqlType.Int))
 						.Or (PBooleanLiteral.SqlToken ().ProduceType (PSqlType.Bool))
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (PSqlType.Text))
-						.Or (PParentsST.Select<SPolynom, Func<IRequestContext, NamedTyped>> (p =>
+						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
-						.Or (PFunctionCallST.Select<string[], Func<IRequestContext, NamedTyped>> (p => rc =>
-							rc.GetFunction (p)
+						.Or (PFunctionCallST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
+							rc.ModuleContext.GetFunction (p)
 							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
-						.Or (PQualifiedIdentifierST.Select<string[], Func<IRequestContext, NamedTyped>> (p => rc =>
-							rc.GetScalar (p)
+						.Or (PQualifiedIdentifierST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
+							rc.NamedDict[p.JoinDot ()]
 							))
-						.Or (PFullSelectStatement.Get.Select<FullSelectStatement, Func<IRequestContext, NamedTyped>> (fss => rc =>
+						.Or (PFullSelectStatement.Get.Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
 							fss.GetTable (rc).Columns[0]
 						))
 				;
@@ -436,7 +499,7 @@ namespace ParseProcs
 								).Optional ()
 							from _5 in PGroupByClauseOptionalST
 							from _6 in SpracheUtils.SqlToken (")")
-							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (rn, PSqlType.Int))
+							select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (rn, PSqlType.Int))
 						)
 					.Or (
 							from f in SpracheUtils.AnyTokenST ("sum", "min", "max")
@@ -444,7 +507,7 @@ namespace ParseProcs
 							from _2 in SpracheUtils.AnyTokenST ("distinct").Optional ()
 							from exp in PExpressionRefST.Get
 							from _3 in SpracheUtils.AnyTokenST (")")
-							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
+							select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
 						)
 					.Or (
 							from f in SpracheUtils.AnyTokenST ("count")
@@ -452,7 +515,7 @@ namespace ParseProcs
 							from _2 in SpracheUtils.AnyTokenST ("distinct").Optional ()
 							from exp in PExpressionRefST.Get.Return (0).Or (PAsteriskSelectEntryST.Return (0))
 							from _3 in SpracheUtils.AnyTokenST (")")
-							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
+							select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
 						)
 					.Or (PUnnestST)
 					.Or (
@@ -462,7 +525,7 @@ namespace ParseProcs
 							from _2 in SpracheUtils.AnyTokenST (",")
 							from subst in PExpressionRefST.Get
 							from _3 in SpracheUtils.AnyTokenST (")")
-							select (Func<IRequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
+							select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
 						)
 				;
 
@@ -529,7 +592,7 @@ namespace ParseProcs
 					select new SPolynom
 					{
 						Operators = rest.Select (e => e.op).ToList (),
-						Operands = new[] { new SPolynom.Operand { Atomic = at1, Postfixes = post1 } }
+						Operands = new SPolynom.Operand { Atomic = at1, Postfixes = post1 }.ToTrivialArray ()
 							.Concat (rest.Select (e => new SPolynom.Operand { Atomic = e.atN, Postfixes = e.postN }))
 							.ToList ()
 					}
@@ -550,14 +613,14 @@ namespace ParseProcs
 						(
 							PValidIdentifierExL.SqlToken ()
 						).Optional ()
-					select (Func<IRequestContext, IReadOnlyList<NamedTyped>>)(rc =>
+					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc =>
 							{
 								var nt = exp.GetResult (rc);
 								var res = alias_cl.IsDefined
 									? new NamedTyped (alias_cl.Get (), nt.Type)
 									: nt;
 
-								return new[] {res};
+								return res.ToTrivialArray ();
 							}
 						)
 				;
@@ -566,7 +629,7 @@ namespace ParseProcs
 					PAsteriskSelectEntryST
 						.Or (PSingleSelectEntryST)
 						.CommaDelimitedST ()
-						.Select<IEnumerable<Func<IRequestContext, IReadOnlyList<NamedTyped>>>, Func<IRequestContext, IReadOnlyList<NamedTyped>>> (
+						.Select<IEnumerable<Func<RequestContext, IReadOnlyList<NamedTyped>>>, Func<RequestContext, IReadOnlyList<NamedTyped>>> (
 							list => rc => list
 								.SelectMany (e => e (rc))
 								.ToArray ()
@@ -576,7 +639,7 @@ namespace ParseProcs
 			var PFromTableExpressionST =
 				from table in
 					(
-						PUnnestST.Select<Func<IRequestContext, NamedTyped>, ITableRetriever> (p => new UnnestTableRetriever (p))
+						PUnnestST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p => new UnnestTableRetriever (p))
 							// or-ed after unnest
 							.Or (PQualifiedIdentifierST.Select (qi => new NamedTableRetriever (qi)))
 							.Or (PFullSelectStatement.Get.InParentsST ())
@@ -607,7 +670,7 @@ namespace ParseProcs
 						).Optional ()
 						select tN
 					).Many ()
-					select new[] {t1}.Concat (tail).ToArray ()
+					select t1.ToTrivialArray ().Concat (tail).ToArray ()
 				).Optional ()
 				;
 
@@ -754,7 +817,7 @@ done
 				FunctionsDict,
 				new Dictionary<string, NamedTyped> ()
 			);
-			RequestContext rc = new RequestContext (mc, null);
+			RequestContext rc = new RequestContext (mc);
 			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResult (rc).Type == t);
 			TestExpr ("5", PSqlType.Int);
 			TestExpr ("NOW()", PSqlType.TimestampTz);

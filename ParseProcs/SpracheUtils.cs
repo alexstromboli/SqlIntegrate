@@ -8,9 +8,19 @@ namespace ParseProcs
 {
 	public static class SpracheUtils
 	{
+		public static string JoinDot (this IEnumerable<string> Fragments)
+		{
+			return string.Join (".", Fragments);
+		}
+
 		public static Parser<string> ToLower (this Parser<string> Inner)
 		{
 			return Inner.Select (s => s.ToLower ());
+		}
+
+		public static T[] ToTrivialArray<T> (this T t)
+		{
+			return new T[] { t };
 		}
 
 		public static Parser<T> SqlToken<T> (this Parser<T> Inner)
@@ -88,9 +98,9 @@ namespace ParseProcs
 			return Result;
 		}
 
-		public static Parser<Func<IRequestContext, NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
+		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
 		{
-			return Parser.Select<T, Func<IRequestContext, NamedTyped>> (t => rc => new NamedTyped (Type));
+			return Parser.Select<T, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type));
 		}
 	}
 }
