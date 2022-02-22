@@ -286,6 +286,8 @@ namespace ParseProcs
 
 	public class DataReturnStatement
 	{
+		public static readonly DataReturnStatement Void = null;
+
 		public OpenDataset Open { get; }
 		public FullSelectStatement FullSelect { get; }
 
@@ -784,6 +786,74 @@ namespace ParseProcs
 					from p_select in PSelectFullST
 					select new DataReturnStatement (open, p_select)
 				;
+
+			//
+			Ref<DataReturnStatement[]> PInstructionRefST = new Ref<DataReturnStatement[]> ();
+
+			var PInstructionST =
+					from drs in
+						// open-for-select
+						PDataReturnStatementST
+							.Or (
+								// variable assignment
+								(
+									from _1 in PValidIdentifierExL
+									from _2 in SpracheUtils.AnyTokenST (":=", "=")
+									from _3 in PExpressionRefST.Get
+									select 0
+								)
+								.Or
+								(
+									// insert
+									from cte in PCteTopOptionalST
+									from _1 in SpracheUtils.AnyTokenST ("insert into")
+									from _2 in PQualifiedIdentifierST
+									from _3 in PValidIdentifierExL.CommaDelimitedST ().AtLeastOnce ().InParentsST ()
+										.Optional ()
+									from _4 in
+									(
+										from _1 in SpracheUtils.AnyTokenST ("values")
+										from _2 in PExpressionRefST.Get.CommaDelimitedST ().AtLeastOnce ()
+											.InParentsST ()
+										select 0
+									).Or (PSelectST.Return (0))
+									select 0
+								)
+								.Or
+								(
+									// update
+									from cte in PCteTopOptionalST
+									from _1 in SpracheUtils.AnyTokenST ("update")
+									from _2 in PQualifiedIdentifierST
+									from _3 in SpracheUtils.AnyTokenST ("set")
+									from _4 in
+									(
+										from _1 in PValidIdentifierExL
+										from _2 in SpracheUtils.AnyTokenST ("=")
+										from _3 in PExpressionRefST.Get
+										select 0
+									).CommaDelimitedST ().AtLeastOnce ()
+									from _5 in PFromClauseOptionalST
+									from _6 in PWhereClauseOptionalST
+									select 0
+								)
+								.Or
+								(
+									// delete
+									from cte in PCteTopOptionalST
+									from _1 in SpracheUtils.AnyTokenST ("delete from")
+									from _2 in PQualifiedIdentifierST
+									from _3 in PFromClauseOptionalST
+									from _4 in PWhereClauseOptionalST
+									select 0
+								)
+								.Select (n => DataReturnStatement.Void)
+							)
+					from _ in SpracheUtils.AnyTokenST (";")
+					select drs.ToTrivialArray ()
+				;
+
+			PInstructionRefST.Parser = PInstructionST;
 
 			//
 			var sel01 = PDataReturnStatementST.Parse ("open ref01 for select 654");
