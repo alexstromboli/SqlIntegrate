@@ -310,8 +310,46 @@ namespace ParseProcs
 		}
 	}
 
+	public class CaseBase<T>
+	{
+		public string CaseH { get; }
+		public IEnumerable<T> Branches { get; }
+		public IOption<SPolynom> ElseC { get; }
+
+		public CaseBase (string CaseH, IEnumerable<T> Branches, IOption<SPolynom> ElseC)
+		{
+			this.CaseH = CaseH;
+			this.Branches = Branches;
+			this.ElseC = ElseC;
+		}
+	}
+
 	partial class Program
 	{
+		static Parser<CaseBase<T>> GetCase<T> (Parser<SPolynom> PExpressionST, Parser<T> Then)
+		{
+			return
+				from case_h in SpracheUtils.SqlToken ("case")
+				from _2 in PExpressionST.Optional ()
+				from branches in
+				(
+					from _1 in SpracheUtils.SqlToken ("when")
+					from _2 in PExpressionST.CommaDelimitedST ().AtLeastOnce ()
+					from _3 in SpracheUtils.SqlToken ("then")
+					from value in Then
+					select value
+				).AtLeastOnce ()
+				from else_c in
+				(
+					from _1 in SpracheUtils.SqlToken ("else")
+					from value in PExpressionST
+					select value
+				).Optional ()
+				from _3 in SpracheUtils.AnyTokenST ("end case", "end")
+				select new CaseBase<T> (case_h, branches, else_c)
+				;
+		}
+
 		static void Main (string[] args)
 		{
 			string ConnectionString = "server=127.0.0.1;port=5432;database=dummy01;uid=alexey;pwd=1234";
@@ -523,44 +561,50 @@ namespace ParseProcs
 
 			var PAtomicST = PBaseAtomicST
 					.Or (
-							from rn in SpracheUtils.SqlToken ("row_number")
-							from _1 in SpracheUtils.AnyTokenST ("( ) over (")
-							from _2 in
-								(
-									from _3 in SpracheUtils.AnyTokenST ("partition by")
-									from _4 in PExpressionRefST.Get.CommaDelimitedST ()
-									select 0
-								).Optional ()
-							from _5 in PGroupByClauseOptionalST
-							from _6 in SpracheUtils.SqlToken (")")
-							select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (rn, PSqlType.Int))
-						)
+						from rn in SpracheUtils.SqlToken ("row_number")
+						from _1 in SpracheUtils.AnyTokenST ("( ) over (")
+						from _2 in
+						(
+							from _3 in SpracheUtils.AnyTokenST ("partition by")
+							from _4 in PExpressionRefST.Get.CommaDelimitedST ()
+							select 0
+						).Optional ()
+						from _5 in PGroupByClauseOptionalST
+						from _6 in SpracheUtils.SqlToken (")")
+						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (rn, PSqlType.Int))
+					)
 					.Or (
-							from f in SpracheUtils.AnyTokenST ("sum", "min", "max")
-							from _1 in SpracheUtils.AnyTokenST ("(")
-							from _2 in SpracheUtils.AnyTokenST ("distinct").Optional ()
-							from exp in PExpressionRefST.Get
-							from _3 in SpracheUtils.AnyTokenST (")")
-							select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
-						)
+						from f in SpracheUtils.AnyTokenST ("sum", "min", "max")
+						from _1 in SpracheUtils.SqlToken ("(")
+						from _2 in SpracheUtils.SqlToken ("distinct").Optional ()
+						from exp in PExpressionRefST.Get
+						from _3 in SpracheUtils.SqlToken (")")
+						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
+					)
 					.Or (
-							from f in SpracheUtils.AnyTokenST ("count")
-							from _1 in SpracheUtils.AnyTokenST ("(")
-							from _2 in SpracheUtils.AnyTokenST ("distinct").Optional ()
-							from exp in PExpressionRefST.Get.Return (0).Or (PAsteriskSelectEntryST.Return (0))
-							from _3 in SpracheUtils.AnyTokenST (")")
-							select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
-						)
+						from f in SpracheUtils.SqlToken ("count")
+						from _1 in SpracheUtils.SqlToken ("(")
+						from _2 in SpracheUtils.SqlToken ("distinct").Optional ()
+						from exp in PExpressionRefST.Get.Return (0).Or (PAsteriskSelectEntryST.Return (0))
+						from _3 in SpracheUtils.SqlToken (")")
+						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
+					)
 					.Or (PUnnestST)
 					.Or (
-							from f in SpracheUtils.AnyTokenST ("coalesce")
-							from _1 in SpracheUtils.AnyTokenST ("(")
-							from exp in PExpressionRefST.Get
-							from _2 in SpracheUtils.AnyTokenST (",")
-							from subst in PExpressionRefST.Get
-							from _3 in SpracheUtils.AnyTokenST (")")
-							select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
-						)
+						from f in SpracheUtils.SqlToken ("coalesce")
+						from _1 in SpracheUtils.SqlToken ("(")
+						from exp in PExpressionRefST.Get
+						from _2 in SpracheUtils.SqlToken (",")
+						from subst in PExpressionRefST.Get
+						from _3 in SpracheUtils.SqlToken (")")
+						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
+					)
+					.Or (
+						from case_c in GetCase (PExpressionRefST.Get, PExpressionRefST.Get)
+						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
+							case_c.ElseC.Get ()?.GetResult (rc).Name ?? case_c.CaseH, case_c.Branches.First ().GetResult (rc).Type
+						))
+					)
 				;
 
 			var PAtomicPrefixGroupOptionalST =
@@ -790,67 +834,109 @@ namespace ParseProcs
 			//
 			Ref<DataReturnStatement[]> PInstructionRefST = new Ref<DataReturnStatement[]> ();
 
+			var PBeginEndST =
+					from _1 in SpracheUtils.SqlToken ("begin")
+					from ins in PInstructionRefST.Get.AtLeastOnce ()
+					from _2 in SpracheUtils.SqlToken ("end;")
+					select ins.ToArray ()
+				;
+
 			var PInstructionST =
-					from drs in
-						// open-for-select
-						PDataReturnStatementST
-							.Or (
-								// variable assignment
-								(
-									from _1 in PValidIdentifierExL
-									from _2 in SpracheUtils.AnyTokenST (":=", "=")
-									from _3 in PExpressionRefST.Get
-									select 0
-								)
-								.Or
-								(
-									// insert
-									from cte in PCteTopOptionalST
-									from _1 in SpracheUtils.AnyTokenST ("insert into")
-									from _2 in PQualifiedIdentifierST
-									from _3 in PValidIdentifierExL.CommaDelimitedST ().AtLeastOnce ().InParentsST ()
-										.Optional ()
-									from _4 in
+					(
+						from drs in
+							// open-for-select
+							PDataReturnStatementST
+								.Or (
 									(
-										from _1 in SpracheUtils.AnyTokenST ("values")
-										from _2 in PExpressionRefST.Get.CommaDelimitedST ().AtLeastOnce ()
-											.InParentsST ()
-										select 0
-									).Or (PSelectST.Return (0))
-									select 0
-								)
-								.Or
-								(
-									// update
-									from cte in PCteTopOptionalST
-									from _1 in SpracheUtils.AnyTokenST ("update")
-									from _2 in PQualifiedIdentifierST
-									from _3 in SpracheUtils.AnyTokenST ("set")
-									from _4 in
-									(
+										// variable assignment
 										from _1 in PValidIdentifierExL
-										from _2 in SpracheUtils.AnyTokenST ("=")
+										from _2 in SpracheUtils.SqlToken (":=")
 										from _3 in PExpressionRefST.Get
 										select 0
-									).CommaDelimitedST ().AtLeastOnce ()
-									from _5 in PFromClauseOptionalST
-									from _6 in PWhereClauseOptionalST
-									select 0
+									)
+									.Or
+									(
+										// insert
+										from cte in PCteTopOptionalST
+										from _1 in SpracheUtils.AnyTokenST ("insert into")
+										from _2 in PQualifiedIdentifierST
+										from _3 in PValidIdentifierExL.CommaDelimitedST ().AtLeastOnce ().InParentsST ()
+											.Optional ()
+										from _4 in
+										(
+											from _1 in SpracheUtils.SqlToken ("values")
+											from _2 in PExpressionRefST.Get.CommaDelimitedST ().AtLeastOnce ()
+												.InParentsST ()
+											select 0
+										).Or (PSelectST.Return (0))
+										select 0
+									)
+									.Or
+									(
+										// update
+										from cte in PCteTopOptionalST
+										from _1 in SpracheUtils.SqlToken ("update")
+										from _2 in PQualifiedIdentifierST
+										from _3 in SpracheUtils.SqlToken ("set")
+										from _4 in
+										(
+											from _1 in PValidIdentifierExL
+											from _2 in SpracheUtils.SqlToken ("=")
+											from _3 in PExpressionRefST.Get
+											select 0
+										).CommaDelimitedST ().AtLeastOnce ()
+										from _5 in PFromClauseOptionalST
+										from _6 in PWhereClauseOptionalST
+										select 0
+									)
+									.Or
+									(
+										// delete
+										from cte in PCteTopOptionalST
+										from _1 in SpracheUtils.AnyTokenST ("delete from")
+										from _2 in PQualifiedIdentifierST
+										from _3 in PFromClauseOptionalST
+										from _4 in PWhereClauseOptionalST
+										select 0
+									)
+									.Or
+									(
+										from _1 in SpracheUtils.SqlToken ("return")
+										from _2 in PExpressionRefST.Get.Optional ()
+										select 0
+									)
+									.Or (GetCase (PExpressionRefST.Get, PInstructionRefST.Get).Return (0))
+									.Select (n => DataReturnStatement.Void)
 								)
-								.Or
-								(
-									// delete
-									from cte in PCteTopOptionalST
-									from _1 in SpracheUtils.AnyTokenST ("delete from")
-									from _2 in PQualifiedIdentifierST
-									from _3 in PFromClauseOptionalST
-									from _4 in PWhereClauseOptionalST
-									select 0
-								)
-								.Select (n => DataReturnStatement.Void)
-							)
-					from _ in SpracheUtils.AnyTokenST (";")
-					select drs.ToTrivialArray ()
+						from _ in SpracheUtils.SqlToken (";")
+						select drs.ToTrivialArray ()
+					)
+					.Or
+					(
+						from _1 in SpracheUtils.SqlToken ("if")
+						from _2 in PExpressionRefST.Get
+						from _3 in SpracheUtils.SqlToken ("then")
+						from ThenIns in PInstructionRefST.Get.AtLeastOnce ()
+						from ElsifC in
+						(
+							from _1 in SpracheUtils.AnyTokenST ("elsif", "elseif")
+							from _2 in PExpressionRefST.Get
+							from _3 in SpracheUtils.SqlToken ("then")
+							from ins in PInstructionRefST.Get.AtLeastOnce ()
+							select ins
+						).Many ()
+						from ElseC in
+						(
+							from _1 in SpracheUtils.SqlToken ("else")
+							from ins in PInstructionRefST.Get.AtLeastOnce ()
+							select ins
+						).Optional ()
+						select ThenIns
+							.Concat (ElsifC.SelectMany (e => e))
+							.Concat (ElseC.GetOrElse (new DataReturnStatement[0][]))
+							.SelectMany (e => e)
+							.ToArray ()
+					)
 				;
 
 			PInstructionRefST.Parser = PInstructionST;
