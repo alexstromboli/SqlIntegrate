@@ -86,13 +86,13 @@ namespace ParseProcs
 			this.ModuleContext = ModuleContext;
 
 			// table, as accessible in ModuleContext, considering schema order
-			this.TableRefChain = ((IReadOnlyDictionary<string, ITable>)ModuleContext
+			this.TableRefChain = (ModuleContext
 					.TablesDict.Select (t => new { name = t.Key, table = t.Value })
 					.Concat (ModuleContext.TablesDict.Values.Where (t =>
 							!ModuleContext.SchemaOrder.TakeWhile (s => s != t.Schema).Any (s => ModuleContext.TablesDict.ContainsKey (s + "." + t.Name)))
 						.Select (t => new { name = t.Name, table = t })
 					)
-					.ToDictionary (t => t.name, t => t.table))
+					.ToDictionary (t => t.name, t => (ITable)t.table))
 					.ToTrivialArray ()
 				;
 
@@ -458,10 +458,15 @@ namespace ParseProcs
 				"like"
 			);
 
+			var PBetweenOperatorST = SpracheUtils.SqlToken ("between");
+
 			var PBinaryGeneralTextOperatorsST = SpracheUtils.AnyTokenST (
 				"||"
 			);
 
+			var PBinaryIncludeOperatorsST = SpracheUtils.AnyTokenST (
+				"in", "not in"
+			);
 			var PBinaryMatchingOperatorsST = SpracheUtils.AnyTokenST (
 				"is"
 			);
@@ -642,16 +647,21 @@ namespace ParseProcs
 						.Or (PBinaryComparisonOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.Comparison, true,
 							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
+						.Or (PBinaryIncludeOperatorsST.Select (b => new OperatorProcessor (
+							PSqlOperatorPriority.In, true,
+							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryRangeOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Like, true,
 							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryMatchingOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Is, true,
 							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryConjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.And, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
+							(l, r) => rc => new NamedTyped (PSqlType.Bool), IsAnd: true)))
 						.Or (PBinaryDisjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
 							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General, true,
 							(l, r) => rc => new NamedTyped (PSqlType.Text))))
+						.Or (PBetweenOperatorST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Between, true,
+							(l, r) => rc => new NamedTyped (PSqlType.Text), true)))
 				;
 
 			var PPolynomST =
@@ -1003,7 +1013,10 @@ done
 				SchemaOrder,
 				TablesDict,
 				FunctionsDict,
-				new Dictionary<string, NamedTyped> ()
+				new Dictionary<string, NamedTyped>
+				{
+					["a.b.c"] = new NamedTyped ("a.b.c", PSqlType.Float)
+				}
 			);
 			RequestContext rc = new RequestContext (mc);
 			Action<string, PSqlType> TestExpr = (s, t) => System.Diagnostics.Debug.Assert (PExpressionRefST.Get.End ().Parse (s).GetResult (rc).Type == t);
@@ -1038,6 +1051,13 @@ done
 			TestExpr ("5>6", PSqlType.Bool);
 			TestExpr ("5<=6", PSqlType.Bool);
 			TestExpr (" 5 <= 2*3 AnD NOT 4.5 isnull ", PSqlType.Bool);
+
+			TestExpr ("5 betWEEN 1 and 6", PSqlType.Bool);
+			TestExpr ("6*(2+3) betWEEN 1 and 6", PSqlType.Bool);
+			TestExpr ("6*(2+3) betWEEN 1 and 6", PSqlType.Bool);
+			TestExpr ("true and 6*(2+3) betWEEN 1 and 6 and 6>5 or (5=2+9)", PSqlType.Bool);
+
+			TestExpr ("case when 6 * ( 2 + 3 ) betWEEN 1 and 6 betWEEN 1 and 6 and 6>5 or (5=2+9)", PSqlType.Bool);
 
 			TestExpr ("a.b.c::bigint", PSqlType.BigInt);		// test irrelevance of the left part of a type cast
 			TestExpr ("('{6, 9, 3}'::int[])[1]", PSqlType.Int);		// test taking an array item

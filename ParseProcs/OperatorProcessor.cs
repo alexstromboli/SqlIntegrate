@@ -6,6 +6,8 @@ namespace ParseProcs
 	{
 		public int Precedence = 0;
 		public bool IsBinary = false;
+		public bool IsBetween = false;
+		public bool IsAnd = false;
 
 		public Func<
 			Func<RequestContext, NamedTyped>,		// left
@@ -19,12 +21,16 @@ namespace ParseProcs
 				Func<RequestContext, NamedTyped>, // left
 				Func<RequestContext, NamedTyped>, // right (null for unary)
 				Func<RequestContext, NamedTyped> // result
-			> Processor
+			> Processor,
+			bool IsBetween = false,
+			bool IsAnd = false
 		)
 		{
 			this.Precedence = (int)Precedence;
 			this.IsBinary = IsBinary;
 			this.Processor = Processor;
+			this.IsBetween = IsBetween;
+			this.IsAnd = IsAnd;
 		}
 
 		public static Func<

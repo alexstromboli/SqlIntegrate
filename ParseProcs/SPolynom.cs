@@ -56,12 +56,24 @@ namespace ParseProcs
 				}
 			};
 
+			bool HasBetween = false;		// apparently, PSQL does not allow nested betweens on the same level, so only one level
 			Process (Operands[0]);
 			for (int i = 0; i < Operators.Count; ++i)
 			{
 				var op = Operators[i];
-				Perform (op.Precedence);
+				Perform (HasBetween && op.IsAnd
+					? (int)PSqlOperatorPriority.Between
+					: op.Precedence);
 				OperatorsStack.Push (op);
+
+				if (op.IsBetween)
+				{
+					HasBetween = true;
+				}
+				else if (op.IsAnd)
+				{
+					HasBetween = false;
+				}
 
 				var v = Operands[i + 1];
 				Process (v);

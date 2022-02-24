@@ -9,6 +9,8 @@ namespace ParseProcs
 		Is,
 		Comparison,
 		Like,
+		Between,
+		In,
 		General,
 		AddSub,
 		MulDiv,
