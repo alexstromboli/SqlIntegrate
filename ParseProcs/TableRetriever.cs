@@ -6,7 +6,7 @@ namespace ParseProcs
 {
 	public interface ITableRetriever
 	{
-		ITable GetTable (RequestContext Context);
+		ITable GetTable (RequestContext Context, bool OnlyNamed = true);
 	}
 
 	public class NamedTableRetriever : ITableRetriever
@@ -20,7 +20,7 @@ namespace ParseProcs
 			FullName = this.NameL.JoinDot ();
 		}
 
-		public ITable GetTable (RequestContext Context)
+		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
 		{
 			return Context
 				.TableRefChain
@@ -69,7 +69,7 @@ namespace ParseProcs
 			this.Parameter = Parameter;
 		}
 
-		public ITable GetTable (RequestContext Context)
+		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
 		{
 			return new Table (new NamedTyped (FunctionName, Parameter (Context).Type));
 		}

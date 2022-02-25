@@ -175,7 +175,7 @@ namespace ParseProcs
 			this.IsMany = IsMany;
 		}
 
-		public ITable GetTable (RequestContext Context)
+		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
 		{
 			List<NamedTyped> AllColumns = new List<NamedTyped> ();
 			Dictionary<string, IReadOnlyList<NamedTyped>> Asterisks =
@@ -226,6 +226,10 @@ namespace ParseProcs
 					FoundNames.Add (nt.Name);
 					Result.AddColumn (nt);
 				}
+				else if (!OnlyNamed)
+				{
+					Result.AddColumn (nt);
+				}
 			}
 
 			return Result;
@@ -255,7 +259,7 @@ namespace ParseProcs
 			this.SelectBody = SelectBody;
 		}
 
-		public ITable GetTable (RequestContext Context)
+		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
 		{
 			RequestContext CurrentContext = Context;
 
@@ -266,13 +270,13 @@ namespace ParseProcs
 				{
 					foreach (var l in Levels)
 					{
-						ITable t = l.Table.GetTable (CurrentContext);
+						ITable t = l.Table.GetTable (CurrentContext, true);
 						CurrentContext = new RequestContext (CurrentContext, new Dictionary<string, ITable> { [l.Name] = t });
 					}
 				}
 			}
 
-			var Result = SelectBody.GetTable (CurrentContext);
+			var Result = SelectBody.GetTable (CurrentContext, OnlyNamed);
 			return Result;
 		}
 	}
@@ -559,8 +563,8 @@ namespace ParseProcs
 						.Or (PQualifiedIdentifierST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
 							rc.NamedDict[p.JoinDot ()]
 							))
-						.Or (PFullSelectStatement.Get.Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
-							fss.GetTable (rc).Columns[0]
+						.Or (PFullSelectStatement.Get.InParentsST ().Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
+							fss.GetTable (rc, false).Columns[0]
 						))
 				;
 
@@ -844,11 +848,41 @@ namespace ParseProcs
 			//
 			Ref<DataReturnStatement[]> PInstructionRefST = new Ref<DataReturnStatement[]> ();
 
-			var PBeginEndST =
-					from _1 in SpracheUtils.SqlToken ("begin")
+			var PLoopST =
+					from _1 in SpracheUtils.SqlToken ("loop")
 					from ins in PInstructionRefST.Get.AtLeastOnce ()
-					from _2 in SpracheUtils.SqlToken ("end;")
-					select ins.ToArray ()
+					from _2 in SpracheUtils.AnyTokenST ("end loop")
+					select ins.SelectMany (e => e).ToArray ()
+				;
+
+			var PLoopExST =
+					from header in
+					(
+						(
+							from _1 in SpracheUtils.SqlToken ("while")
+							from _2 in PExpressionRefST.Get
+							select 0
+						)
+						.Or
+						(
+							from _1 in SpracheUtils.SqlToken ("for")
+							from _2 in PValidIdentifierExL
+							from _3 in SpracheUtils.SqlToken ("in")
+							from _4 in SpracheUtils.SqlToken ("reverse").Optional ()
+							from _5 in PExpressionRefST.Get
+							from _6 in SpracheUtils.SqlToken ("..")
+							from _7 in PExpressionRefST.Get
+							from _8 in
+							(
+								from _1 in SpracheUtils.SqlToken ("by")
+								from _2 in PExpressionRefST.Get
+								select 0
+							).Optional ()
+							select 0
+						)
+					).Optional ()
+					from body in PLoopST
+					select body
 				;
 
 			var PInstructionST =
@@ -1052,12 +1086,14 @@ done
 			TestExpr ("5<=6", PSqlType.Bool);
 			TestExpr (" 5 <= 2*3 AnD NOT 4.5 isnull ", PSqlType.Bool);
 
+			TestExpr ("80-(select 5::money+6)", PSqlType.Money);
+
 			TestExpr ("5 betWEEN 1 and 6", PSqlType.Bool);
 			TestExpr ("6*(2+3) betWEEN 1 and 6", PSqlType.Bool);
 			TestExpr ("6*(2+3) betWEEN 1 and 6", PSqlType.Bool);
 			TestExpr ("true and 6*(2+3) betWEEN 1 and 6 and 6>5 or (5=2+9)", PSqlType.Bool);
 
-			TestExpr ("case when 6 * ( 2 + 3 ) betWEEN 1 and 6 betWEEN 1 and 6 and 6>5 or (5=2+9)", PSqlType.Bool);
+			TestExpr ("case when 6 * ( 2 + 3 ) betWEEN 1 and 6 then 'test' else null end", PSqlType.Text);
 
 			TestExpr ("a.b.c::bigint", PSqlType.BigInt);		// test irrelevance of the left part of a type cast
 			TestExpr ("('{6, 9, 3}'::int[])[1]", PSqlType.Int);		// test taking an array item

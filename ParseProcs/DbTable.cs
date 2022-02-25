@@ -77,13 +77,17 @@ namespace ParseProcs
 
 		public NamedTyped AddColumn (NamedTyped ColumnL)
 		{
-			if (_ColumnsDict.TryGetValue (ColumnL.Name, out NamedTyped Existing))
+			if (ColumnL.Name != null && _ColumnsDict.TryGetValue (ColumnL.Name, out NamedTyped Existing))
 			{
 				return Existing;
 			}
 
 			_Columns.Add (ColumnL);
-			_ColumnsDict[ColumnL.Name] = ColumnL;
+
+			if (ColumnL.Name != null)
+			{
+				_ColumnsDict[ColumnL.Name] = ColumnL;
+			}
 
 			return ColumnL;
 		}
