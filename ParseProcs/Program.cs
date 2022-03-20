@@ -445,7 +445,7 @@ namespace ParseProcs
 				;
 
 			Ref<SPolynom> PExpressionRefST = new Ref<SPolynom> ();
-			Ref<FullSelectStatement> PFullSelectStatement = new Ref<FullSelectStatement> ();
+			Ref<FullSelectStatement> PFullSelectStatementST = new Ref<FullSelectStatement> ();
 
 			var PParentsST = PExpressionRefST.Get.InParentsST ();
 			var PBracketsST = PExpressionRefST.Get.Contained (Parse.Char ('[').SqlToken (), Parse.Char (']').SqlToken ());
@@ -563,7 +563,7 @@ namespace ParseProcs
 						.Or (PQualifiedIdentifierST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
 							rc.NamedDict[p.JoinDot ()]
 							))
-						.Or (PFullSelectStatement.Get.InParentsST ().Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
+						.Or (PFullSelectStatementST.Get.InParentsST ().Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
 							fss.GetTable (rc, false).Columns[0]
 						))
 				;
@@ -734,7 +734,7 @@ namespace ParseProcs
 						PUnnestST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p => new UnnestTableRetriever (p))
 							// or-ed after unnest
 							.Or (PQualifiedIdentifierST.Select (qi => new NamedTableRetriever (qi)))
-							.Or (PFullSelectStatement.Get.InParentsST ())
+							.Or (PFullSelectStatementST.Get.InParentsST ())
 					)
 				from alias_cl in
 					(
@@ -828,7 +828,7 @@ namespace ParseProcs
 					from select_body in PSelectST
 					select new FullSelectStatement (cte, select_body)
 				;
-			PFullSelectStatement.Parser = PSelectFullST;
+			PFullSelectStatementST.Parser = PSelectFullST;
 
 			var POpenDatasetST =
 					from kw_open in SpracheUtils.SqlToken ("open")
@@ -869,15 +869,20 @@ namespace ParseProcs
 							from _2 in PValidIdentifierExL
 							from _3 in SpracheUtils.SqlToken ("in")
 							from _4 in SpracheUtils.SqlToken ("reverse").Optional ()
-							from _5 in PExpressionRefST.Get
-							from _6 in SpracheUtils.SqlToken ("..")
-							from _7 in PExpressionRefST.Get
-							from _8 in
-							(
-								from _1 in SpracheUtils.SqlToken ("by")
-								from _2 in PExpressionRefST.Get
-								select 0
-							).Optional ()
+							from in_c in
+								(
+									from _5 in PExpressionRefST.Get
+									from _6 in SpracheUtils.SqlToken ("..")
+									from _7 in PExpressionRefST.Get
+									from _8 in
+									(
+										from _1 in SpracheUtils.SqlToken ("by")
+										from _2 in PExpressionRefST.Get
+										select 0
+									).Optional ()
+									select 0
+								)
+								.Or (PFullSelectStatementST.Get.Return (0))
 							select 0
 						)
 					).Optional ()
@@ -886,101 +891,106 @@ namespace ParseProcs
 				;
 
 			var PInstructionST =
-					(
-						from drs in
-							// open-for-select
-							PDataReturnStatementST
-								.Or (
-									(
-										// variable assignment
-										from _1 in PValidIdentifierExL
-										from _2 in SpracheUtils.SqlToken (":=")
-										from _3 in PExpressionRefST.Get
-										select 0
-									)
-									.Or
-									(
-										// insert
-										from cte in PCteTopOptionalST
-										from _1 in SpracheUtils.AnyTokenST ("insert into")
-										from _2 in PQualifiedIdentifierST
-										from _3 in PValidIdentifierExL.CommaDelimitedST ().AtLeastOnce ().InParentsST ()
-											.Optional ()
-										from _4 in
+					from _exc in SpracheUtils.AnyTokenST ("exception when others then").Optional ()
+					from body in
+						(
+							from drs in
+								// open-for-select
+								PDataReturnStatementST
+									.Or (
 										(
-											from _1 in SpracheUtils.SqlToken ("values")
-											from _2 in PExpressionRefST.Get.CommaDelimitedST ().AtLeastOnce ()
-												.InParentsST ()
-											select 0
-										).Or (PSelectST.Return (0))
-										select 0
-									)
-									.Or
-									(
-										// update
-										from cte in PCteTopOptionalST
-										from _1 in SpracheUtils.SqlToken ("update")
-										from _2 in PQualifiedIdentifierST
-										from _3 in SpracheUtils.SqlToken ("set")
-										from _4 in
-										(
+											// variable assignment
 											from _1 in PValidIdentifierExL
-											from _2 in SpracheUtils.SqlToken ("=")
+											from _2 in SpracheUtils.SqlToken (":=")
 											from _3 in PExpressionRefST.Get
 											select 0
-										).CommaDelimitedST ().AtLeastOnce ()
-										from _5 in PFromClauseOptionalST
-										from _6 in PWhereClauseOptionalST
-										select 0
+										)
+										.Or
+										(
+											// insert
+											from cte in PCteTopOptionalST
+											from _1 in SpracheUtils.AnyTokenST ("insert into")
+											from _2 in PQualifiedIdentifierST
+											from _3 in PValidIdentifierExL.CommaDelimitedST ().AtLeastOnce ()
+												.InParentsST ()
+												.Optional ()
+											from _4 in
+											(
+												from _1 in SpracheUtils.SqlToken ("values")
+												from _2 in PExpressionRefST.Get.CommaDelimitedST ().AtLeastOnce ()
+													.InParentsST ()
+												select 0
+											).Or (PSelectST.Return (0))
+											select 0
+										)
+										.Or
+										(
+											// update
+											from cte in PCteTopOptionalST
+											from _1 in SpracheUtils.SqlToken ("update")
+											from _2 in PQualifiedIdentifierST
+											from _3 in SpracheUtils.SqlToken ("set")
+											from _4 in
+											(
+												from _1 in PValidIdentifierExL
+												from _2 in SpracheUtils.SqlToken ("=")
+												from _3 in PExpressionRefST.Get
+												select 0
+											).CommaDelimitedST ().AtLeastOnce ()
+											from _5 in PFromClauseOptionalST
+											from _6 in PWhereClauseOptionalST
+											select 0
+										)
+										.Or
+										(
+											// delete
+											from cte in PCteTopOptionalST
+											from _1 in SpracheUtils.AnyTokenST ("delete from")
+											from _2 in PQualifiedIdentifierST
+											from _3 in PFromClauseOptionalST
+											from _4 in PWhereClauseOptionalST
+											select 0
+										)
+										.Or
+										(
+											from _1 in SpracheUtils.SqlToken ("return")
+											from _2 in PExpressionRefST.Get.Optional ()
+											select 0
+										)
+										.Or (GetCase (PExpressionRefST.Get, PInstructionRefST.Get).Return (0))
+										.Select (n => DataReturnStatement.Void)
 									)
-									.Or
-									(
-										// delete
-										from cte in PCteTopOptionalST
-										from _1 in SpracheUtils.AnyTokenST ("delete from")
-										from _2 in PQualifiedIdentifierST
-										from _3 in PFromClauseOptionalST
-										from _4 in PWhereClauseOptionalST
-										select 0
-									)
-									.Or
-									(
-										from _1 in SpracheUtils.SqlToken ("return")
-										from _2 in PExpressionRefST.Get.Optional ()
-										select 0
-									)
-									.Or (GetCase (PExpressionRefST.Get, PInstructionRefST.Get).Return (0))
-									.Select (n => DataReturnStatement.Void)
-								)
-						from _ in SpracheUtils.SqlToken (";")
-						select drs.ToTrivialArray ()
-					)
-					.Or
-					(
-						from _1 in SpracheUtils.SqlToken ("if")
-						from _2 in PExpressionRefST.Get
-						from _3 in SpracheUtils.SqlToken ("then")
-						from ThenIns in PInstructionRefST.Get.AtLeastOnce ()
-						from ElsifC in
+							from _ in SpracheUtils.SqlToken (";")
+							select drs.ToTrivialArray ()
+						)
+						.Or
 						(
-							from _1 in SpracheUtils.AnyTokenST ("elsif", "elseif")
+							from _1 in SpracheUtils.SqlToken ("if")
 							from _2 in PExpressionRefST.Get
 							from _3 in SpracheUtils.SqlToken ("then")
-							from ins in PInstructionRefST.Get.AtLeastOnce ()
-							select ins
-						).Many ()
-						from ElseC in
-						(
-							from _1 in SpracheUtils.SqlToken ("else")
-							from ins in PInstructionRefST.Get.AtLeastOnce ()
-							select ins
-						).Optional ()
-						select ThenIns
-							.Concat (ElsifC.SelectMany (e => e))
-							.Concat (ElseC.GetOrElse (new DataReturnStatement[0][]))
-							.SelectMany (e => e)
-							.ToArray ()
-					)
+							from ThenIns in PInstructionRefST.Get.AtLeastOnce ()
+							from ElsifC in
+							(
+								from _1 in SpracheUtils.AnyTokenST ("elsif", "elseif")
+								from _2 in PExpressionRefST.Get
+								from _3 in SpracheUtils.SqlToken ("then")
+								from ins in PInstructionRefST.Get.AtLeastOnce ()
+								select ins
+							).Many ()
+							from ElseC in
+							(
+								from _1 in SpracheUtils.SqlToken ("else")
+								from ins in PInstructionRefST.Get.AtLeastOnce ()
+								select ins
+							).Optional ()
+							select ThenIns
+								.Concat (ElsifC.SelectMany (e => e))
+								.Concat (ElseC.GetOrElse (new DataReturnStatement[0][]))
+								.SelectMany (e => e)
+								.ToArray ()
+						)
+						.Or (PLoopExST)
+					select body
 				;
 
 			PInstructionRefST.Parser = PInstructionST;
