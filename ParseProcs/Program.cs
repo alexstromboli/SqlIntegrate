@@ -430,7 +430,8 @@ namespace ParseProcs
 
 			// here: allow keywords after dot, like R.order
 			// lowercase
-			var PQualifiedIdentifierST = PValidIdentifierExL
+			//Func<bool, Parser<string[]>> PQualifiedIdentifierST = (bool AllowKeywords) => (AllowKeywords ? PExpectedIdentifierExL : PValidIdentifierExL)
+			var PQualifiedIdentifierST = PExpectedIdentifierExL
 					.SqlToken ()
 					.DelimitedBy (Parse.String (".").SqlToken (), 1, null)
 					.Select (seq => seq.ToArray ())
@@ -538,6 +539,20 @@ namespace ParseProcs
 				).Optional ()
 				;
 
+			var POrderByClauseOptionalST =
+				(
+					from f in SpracheUtils.AnyTokenST ("order by")
+					from grp in
+						(
+							from _1 in PExpressionRefST.Get
+							from _2 in SpracheUtils.AnyTokenST ("asc", "desc").Optional ()
+							select 0
+						)
+						.CommaDelimitedST ()
+					select 0
+				).Optional ()
+				;
+
 			var PUnnestST =
 					from f in SpracheUtils.AnyTokenST ("unnest")
 					from _1 in SpracheUtils.AnyTokenST ("(")
@@ -560,7 +575,8 @@ namespace ParseProcs
 							rc.ModuleContext.GetFunction (p)
 							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
-						.Or (PQualifiedIdentifierST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
+						.Or (PQualifiedIdentifierST
+							.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
 							rc.NamedDict[p.JoinDot ()]
 							))
 						.Or (PFullSelectStatementST.Get.InParentsST ().Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
@@ -568,8 +584,8 @@ namespace ParseProcs
 						))
 				;
 
-			var PAtomicST = PBaseAtomicST
-					.Or (
+			var PAtomicST =
+					(
 						from rn in SpracheUtils.SqlToken ("row_number")
 						from _1 in SpracheUtils.AnyTokenST ("( ) over (")
 						from _2 in
@@ -578,7 +594,7 @@ namespace ParseProcs
 							from _4 in PExpressionRefST.Get.CommaDelimitedST ()
 							select 0
 						).Optional ()
-						from _5 in PGroupByClauseOptionalST
+						from _5 in POrderByClauseOptionalST
 						from _6 in SpracheUtils.SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (rn, PSqlType.Int))
 					)
@@ -614,6 +630,7 @@ namespace ParseProcs
 							case_c.ElseC.Get ()?.GetResult (rc).Name ?? case_c.CaseH, case_c.Branches.First ().GetResult (rc).Type
 						))
 					)
+					.Or (PBaseAtomicST)
 				;
 
 			var PAtomicPrefixGroupOptionalST =
@@ -752,16 +769,20 @@ namespace ParseProcs
 				(
 					from kw_from in SpracheUtils.SqlToken ("from")
 					from t1 in PFromTableExpressionST
-					from tail in (
-						from kw_joinN in SpracheUtils.AnyTokenST ("join", "inner join", "left join", "right join")
-						from tN in PFromTableExpressionST
-						from condN in (
+					from tail in
+						(
+							from kw_joinN in SpracheUtils.AnyTokenST ("join", "inner join", "left join", "right join")
+							from tN in PFromTableExpressionST
 							from kw_onN in SpracheUtils.SqlToken ("on")
 							from condexpN in PExpressionRefST.Get
-							select 0
-						).Optional ()
-						select tN
-					).Many ()
+							select tN
+						)
+						.Or (
+							from kw_joinN in SpracheUtils.AnyTokenST ("cross join")
+							from tN in PFromTableExpressionST
+							select tN
+						)
+						.Many ()
 					select t1.ToTrivialArray ().Concat (tail).ToArray ()
 				).Optional ()
 				;
@@ -770,20 +791,6 @@ namespace ParseProcs
 				(
 					from kw_where in SpracheUtils.SqlToken ("where")
 					from cond in PExpressionRefST.Get
-					select 0
-				).Optional ()
-				;
-
-			var POrderByClauseOptionalST =
-				(
-					from f in SpracheUtils.AnyTokenST ("order by")
-					from grp in
-						(
-							from _1 in PExpressionRefST.Get
-							from _2 in SpracheUtils.AnyTokenST ("asc", "desc").Optional ()
-							select 0
-						)
-						.CommaDelimitedST ()
 					select 0
 				).Optional ()
 				;
@@ -900,7 +907,7 @@ namespace ParseProcs
 									.Or (
 										(
 											// variable assignment
-											from _1 in PValidIdentifierExL
+											from _1 in PValidIdentifierExL.SqlToken ()
 											from _2 in SpracheUtils.SqlToken (":=")
 											from _3 in PExpressionRefST.Get
 											select 0
@@ -994,6 +1001,50 @@ namespace ParseProcs
 				;
 
 			PInstructionRefST.Parser = PInstructionST;
+
+			// procedure
+			var PProcedureST =
+					from declare in
+					(
+						from _1 in SpracheUtils.SqlToken ("declare")
+						from vars in
+						(
+							from name in PExpectedIdentifierExL.SqlToken ()
+							from type in PTypeST
+							from init in
+							(
+								from _1 in SpracheUtils.SqlToken (":=")
+								from _2 in PExpressionRefST.Get
+								select 0
+							).Optional ()
+							from _2 in SpracheUtils.SqlToken (";")
+							select new NamedTyped (name, PSqlType.GetForSqlTypeName (type))
+						).AtLeastOnce ()
+						select vars.ToArray ()
+					).Optional ()
+					from body in
+					(
+						from _1 in SpracheUtils.SqlToken ("begin")
+						from inst in PInstructionRefST.Get.AtLeastOnce ()
+						from _2 in SpracheUtils.SqlToken ("end")
+						select inst.SelectMany (i => i).ToArray ()
+					)
+					select new { vars = declare.GetOrElse (new NamedTyped[0]), body }
+				;
+
+			// parse all procedures
+			foreach (var proc in ProceduresDict.Values)
+			{
+				var Parse = PProcedureST.Parse (proc.SourceCode);
+
+				ModuleContext mcProc = new ModuleContext (
+					proc.Name,
+					SchemaOrder,
+					TablesDict,
+					FunctionsDict,
+					Parse.vars.ToDictionary (v => v.Name)
+				);
+			}
 
 			//
 			var sel01 = PDataReturnStatementST.Parse ("open ref01 for select 654");
