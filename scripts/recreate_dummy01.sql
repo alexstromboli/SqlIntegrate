@@ -81,8 +81,8 @@ BEGIN
 END;
 $$;
 
--- DROP PROCEDURE GetDeptChain
-CREATE PROCEDURE GetDeptChain (id int, INOUT res01 refcursor)
+-- DROP PROCEDURE GetDeptChain;
+CREATE PROCEDURE GetDeptChain (p_id int, INOUT res01 refcursor)
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
@@ -112,7 +112,8 @@ BEGIN
                      INNER JOIN Depts AS D ON D.id = R.id_parent
         )
     SELECT  id,
-            name
+            name,
+            p_id as float
     FROM R
     ORDER BY R.order;
 END;

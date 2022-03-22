@@ -1053,7 +1053,9 @@ namespace ParseProcs
 					SchemaOrder,
 					TablesDict,
 					FunctionsDict,
-					Parse.vars.ToDictionary (v => v.Name)
+					Parse.vars
+						.Concat (proc.Arguments)
+						.ToDictionary (v => v.Name)
 				);
 
 				RequestContext rcProc = new RequestContext (mcProc);
