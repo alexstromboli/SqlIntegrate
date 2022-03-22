@@ -167,12 +167,20 @@ namespace ParseProcs
 		public Func<RequestContext, IReadOnlyList<NamedTyped>> List { get; }
 		public IOption<FromTableExpression[]> FromClause { get; }
 		public bool IsMany { get; }
+		public string Name { get; }
 
-		public SelectStatement (Func<RequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause, bool IsMany)
+		public SelectStatement (Func<RequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause, bool IsMany,
+			string Name = null)
 		{
 			this.List = List;
 			this.FromClause = FromClause;
 			this.IsMany = IsMany;
+			this.Name = Name;
+		}
+
+		public SelectStatement (SelectStatement Core, string Name)
+			: this (Core.List, Core.FromClause, Core.IsMany, Name)
+		{
 		}
 
 		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
@@ -180,6 +188,7 @@ namespace ParseProcs
 			List<NamedTyped> AllColumns = new List<NamedTyped> ();
 			Dictionary<string, IReadOnlyList<NamedTyped>> Asterisks =
 				new Dictionary<string, IReadOnlyList<NamedTyped>> ();
+			List<NamedTyped> AllAsteriskedEntries = new List<NamedTyped> ();
 
 			if (FromClause.IsDefined)
 			{
@@ -195,6 +204,11 @@ namespace ParseProcs
 
 						foreach (var ast in Refs.Asterisks)
 						{
+							if (ast.Key == "*")
+							{
+								AllAsteriskedEntries.AddRange (ast.Value);
+							}
+
 							if (ast.Key != "*")
 							{
 								Asterisks[ast.Key] = ast.Value;
@@ -213,12 +227,17 @@ namespace ParseProcs
 				.ToDictionary (g => g.Key, g => g.First ())
 				;
 
-			Asterisks["*"] = AllColumns;
+			Asterisks["*"] = AllAsteriskedEntries
+					.ToLookup (c => c.Name)
+					.Where (g => g.Count () == 1)
+					.Select (g => g.First ())
+					.ToArray ()
+				;
 
 			RequestContext NewContext = new RequestContext (Context, null, AllNamedDict, Asterisks);
 
 			SortedSet<string> FoundNames = new SortedSet<string> ();
-			Table Result = new Table ();
+			Table Result = new Table (Name);
 			foreach (var nt in List (NewContext))
 			{
 				if (nt.Name != null && !FoundNames.Contains (nt.Name))
@@ -236,24 +255,12 @@ namespace ParseProcs
 		}
 	}
 
-	public class CteLevel
-	{
-		public string Name { get; }
-		public SelectStatement Table { get; }
-
-		public CteLevel (string Name, SelectStatement Table)
-		{
-			this.Name = Name;
-			this.Table = Table;
-		}
-	}
-
 	public class FullSelectStatement : ITableRetriever
 	{
-		public IOption<IEnumerable<CteLevel>> Cte { get; }
+		public IOption<IEnumerable<SelectStatement>> Cte { get; }
 		public SelectStatement SelectBody { get; }
 
-		public FullSelectStatement (IOption<IEnumerable<CteLevel>> Cte, SelectStatement SelectBody)
+		public FullSelectStatement (IOption<IEnumerable<SelectStatement>> Cte, SelectStatement SelectBody)
 		{
 			this.Cte = Cte;
 			this.SelectBody = SelectBody;
@@ -270,7 +277,7 @@ namespace ParseProcs
 				{
 					foreach (var l in Levels)
 					{
-						ITable t = l.Table.GetTable (CurrentContext, true);
+						ITable t = l.GetTable (CurrentContext, true);
 						CurrentContext = new RequestContext (CurrentContext, new Dictionary<string, ITable> { [l.Name] = t });
 					}
 				}
@@ -528,7 +535,11 @@ namespace ParseProcs
 						select qual
 					).Optional ()
 					from ast in Parse.Char ('*').SqlToken ()
-					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc => rc.GetAsterisk (qual.GetOrElse (new string[0]).JoinDot () + ".*"))
+					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc => rc.GetAsterisk (
+						qual.IsDefined
+							? qual.Get ().JoinDot () + ".*"
+							: "*"
+						))
 				;
 
 			var PGroupByClauseOptionalST =
@@ -818,7 +829,7 @@ namespace ParseProcs
 					from name in PValidIdentifierExL
 					from kw_as in SpracheUtils.SqlToken ("as")
 					from select_exp in PSelectST.InParentsST ()
-					select new CteLevel (name, select_exp)
+					select new SelectStatement (select_exp, name)
 				;
 
 			var PCteTopOptionalST =
@@ -1044,6 +1055,15 @@ namespace ParseProcs
 					FunctionsDict,
 					Parse.vars.ToDictionary (v => v.Name)
 				);
+
+				RequestContext rcProc = new RequestContext (mcProc);
+
+				foreach (var drs in Parse.body
+					         .Where (s => s != null)
+				         )
+				{
+					var Set = drs.GetResult (rcProc);
+				}
 			}
 
 			//

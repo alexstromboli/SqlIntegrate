@@ -68,11 +68,13 @@ namespace ParseProcs
 	{
 		protected List<NamedTyped> _Columns;
 		public override IReadOnlyList<NamedTyped> Columns => _Columns;
+		public string Name { get; }
 
-		public Table ()
+		public Table (string Name = null)
 		{
 			_Columns = new List<NamedTyped> ();
 			_ColumnsDict = new Dictionary<string, NamedTyped> ();
+			this.Name = Name;
 		}
 
 		public NamedTyped AddColumn (NamedTyped ColumnL)
@@ -90,6 +92,11 @@ namespace ParseProcs
 			}
 
 			return ColumnL;
+		}
+
+		public override ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+		{
+			return base.GetAllColumnReferences (ModuleContext, Alias ?? Name);
 		}
 	}
 
