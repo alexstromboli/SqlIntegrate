@@ -466,6 +466,10 @@ namespace ParseProcs
 				">=", ">", "<=", "<>", "<", "=", "!="
 				);
 
+			var PBinaryJsonOperatorsST = SpracheUtils.AnyTokenST (
+				"->>", "->", "#>>", "#>"
+			);
+
 			var PBinaryRangeOperatorsST = SpracheUtils.AnyTokenST (
 				"like"
 			);
@@ -667,9 +671,12 @@ namespace ParseProcs
 				;
 
 			var PBinaryOperatorsST =
-					PBinaryMultiplicationOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.MulDiv,
+						PBinaryJsonOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b)))
+						.Or (PBinaryMultiplicationOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.MulDiv,
+							true,
+							OperatorProcessor.GetForBinaryOperator (b))))
 						.Or (PBinaryAdditionOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.AddSub,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b))))
@@ -761,6 +768,9 @@ namespace ParseProcs
 					(
 						PUnnestST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p => new UnnestTableRetriever (p))
 							// or-ed after unnest
+							.Or (PFunctionCallST.Select<string[], NamedTableRetriever> (qi => new NamedTableRetriever (qi)	// stub
+									))
+							// or-ed after function calls
 							.Or (PQualifiedIdentifierST.Select (qi => new NamedTableRetriever (qi)))
 							.Or (PFullSelectStatementST.Get.InParentsST ())
 					)
@@ -773,7 +783,9 @@ namespace ParseProcs
 					.Or
 					(
 						PValidIdentifierExL.SqlToken ()
-					).Optional ()
+					)
+					.Where (al => al != "loop")		// stub, for cases like 'for ... in select * from mytable loop ... end loop'
+					.Optional ()
 				select new FromTableExpression (table, alias_cl.GetOrDefault ());
 
 			var PFromClauseOptionalST =
@@ -810,6 +822,12 @@ namespace ParseProcs
 					from kw_select in SpracheUtils.SqlToken ("select")
 					from distinct in SpracheUtils.SqlToken ("distinct").Optional ()
 					from list in PSelectListST
+					from into_t in
+						(
+							from _1 in SpracheUtils.SqlToken ("into")
+							from _2 in PExpectedIdentifierExL.SqlToken ()
+							select 0
+						).Optional ()
 					from from_cl in PFromClauseOptionalST
 					from _w in PWhereClauseOptionalST
 					from _g in PGroupByClauseOptionalST
@@ -826,7 +844,7 @@ namespace ParseProcs
 				;
 
 			var PCteLevelST =
-					from name in PValidIdentifierExL
+					from name in PValidIdentifierExL.SqlToken ()
 					from kw_as in SpracheUtils.SqlToken ("as")
 					from select_exp in PSelectST.InParentsST ()
 					select new SelectStatement (select_exp, name)
@@ -884,7 +902,7 @@ namespace ParseProcs
 						.Or
 						(
 							from _1 in SpracheUtils.SqlToken ("for")
-							from _2 in PValidIdentifierExL
+							from _2 in PValidIdentifierExL.SqlToken ()
 							from _3 in SpracheUtils.SqlToken ("in")
 							from _4 in SpracheUtils.SqlToken ("reverse").Optional ()
 							from in_c in
@@ -923,13 +941,14 @@ namespace ParseProcs
 											from _3 in PExpressionRefST.Get
 											select 0
 										)
+										.Or (PSelectFullST.Return (0))
 										.Or
 										(
 											// insert
 											from cte in PCteTopOptionalST
 											from _1 in SpracheUtils.AnyTokenST ("insert into")
 											from _2 in PQualifiedIdentifierST
-											from _3 in PValidIdentifierExL.CommaDelimitedST ().AtLeastOnce ()
+											from _3 in PValidIdentifierExL.SqlToken ().CommaDelimitedST ().AtLeastOnce ()
 												.InParentsST ()
 												.Optional ()
 											from _4 in
@@ -950,7 +969,7 @@ namespace ParseProcs
 											from _3 in SpracheUtils.SqlToken ("set")
 											from _4 in
 											(
-												from _1 in PValidIdentifierExL
+												from _1 in PValidIdentifierExL.SqlToken ()
 												from _2 in SpracheUtils.SqlToken ("=")
 												from _3 in PExpressionRefST.Get
 												select 0
@@ -978,7 +997,6 @@ namespace ParseProcs
 										.Or (GetCase (PExpressionRefST.Get, PInstructionRefST.Get).Return (0))
 										.Select (n => DataReturnStatement.Void)
 									)
-							from _ in SpracheUtils.SqlToken (";")
 							select drs.ToTrivialArray ()
 						)
 						.Or
@@ -1001,6 +1019,7 @@ namespace ParseProcs
 								from ins in PInstructionRefST.Get.AtLeastOnce ()
 								select ins
 							).Optional ()
+							from _4 in SpracheUtils.AnyTokenST ("end if")
 							select ThenIns
 								.Concat (ElsifC.SelectMany (e => e))
 								.Concat (ElseC.GetOrElse (new DataReturnStatement[0][]))
@@ -1008,6 +1027,7 @@ namespace ParseProcs
 								.ToArray ()
 						)
 						.Or (PLoopExST)
+					from _ in SpracheUtils.SqlToken (";")
 					select body
 				;
 
@@ -1043,28 +1063,44 @@ namespace ParseProcs
 					select new { vars = declare.GetOrElse (new NamedTyped[0]), body }
 				;
 
+			//
+			PProcedureST.Parse (@"
+begin
+	    select count(*) into p_count from salonpay.addresses where owner_table_name = 'branches' and owner_table_id_uuid = p_branch_id;
+END;
+");
+
 			// parse all procedures
 			foreach (var proc in ProceduresDict.Values)
 			{
-				var Parse = PProcedureST.Parse (proc.SourceCode);
-
-				ModuleContext mcProc = new ModuleContext (
-					proc.Name,
-					SchemaOrder,
-					TablesDict,
-					FunctionsDict,
-					Parse.vars
-						.Concat (proc.Arguments)
-						.ToDictionary (v => v.Name)
-				);
-
-				RequestContext rcProc = new RequestContext (mcProc);
-
-				foreach (var drs in Parse.body
-					         .Where (s => s != null)
-				         )
+				try
 				{
-					var Set = drs.GetResult (rcProc);
+					var Parse = PProcedureST.Parse (proc.SourceCode);
+
+					ModuleContext mcProc = new ModuleContext (
+						proc.Name,
+						SchemaOrder,
+						TablesDict,
+						FunctionsDict,
+						Parse.vars
+							.Concat (proc.Arguments)
+							.ToDictionary (v => v.Name)
+					);
+
+					RequestContext rcProc = new RequestContext (mcProc);
+
+					foreach (var drs in Parse.body
+						         .Where (s => s != null)
+					        )
+					{
+						var Set = drs.GetResult (rcProc);
+					}
+
+					Console.WriteLine ($"{proc.Name} ok");
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine ($"{proc.Name} failed: {ex.Message}");
 				}
 			}
 

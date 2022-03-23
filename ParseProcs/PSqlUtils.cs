@@ -54,6 +54,16 @@ namespace ParseProcs
 					: Right;
 			}
 
+			if (Operator == "->>" || Operator == "#>>")
+			{
+				return PSqlType.Text;
+			}
+
+			if (Operator == "->" || Operator == "#>")
+			{
+				return Left;
+			}
+
 			if (Left.IsNumber && Right.IsText
 			    || Left.IsText && Right.IsNumber)
 			{

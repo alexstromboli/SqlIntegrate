@@ -84,14 +84,15 @@ namespace ParseProcs
 		}
 
 		public static readonly PSqlType Null = Add (typeof (object), "unknown");
+		public static readonly PSqlType Record = Add (typeof (object), "record");
 		public static readonly PSqlType RefCursor = Add (typeof (object), "refcursor");
 		public static readonly PSqlType Bool = Add (typeof (bool), "bool", "boolean");
 		public static readonly PSqlType Binary = Add (typeof (byte[]), "bytea");
 		public static readonly PSqlType Guid = Add (typeof (Guid), "uuid");
 
-		public static readonly PSqlType Int = Add (typeof (int), "int", "integer", "serial").SetNumericLevel (NumericOrderLevel.Int);
-		public static readonly PSqlType SmallInt = Add (typeof (int), "smallint", "smallserial").SetNumericLevel (NumericOrderLevel.SmallInt);
-		public static readonly PSqlType BigInt = Add (typeof (long), "bigint", "bigserial").SetNumericLevel (NumericOrderLevel.BigInt);
+		public static readonly PSqlType Int = Add (typeof (int), "int", "integer", "serial", "int4").SetNumericLevel (NumericOrderLevel.Int);
+		public static readonly PSqlType SmallInt = Add (typeof (int), "smallint", "smallserial", "int2").SetNumericLevel (NumericOrderLevel.SmallInt);
+		public static readonly PSqlType BigInt = Add (typeof (long), "bigint", "bigserial", "int8").SetNumericLevel (NumericOrderLevel.BigInt);
 		public static readonly PSqlType Money = Add (typeof (decimal), "money").SetNumericLevel (NumericOrderLevel.Money);
 		public static readonly PSqlType Decimal = Add (typeof (decimal), "decimal", "numeric").SetNumericLevel (NumericOrderLevel.Decimal);
 		public static readonly PSqlType Real = Add (typeof (float), "real").SetNumericLevel (NumericOrderLevel.Real);
