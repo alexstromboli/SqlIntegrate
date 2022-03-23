@@ -33,6 +33,20 @@ namespace ParseProcs
 
 		public static Parser<string> SqlToken (string Line)
 		{
+			if (Line.All (c => char.IsLetter (c)))
+			{
+				// to prevent cases like taking 'order' for 'or'
+				// take all the letters, and then check
+				return Parse
+						.Letter
+						.Many ()
+						.Text ()
+						.Where (s => string.Equals (s, Line, StringComparison.InvariantCultureIgnoreCase))
+						.Select (l => l.ToLower ())
+						.SqlToken ()
+					;
+			}
+
 			return Parse
 					.IgnoreCase (Line)
 					.Text ()
