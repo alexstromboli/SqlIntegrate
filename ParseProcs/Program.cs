@@ -437,8 +437,7 @@ namespace ParseProcs
 
 			// here: allow keywords after dot, like R.order
 			// lowercase
-			//Func<bool, Parser<string[]>> PQualifiedIdentifierST = (bool AllowKeywords) => (AllowKeywords ? PExpectedIdentifierExL : PValidIdentifierExL)
-			var PQualifiedIdentifierST = PExpectedIdentifierExL
+			var PQualifiedIdentifierST = PValidIdentifierExL
 					.SqlToken ()
 					.DelimitedBy (Parse.String (".").SqlToken (), 1, null)
 					.Select (seq => seq.ToArray ())
@@ -1079,33 +1078,14 @@ namespace ParseProcs
 
 			//
 			PProcedureST.Parse (@"
+
 BEGIN
-    OPEN x_filtered_tenant_services FOR
-	   with new_services as
-              (SELECT service_id, category_id, service_code, service_name, description, status
-              FROM salonpay.services
-              where tenant_id = p_tenant_id and (LOWER(service_name) like LOWER(ss)) OR LOWER(service_code) LIKE LOWER(ss)),
-              new_service_categories as 
-              (select category_id, category_code, category_name from salonpay.categories where tenant_id = p_tenant_id),
-              new_tenant_services as 
-              (SELECT branch_service_id, tenant_id, branch_id, service_id, service_time_in_hours, service_time_in_minutes, unit_price , service_technician_commission_percentage, turn_count_value
-			   FROM salonpay.branch_services where tenant_id = p_tenant_id AND (p_branch_id IS NULL OR branch_id = p_branch_id))
-		select 
-			ns.service_id, ns.service_name, ns.service_code, nsc.category_code,nsc.category_id, nsc.category_name, ns.description, nts.service_time_in_hours,
-			nts.service_time_in_minutes, nts.unit_price as ""service_cost"",nts.service_technician_commission_percentage,nts.turn_count_value, ns.status 
-             
-		from  new_tenant_services as nts 
-	         inner join new_services as ns 
-	            on ns.service_id = nts.service_id
-	         inner join new_service_categories as nsc
-	         	on ns.category_id = nsc.category_id
-	         order by
-				case when p_order_param is null then ns.service_name end,
-				case when p_order_param = 'service_name' and p_order_direction = 'asc' then ns.service_name  end,
-				case when p_order_param = 'service_name' and p_order_direction = 'desc' then ns.service_name  end DESC,
-				case when p_order_param = 'service_code' and p_order_direction = 'asc' then ns.service_code  end,
-				case when p_order_param = 'service_code' and p_order_direction = 'desc' then ns.service_code  end DESC
-				;
+    OPEN RecMessages FOR
+    SELECT  id,
+            id_user,
+            text
+    FROM Messages
+    WHERE id_user = id_user;
 END;
 ");
 
