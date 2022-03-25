@@ -9,12 +9,7 @@ namespace ParseProcs
 		public static string PSqlEscape (this string LiteralL)
 		{
 			if (!LiteralL.IsKeyword ()
-				&& LiteralL.All (c =>
-					c >= 'A' && c <= 'Z'
-					|| c >= 'a' && c <= 'z'
-					|| c >= '0' && c <= '9'
-					|| c == '_'
-				))
+				&& LiteralL.All (c => char.IsLetterOrDigit (c) || c == '_' ))
 			{
 				return LiteralL;
 			}

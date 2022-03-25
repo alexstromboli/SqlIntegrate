@@ -791,6 +791,15 @@ namespace ParseProcs
 							)
 				;
 
+			Func<IEnumerable<string>, Parser<IOption<string>>> PTableAliasClauseOptionalST = excl =>
+				(
+					from kw_as in SpracheUtils.SqlToken ("as").Optional ()
+					from id in PTableAliasLST
+					where kw_as.IsDefined || excl == null || excl.All (s => s != id)
+					select id
+				).Optional ()
+				;
+
 			var PFromTableExpressionST =
 				from table in
 					(
@@ -802,18 +811,9 @@ namespace ParseProcs
 							.Or (PQualifiedIdentifierLST.Select (qi => new NamedTableRetriever (qi)))
 							.Or (PFullSelectStatementRefST.Get.InParentsST ())
 					)
-				from alias_cl in
-					(
-						from kw_as in SpracheUtils.AnyTokenST ("as")
-						from id in PTableAliasLST
-						select id
-					)
-					.Or
-					(
-						PTableAliasLST
-					)
-					.Where (al => al != "loop")		// stub, for cases like 'for ... in select * from mytable loop ... end loop'
-					.Optional ()
+				from alias_cl in PTableAliasClauseOptionalST (
+					new[] { "loop", "on", "inner", "left", "right", "cross", "join", "where", "group", "order", "limit", "having" }
+					)		// stub, for cases like 'for ... in select * from mytable loop ... end loop'
 				select new FromTableExpression (table, alias_cl.GetOrDefault ());
 
 			var PFromClauseOptionalST =
@@ -1008,6 +1008,7 @@ namespace ParseProcs
 											from cte in PCteTopOptionalST
 											from _1 in SpracheUtils.SqlToken ("update")
 											from _2 in PQualifiedIdentifierLST
+											from al in PTableAliasClauseOptionalST ("set".ToTrivialArray ())
 											from _3 in SpracheUtils.SqlToken ("set")
 											from _4 in
 											(
@@ -1026,6 +1027,7 @@ namespace ParseProcs
 											from cte in PCteTopOptionalST
 											from _1 in SpracheUtils.AnyTokenST ("delete from")
 											from _2 in PQualifiedIdentifierLST
+											from al in PTableAliasClauseOptionalST (null)
 											from _3 in PFromClauseOptionalST
 											from _4 in PWhereClauseOptionalST
 											select 0
@@ -1120,48 +1122,15 @@ namespace ParseProcs
 
 			//
 			PProcedureST.Parse (@"
-
-/*
- * NAME        : invite_person_to_tenant
- * 
- * DESCRIPTION : This procedure adds a new sale.
- * 
- * MODIFICATION HISTORY:
- * 
- * DATE         VERSION  AUTHOR              COMMENTS
- * -----------  -------  -----------------   -----------------------------------------------------------
- * 03-Dec-2021  1.0      Nikhil              Initial Creation
- * 
- */
-DECLARE
-x_return_status varchar(1) := 'S';
-x_return_msg    text;
-var_person_id uuid := gen_random_uuid();
-begin		
-		if exists(
-			SELECT persons.tenant_id, bp.branch_id, persons.person_id, bp.branch_person_id 
-		    FROM salonpay.persons
-			left join salonpay.branch_persons bp
-				on bp.person_id = persons.person_id and bp.tenant_id = persons.tenant_id
-		    where persons.email = p_email_id and (p_branch_id IS NULL OR bp.branch_id = p_branch_id)) 
-		then
-			RAISE EXCEPTION 'person with given email id is already in tenant';
-		else
-			insert into salonpay.persons(person_id, tenant_id, email, last_updated_date, last_updated_by, created_date, created_by, meta_data) values (var_person_id, p_tenant_id, p_email_id, now(), p_user_id, now(), p_user_id, '{""comment"":""created during invitation""}');
-				
-			insert into salonpay.branch_persons(branch_person_id, tenant_id, branch_id, role_id, person_id, last_updated_date, last_updated_by, created_date, created_by) values (gen_random_uuid(), p_tenant_id, p_branch_id, p_role_id, var_person_id,now(), p_user_id, now(), p_user_id );
-			end if;
-			OPEN x_invite_return FOR
-			select * from salonpay.persons where person_id = var_person_id;
-			OPEN  x_save_status FOR
-			select x_return_status,x_return_msg;
-
-			exception when others then
-			x_return_status := 'E';
-			x_return_msg    := sqlstate || ' - ' ||  sqlerrm;
-			OPEN  x_save_status FOR
-			select x_return_status,x_return_msg;
-			END;
+BEGIN
+	open x_appointments for
+	  SELECT 
+	  	5
+	  FROM salonpay.customers as c
+	  INNER JOIN salonpay.appointment_services as2
+	  	ON as2.appointment_id = a.appointment_id
+;
+END;
 ");
 
 			//
