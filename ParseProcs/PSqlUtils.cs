@@ -6,21 +6,21 @@ namespace ParseProcs
 {
 	public static class PSqlUtils
 	{
-		public static string PSqlEscape (this string Literal)
+		public static string PSqlEscape (this string LiteralL)
 		{
-			if (Literal.CanBeIdentifier ()
-				&& Literal.All (c =>
+			if (!LiteralL.IsKeyword ()
+				&& LiteralL.All (c =>
 					c >= 'A' && c <= 'Z'
 					|| c >= 'a' && c <= 'z'
 					|| c >= '0' && c <= '9'
 					|| c == '_'
 				))
 			{
-				return Literal;
+				return LiteralL;
 			}
 
 			return new StringBuilder ("\"")
-					.Append (Literal.Replace ("\"", "\"\""))
+					.Append (LiteralL.Replace ("\"", "\"\""))
 					.Append ('"')
 					.ToString ()
 				;

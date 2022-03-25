@@ -110,6 +110,6 @@ namespace ParseProcs
 
 		public static readonly PSqlType Text = Add (typeof (string), "text").SetIsText ();
 		public static readonly PSqlType Char = Add (typeof (string), "char", "character").SetIsText ();
-		public static readonly PSqlType VarChar = Add (typeof (string), "varchar", "character varying").SetIsText ();
+		public static readonly PSqlType VarChar = Add (typeof (string), "varchar", "character varying", "name").SetIsText ();
 	}
 }

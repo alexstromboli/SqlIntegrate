@@ -363,17 +363,6 @@ namespace ParseProcs
 
 		static void Main (string[] args)
 		{
-			string ConnectionString = "server=127.0.0.1;port=5432;database=dummy01;uid=alexey;pwd=1234";
-
-			Dictionary<string, DbTable> TablesDict = new Dictionary<string, DbTable> ();
-			Dictionary<string, Procedure> ProceduresDict = new Dictionary<string, Procedure> ();
-			Dictionary<string, PSqlType> FunctionsDict = new Dictionary<string, PSqlType> ();
-			List<string> SchemaOrder = new List<string> ();
-
-			ReadDatabase (ConnectionString, TablesDict, ProceduresDict, FunctionsDict, SchemaOrder);
-
-			//
-
 			// postfix ST means that the result is 'SQL token',
 			// i.e. duly processes comments and whitespaces
 
@@ -408,39 +397,55 @@ namespace ParseProcs
 
 			// any id readable without quotes
 			// lowercase
-			var PBasicIdentifierL =
+			var PAlphaNumericL =
 					from n in Parse.Char (c => char.IsLetterOrDigit (c) || c == '_', "").AtLeastOnce ()
 					where !char.IsDigit (n.First ())
 					select new string (n.ToArray ()).ToLower ()
 				;
 
-			// any id readable without quotes, except keywords
-			// lowercase
-			var PBasicValidIdentifierL =
-					PBasicIdentifierL
-						.Where (n => n.CanBeIdentifier ())
-				;
-
-			// any id readable without quotes, except keywords,
-			// or in quotes
-			// lowercase
-			var PValidIdentifierExL = PBasicValidIdentifierL
+			// valid for column name
+			var PColumnNameLST = PAlphaNumericL
+					.Where (n => n.NotROrT ())
 					.Or (PDoubleQuotedString.ToLower ())
-				;
-
-			// any id readable without quotes, including keywords
-			// (which is valid when identifier is expected, like after AS),
-			// or in quotes
-			var PExpectedIdentifierExL = PBasicIdentifierL
-					.Or (PDoubleQuotedString.ToLower ())
-				;
-
-			// here: allow keywords after dot, like R.order
-			// lowercase
-			var PQualifiedIdentifierST = PValidIdentifierExL
 					.SqlToken ()
-					.DelimitedBy (Parse.String (".").SqlToken (), 1, null)
-					.Select (seq => seq.ToArray ())
+				;
+
+			// valid for schema name
+			//var PSchemaNameLST = PColumnNameLST;
+
+			var PDirectColumnAliasLST = PAlphaNumericL
+					.Where (n => !n.IsKeyword ())
+					.Or (PDoubleQuotedString.ToLower ())
+					.SqlToken ()
+				;
+
+			var PAsColumnAliasLST = PAlphaNumericL
+					.Or (PDoubleQuotedString.ToLower ())
+					.SqlToken ()
+				;
+
+			// direct or 'as'
+			var PTableAliasLST = PColumnNameLST;
+
+			// valid for function name
+			/*
+			var PFunctionNameLST = PAlphaNumericL
+					.Where (n => n.NotROrC () && PSqlType.GetForSqlTypeName (n) == null)
+					.Or (PDoubleQuotedString.ToLower ())
+					.SqlToken ()
+				;
+				*/
+
+			// lowercase
+			var PQualifiedIdentifierLST =
+					from k1 in PColumnNameLST
+					from kn in
+					(
+						from d in SpracheUtils.SqlToken (".")
+						from n in PAlphaNumericL.Or (PDoubleQuotedString.ToLower ()).SqlToken ()
+						select n
+					).Many ()
+					select k1.ToTrivialArray ().Concat (kn).ToArray ()
 				;
 
 			var PSignPrefix =
@@ -520,7 +525,7 @@ namespace ParseProcs
 				;
 
 			var PFunctionCallST =
-					from n in PQualifiedIdentifierST.SqlToken ()
+					from n in PQualifiedIdentifierLST
 					from arg in PExpressionRefST.Get
 						.CommaDelimitedST (true)
 						.InParentsST ()
@@ -533,7 +538,7 @@ namespace ParseProcs
 			var PAsteriskSelectEntryST =
 					from qual in
 					(
-						from qual in PQualifiedIdentifierST
+						from qual in PQualifiedIdentifierLST
 						from dot in Parse.Char ('.').SqlToken ()
 						select qual
 					).Optional ()
@@ -589,7 +594,7 @@ namespace ParseProcs
 							rc.ModuleContext.GetFunction (p)
 							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
-						.Or (PQualifiedIdentifierST
+						.Or (PQualifiedIdentifierLST
 							.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
 							rc.NamedDict[p.JoinDot ()]
 							))
@@ -639,9 +644,31 @@ namespace ParseProcs
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
 					)
 					.Or (
+						from kw in PAlphaNumericL.SqlToken ()
+						let type = kw.GetExpressionType ()
+						where type != null
+						select (Func<RequestContext, NamedTyped>)(rc =>
+							new NamedTyped (kw, PSqlType.GetForSqlTypeName (kw.GetExpressionType ())))
+					)
+					.Or (
+						(
+							from kw in SpracheUtils.AnyTokenST ("all", "any")
+							from exp in PExpressionRefST.Get.InParentsST ()
+							select 0
+						).ProduceType (PSqlType.Null)
+					)
+					.Or (
+						(
+							from kw in SpracheUtils.SqlToken ("exists")
+							from exp in PExpressionRefST.Get.InParentsST ()
+							select 0
+						).ProduceType (PSqlType.Bool)
+					)
+					.Or (
 						from case_c in GetCase (PExpressionRefST.Get, PExpressionRefST.Get)
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
-							case_c.ElseC.Get ()?.GetResult (rc).Name ?? case_c.CaseH, case_c.Branches.First ().GetResult (rc).Type
+							case_c.ElseC.Get ()?.GetResult (rc).Name ?? case_c.CaseH,
+							case_c.Branches.First ().GetResult (rc).Type
 						))
 					)
 					.Or (PBaseAtomicST)
@@ -732,12 +759,12 @@ namespace ParseProcs
 					from alias_cl in
 						(
 							from kw_as in SpracheUtils.AnyTokenST ("as")
-							from id in PExpectedIdentifierExL.SqlToken ()
+							from id in PAsColumnAliasLST
 							select id
 						)
 						.Or
 						(
-							PValidIdentifierExL.SqlToken ()
+							PDirectColumnAliasLST
 						).Optional ()
 					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc =>
 							{
@@ -767,21 +794,21 @@ namespace ParseProcs
 					(
 						PUnnestST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p => new UnnestTableRetriever (p))
 							// or-ed after unnest
-							.Or (PFunctionCallST.Select<string[], NamedTableRetriever> (qi => new NamedTableRetriever (qi)	// stub
+							.Or (PFunctionCallST.Select (qi => new NamedTableRetriever (qi)	// stub
 									))
 							// or-ed after function calls
-							.Or (PQualifiedIdentifierST.Select (qi => new NamedTableRetriever (qi)))
+							.Or (PQualifiedIdentifierLST.Select (qi => new NamedTableRetriever (qi)))
 							.Or (PFullSelectStatementST.Get.InParentsST ())
 					)
 				from alias_cl in
 					(
 						from kw_as in SpracheUtils.AnyTokenST ("as")
-						from id in PExpectedIdentifierExL.SqlToken ()
+						from id in PTableAliasLST
 						select id
 					)
 					.Or
 					(
-						PValidIdentifierExL.SqlToken ()
+						PTableAliasLST
 					)
 					.Where (al => al != "loop")		// stub, for cases like 'for ... in select * from mytable loop ... end loop'
 					.Optional ()
@@ -824,7 +851,7 @@ namespace ParseProcs
 					from into_t in
 						(
 							from _1 in SpracheUtils.SqlToken ("into")
-							from _2 in PExpectedIdentifierExL.SqlToken ()
+							from _2 in PQualifiedIdentifierLST
 							select 0
 						).Optional ()
 					from from_cl in PFromClauseOptionalST
@@ -843,7 +870,7 @@ namespace ParseProcs
 				;
 
 			var PCteLevelST =
-					from name in PValidIdentifierExL.SqlToken ()
+					from name in PColumnNameLST
 					from kw_as in SpracheUtils.SqlToken ("as")
 					from select_exp in PSelectST.InParentsST ()
 					select new SelectStatement (select_exp, name)
@@ -867,7 +894,7 @@ namespace ParseProcs
 
 			var POpenDatasetST =
 					from kw_open in SpracheUtils.SqlToken ("open")
-					from name in PValidIdentifierExL
+					from name in PColumnNameLST
 					from _cm1 in SpracheUtils.AllCommentsST ()
 					from kw_for in Parse.IgnoreCase ("for")
 					from _cm2 in SpracheUtils.AllCommentsST ()
@@ -901,7 +928,7 @@ namespace ParseProcs
 						.Or
 						(
 							from _1 in SpracheUtils.SqlToken ("for")
-							from _2 in PValidIdentifierExL.SqlToken ()
+							from _2 in PColumnNameLST
 							from _3 in SpracheUtils.SqlToken ("in")
 							from _4 in SpracheUtils.SqlToken ("reverse").Optional ()
 							from in_c in
@@ -923,7 +950,7 @@ namespace ParseProcs
 						.Or
 						(
 							from _1 in SpracheUtils.SqlToken ("foreach")
-							from _2 in PValidIdentifierExL.SqlToken ()
+							from _2 in PColumnNameLST
 							from _3 in
 							(
 								from _4 in SpracheUtils.SqlToken ("slice")
@@ -949,7 +976,7 @@ namespace ParseProcs
 									.Or (
 										(
 											// variable assignment
-											from _1 in PValidIdentifierExL.SqlToken ()
+											from _1 in PColumnNameLST
 											from _2 in SpracheUtils.SqlToken (":=")
 											from _3 in PExpressionRefST.Get
 											select 0
@@ -960,8 +987,8 @@ namespace ParseProcs
 											// insert
 											from cte in PCteTopOptionalST
 											from _1 in SpracheUtils.AnyTokenST ("insert into")
-											from _2 in PQualifiedIdentifierST
-											from _3 in PValidIdentifierExL.SqlToken ().CommaDelimitedST ().AtLeastOnce ()
+											from _2 in PQualifiedIdentifierLST
+											from _3 in PColumnNameLST.CommaDelimitedST ().AtLeastOnce ()
 												.InParentsST ()
 												.Optional ()
 											from _4 in
@@ -978,11 +1005,11 @@ namespace ParseProcs
 											// update
 											from cte in PCteTopOptionalST
 											from _1 in SpracheUtils.SqlToken ("update")
-											from _2 in PQualifiedIdentifierST
+											from _2 in PQualifiedIdentifierLST
 											from _3 in SpracheUtils.SqlToken ("set")
 											from _4 in
 											(
-												from _1 in PValidIdentifierExL.SqlToken ()
+												from _1 in PColumnNameLST
 												from _2 in SpracheUtils.SqlToken ("=")
 												from _3 in PExpressionRefST.Get
 												select 0
@@ -996,7 +1023,7 @@ namespace ParseProcs
 											// delete
 											from cte in PCteTopOptionalST
 											from _1 in SpracheUtils.AnyTokenST ("delete from")
-											from _2 in PQualifiedIdentifierST
+											from _2 in PQualifiedIdentifierLST
 											from _3 in PFromClauseOptionalST
 											from _4 in PWhereClauseOptionalST
 											select 0
@@ -1053,11 +1080,11 @@ namespace ParseProcs
 						from _1 in SpracheUtils.SqlToken ("declare")
 						from vars in
 						(
-							from name in PExpectedIdentifierExL.SqlToken ()
+							from name in PColumnNameLST
 							from type in PTypeST
 							from init in
 							(
-								from _1 in SpracheUtils.SqlToken (":=")
+								from _1 in SpracheUtils.AnyTokenST (":=", "=")
 								from _2 in PExpressionRefST.Get
 								select 0
 							).Optional ()
@@ -1078,16 +1105,80 @@ namespace ParseProcs
 
 			//
 			PProcedureST.Parse (@"
-
 BEGIN
-    OPEN RecMessages FOR
-    SELECT  id,
-            id_user,
-            text
-    FROM Messages
-    WHERE id_user = id_user;
+    OPEN x_time_slots FOR
+    	WITH new_perons AS 
+    	(
+    		SELECT person_id, full_name 
+    		FROM salonpay.persons 
+    		WHERE person_id = p_person_ids
+    	),
+    	new_schedule AS 
+    	(
+    		SELECT person_id, schedule_time_from_hours, schedule_time_from_minutes, schedule_time_from_am_pm, schedule_time_to_hours, schedule_time_to_minutes, schedule_time_to_am_pm, day_id 
+    		FROM salonpay.salonpay.scheduling_n_staff sns 
+    		WHERE sns.person_id = any(p_person_ids) AND sns.tenant_id = p_tenant_id AND sns.branch_id = p_branch_id 
+    	),
+    	new_branch AS 
+    	(
+    		SELECT b.branch_id,  b.branch_open_time , b.branch_close_time
+    		FROM salonpay.salonpay.branches b 
+    		WHERE b.tenant_id = p_tenant_id AND b.branch_id = p_branch_id
+    	),
+    	new_appointments AS 
+    	(
+    		SELECT a2.appointment_id, a2.branch_id , ap.person_id, as2.start_time , as2.end_time , as2.appointment_date 
+    		FROM salonpay.salonpay.appointments a2 
+    		INNER JOIN salonpay.salonpay.appointment_persons ap 
+    			ON ap.appointment_id  = a2.appointment_id 
+    		INNER JOIN salonpay.salonpay.appointment_services as2 
+    			ON as2.appointment_service_id  = ap.appointment_service_id AND as2.appointment_id = a2.appointment_id 
+    		WHERE ap.person_id = ANY(p_person_ids) AND a2.tenant_id = p_tenant_id 
+    	)
+    	
+     	select 
+			'schedule' as type, 
+			ns.person_id, ns.schedule_time_from_hours, ns.schedule_time_from_minutes, ns.schedule_time_from_am_pm, ns.schedule_time_to_hours, ns.schedule_time_to_minutes, ns.schedule_time_to_am_pm, ns.day_id,
+			NULL as appointment_date, NULL::time as appointment_start_time , NULL::time as appointment_end_time,
+			NULL as branch_id, NULL::time as branch_open_time , NULL::time as branch_close_time
+			from new_schedule  ns
+		union
+		select
+			'appointment' as type,
+			na.person_id as person_id, NULL as schedule_time_from_hours, NULL as schedule_time_from_minutes, NULL as schedule_time_from_am_pm, NULL as schedule_time_to_hours, NULL as schedule_time_to_minutes  , NULL as schedule_time_to_am_pm, NULL as day_id,
+			na.appointment_date::date as appointment_date, na.start_time::time as appointment_start_time, na.end_time::time as appointment_end_time,
+			na.branch_id as branch_id, NULL::time as branch_open_time, NULL::time as branch_close_time
+			from new_appointments  na
+			WHERE na.appointment_date  >= current_timestamp::date
+		union 
+		SELECT 
+			'branch_schedule' AS type,
+			NULL as person_id, NULL as schedule_time_from_hours , NULL as schedule_time_from_minutes, NULL as schedule_time_from_am_pm, NULL as schedule_time_to_hours, NULL as schedule_time_to_minutes, NULL as asschedule_time_to_am_pm, NULL as day_id,
+			NULL::date as appointment_date , NULL::time as appointment_start_time , NULL::time as appointment_end_time,
+			nb.branch_id as branch_id, nb.branch_open_time as branch_open_time , nb.branch_close_time as branch_close_time
+			FROM new_branch nb;
+		
+	    
+    OPEN  x_get_status FOR
+          select x_return_status,x_return_msg;
+
+exception when others then
+    x_return_status := 'E';
+    x_return_msg    := sqlstate || ' - ' ||  sqlerrm;
+    OPEN  x_get_status FOR
+          select x_return_status,x_return_msg;
 END;
 ");
+
+			//
+			string ConnectionString = "server=127.0.0.1;port=5432;database=dummy01;uid=alexey;pwd=1234";
+
+			Dictionary<string, DbTable> TablesDict = new Dictionary<string, DbTable> ();
+			Dictionary<string, Procedure> ProceduresDict = new Dictionary<string, Procedure> ();
+			Dictionary<string, PSqlType> FunctionsDict = new Dictionary<string, PSqlType> ();
+			List<string> SchemaOrder = new List<string> ();
+
+			ReadDatabase (ConnectionString, TablesDict, ProceduresDict, FunctionsDict, SchemaOrder);
 
 			// parse all procedures
 			foreach (var proc in ProceduresDict.Values)
