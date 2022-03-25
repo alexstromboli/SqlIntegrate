@@ -457,7 +457,7 @@ namespace ParseProcs
 				;
 
 			Ref<SPolynom> PExpressionRefST = new Ref<SPolynom> ();
-			Ref<FullSelectStatement> PFullSelectStatementST = new Ref<FullSelectStatement> ();
+			Ref<FullSelectStatement> PFullSelectStatementRefST = new Ref<FullSelectStatement> ();
 
 			var PParentsST = PExpressionRefST.Get.InParentsST ();
 			var PBracketsST = PExpressionRefST.Get.Contained (Parse.Char ('[').SqlToken (), Parse.Char (']').SqlToken ());
@@ -598,7 +598,7 @@ namespace ParseProcs
 							.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
 							rc.NamedDict[p.JoinDot ()]
 							))
-						.Or (PFullSelectStatementST.Get.InParentsST ().Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
+						.Or (PFullSelectStatementRefST.Get.InParentsST ().Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
 							fss.GetTable (rc, false).Columns[0]
 						))
 				;
@@ -660,7 +660,9 @@ namespace ParseProcs
 					.Or (
 						(
 							from kw in SpracheUtils.SqlToken ("exists")
-							from exp in PExpressionRefST.Get.InParentsST ()
+							from exp in PExpressionRefST.Get.Return (0)
+								.Or (PFullSelectStatementRefST.Get.Return (0))
+								.InParentsST ()
 							select 0
 						).ProduceType (PSqlType.Bool)
 					)
@@ -798,7 +800,7 @@ namespace ParseProcs
 									))
 							// or-ed after function calls
 							.Or (PQualifiedIdentifierLST.Select (qi => new NamedTableRetriever (qi)))
-							.Or (PFullSelectStatementST.Get.InParentsST ())
+							.Or (PFullSelectStatementRefST.Get.InParentsST ())
 					)
 				from alias_cl in
 					(
@@ -890,7 +892,7 @@ namespace ParseProcs
 					from select_body in PSelectST
 					select new FullSelectStatement (cte, select_body)
 				;
-			PFullSelectStatementST.Parser = PSelectFullST;
+			PFullSelectStatementRefST.Parser = PSelectFullST;
 
 			var POpenDatasetST =
 					from kw_open in SpracheUtils.SqlToken ("open")
@@ -944,7 +946,7 @@ namespace ParseProcs
 									).Optional ()
 									select 0
 								)
-								.Or (PFullSelectStatementST.Get.Return (0))
+								.Or (PFullSelectStatementRefST.Get.Return (0))
 							select 0
 						)
 						.Or
@@ -1034,6 +1036,19 @@ namespace ParseProcs
 											from _2 in PExpressionRefST.Get.Optional ()
 											select 0
 										)
+										.Or
+										(
+											from _1 in SpracheUtils.SqlToken ("call")
+											from _2 in PQualifiedIdentifierLST
+											from _3 in PExpressionRefST.Get.CommaDelimitedST (true).InParentsST ()
+											select 0
+										)
+										.Or
+										(
+											from _1 in SpracheUtils.AnyTokenST ("raise exception")
+											from _2 in PExpressionRefST.Get
+											select 0
+										)
 										.Or (GetCase (PExpressionRefST.Get, PInstructionRefST.Get).Return (0))
 										.Select (n => DataReturnStatement.Void)
 									)
@@ -1105,69 +1120,48 @@ namespace ParseProcs
 
 			//
 			PProcedureST.Parse (@"
-BEGIN
-    OPEN x_time_slots FOR
-    	WITH new_perons AS 
-    	(
-    		SELECT person_id, full_name 
-    		FROM salonpay.persons 
-    		WHERE person_id = p_person_ids
-    	),
-    	new_schedule AS 
-    	(
-    		SELECT person_id, schedule_time_from_hours, schedule_time_from_minutes, schedule_time_from_am_pm, schedule_time_to_hours, schedule_time_to_minutes, schedule_time_to_am_pm, day_id 
-    		FROM salonpay.salonpay.scheduling_n_staff sns 
-    		WHERE sns.person_id = any(p_person_ids) AND sns.tenant_id = p_tenant_id AND sns.branch_id = p_branch_id 
-    	),
-    	new_branch AS 
-    	(
-    		SELECT b.branch_id,  b.branch_open_time , b.branch_close_time
-    		FROM salonpay.salonpay.branches b 
-    		WHERE b.tenant_id = p_tenant_id AND b.branch_id = p_branch_id
-    	),
-    	new_appointments AS 
-    	(
-    		SELECT a2.appointment_id, a2.branch_id , ap.person_id, as2.start_time , as2.end_time , as2.appointment_date 
-    		FROM salonpay.salonpay.appointments a2 
-    		INNER JOIN salonpay.salonpay.appointment_persons ap 
-    			ON ap.appointment_id  = a2.appointment_id 
-    		INNER JOIN salonpay.salonpay.appointment_services as2 
-    			ON as2.appointment_service_id  = ap.appointment_service_id AND as2.appointment_id = a2.appointment_id 
-    		WHERE ap.person_id = ANY(p_person_ids) AND a2.tenant_id = p_tenant_id 
-    	)
-    	
-     	select 
-			'schedule' as type, 
-			ns.person_id, ns.schedule_time_from_hours, ns.schedule_time_from_minutes, ns.schedule_time_from_am_pm, ns.schedule_time_to_hours, ns.schedule_time_to_minutes, ns.schedule_time_to_am_pm, ns.day_id,
-			NULL as appointment_date, NULL::time as appointment_start_time , NULL::time as appointment_end_time,
-			NULL as branch_id, NULL::time as branch_open_time , NULL::time as branch_close_time
-			from new_schedule  ns
-		union
-		select
-			'appointment' as type,
-			na.person_id as person_id, NULL as schedule_time_from_hours, NULL as schedule_time_from_minutes, NULL as schedule_time_from_am_pm, NULL as schedule_time_to_hours, NULL as schedule_time_to_minutes  , NULL as schedule_time_to_am_pm, NULL as day_id,
-			na.appointment_date::date as appointment_date, na.start_time::time as appointment_start_time, na.end_time::time as appointment_end_time,
-			na.branch_id as branch_id, NULL::time as branch_open_time, NULL::time as branch_close_time
-			from new_appointments  na
-			WHERE na.appointment_date  >= current_timestamp::date
-		union 
-		SELECT 
-			'branch_schedule' AS type,
-			NULL as person_id, NULL as schedule_time_from_hours , NULL as schedule_time_from_minutes, NULL as schedule_time_from_am_pm, NULL as schedule_time_to_hours, NULL as schedule_time_to_minutes, NULL as asschedule_time_to_am_pm, NULL as day_id,
-			NULL::date as appointment_date , NULL::time as appointment_start_time , NULL::time as appointment_end_time,
-			nb.branch_id as branch_id, nb.branch_open_time as branch_open_time , nb.branch_close_time as branch_close_time
-			FROM new_branch nb;
-		
-	    
-    OPEN  x_get_status FOR
-          select x_return_status,x_return_msg;
 
-exception when others then
-    x_return_status := 'E';
-    x_return_msg    := sqlstate || ' - ' ||  sqlerrm;
-    OPEN  x_get_status FOR
-          select x_return_status,x_return_msg;
-END;
+/*
+ * NAME        : invite_person_to_tenant
+ * 
+ * DESCRIPTION : This procedure adds a new sale.
+ * 
+ * MODIFICATION HISTORY:
+ * 
+ * DATE         VERSION  AUTHOR              COMMENTS
+ * -----------  -------  -----------------   -----------------------------------------------------------
+ * 03-Dec-2021  1.0      Nikhil              Initial Creation
+ * 
+ */
+DECLARE
+x_return_status varchar(1) := 'S';
+x_return_msg    text;
+var_person_id uuid := gen_random_uuid();
+begin		
+		if exists(
+			SELECT persons.tenant_id, bp.branch_id, persons.person_id, bp.branch_person_id 
+		    FROM salonpay.persons
+			left join salonpay.branch_persons bp
+				on bp.person_id = persons.person_id and bp.tenant_id = persons.tenant_id
+		    where persons.email = p_email_id and (p_branch_id IS NULL OR bp.branch_id = p_branch_id)) 
+		then
+			RAISE EXCEPTION 'person with given email id is already in tenant';
+		else
+			insert into salonpay.persons(person_id, tenant_id, email, last_updated_date, last_updated_by, created_date, created_by, meta_data) values (var_person_id, p_tenant_id, p_email_id, now(), p_user_id, now(), p_user_id, '{""comment"":""created during invitation""}');
+				
+			insert into salonpay.branch_persons(branch_person_id, tenant_id, branch_id, role_id, person_id, last_updated_date, last_updated_by, created_date, created_by) values (gen_random_uuid(), p_tenant_id, p_branch_id, p_role_id, var_person_id,now(), p_user_id, now(), p_user_id );
+			end if;
+			OPEN x_invite_return FOR
+			select * from salonpay.persons where person_id = var_person_id;
+			OPEN  x_save_status FOR
+			select x_return_status,x_return_msg;
+
+			exception when others then
+			x_return_status := 'E';
+			x_return_msg    := sqlstate || ' - ' ||  sqlerrm;
+			OPEN  x_save_status FOR
+			select x_return_status,x_return_msg;
+			END;
 ");
 
 			//
