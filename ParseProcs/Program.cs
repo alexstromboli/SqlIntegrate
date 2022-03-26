@@ -900,6 +900,31 @@ namespace ParseProcs
 				;
 			PFullSelectStatementRefST.Parser = PSelectFullST;
 
+			var PInsertFullST =
+					// insert
+					from cte in PCteTopOptionalST
+					from _1 in SpracheUtils.AnyTokenST ("insert into")
+					from _2 in PQualifiedIdentifierLST
+					from _3 in PColumnNameLST.CommaDelimitedST ().AtLeastOnce ()
+						.InParentsST ()
+						.Optional ()
+					from _4 in
+					(
+						from _1 in SpracheUtils.SqlToken ("values")
+						from _2 in PExpressionRefST.Get.CommaDelimitedST ().AtLeastOnce ()
+							.InParentsST ()
+						select 0
+					).Or (PSelectST.Return (0))
+					// here: provide data return
+					from _ret in
+					(
+						from _1 in SpracheUtils.SqlToken ("returning")
+						from _sel in PSelectListST
+						select 0
+					).Optional ()
+					select 0
+				;
+
 			var POpenDatasetST =
 					from kw_open in SpracheUtils.SqlToken ("open")
 					from name in PColumnNameLST
@@ -912,6 +937,7 @@ namespace ParseProcs
 			var PDataReturnStatementST =
 					from open in POpenDatasetST
 					from p_select in PSelectFullST
+						.Or (PInsertFullST.Return<int, FullSelectStatement> (null))
 					select new DataReturnStatement (open, p_select)
 				;
 
@@ -1000,24 +1026,7 @@ namespace ParseProcs
 										)
 										.Or (PSelectFullST.Return (0))
 										.Or (SpracheUtils.SqlToken ("null").Return (0))
-										.Or
-										(
-											// insert
-											from cte in PCteTopOptionalST
-											from _1 in SpracheUtils.AnyTokenST ("insert into")
-											from _2 in PQualifiedIdentifierLST
-											from _3 in PColumnNameLST.CommaDelimitedST ().AtLeastOnce ()
-												.InParentsST ()
-												.Optional ()
-											from _4 in
-											(
-												from _1 in SpracheUtils.SqlToken ("values")
-												from _2 in PExpressionRefST.Get.CommaDelimitedST ().AtLeastOnce ()
-													.InParentsST ()
-												select 0
-											).Or (PSelectST.Return (0))
-											select 0
-										)
+										.Or (PInsertFullST)
 										.Or
 										(
 											// update
@@ -1130,18 +1139,6 @@ namespace ParseProcs
 					from body in PBeginEndST
 					select new { vars = declare.GetOrElse (new NamedTyped[0]), body }
 				;
-
-			//
-			PProcedureST.Parse (@"
-    begin
-        select country_id
-          into l_country_id
-          from countries_all
-         where upper(country_name) = upper(p_country);
-    exception when others then
-        null;
-    end;
-");
 
 			//
 			string ConnectionString = "server=127.0.0.1;port=5432;database=dummy01;uid=alexey;pwd=1234";
