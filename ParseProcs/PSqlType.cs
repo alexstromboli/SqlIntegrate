@@ -103,7 +103,7 @@ namespace ParseProcs
 
 		public static readonly PSqlType Date = Add (typeof (DateTime), "date").SetIsDate ();
 		public static readonly PSqlType Timestamp = Add (typeof (DateTime), "timestamp", "timestamp without time zone").SetIsDate ();
-		public static readonly PSqlType TimestampTz = Add (typeof (DateTime), "timestamp with time zone").SetIsDate ();
+		public static readonly PSqlType TimestampTz = Add (typeof (DateTime), "timestamp with time zone", "timestamptz").SetIsDate ();
 		public static readonly PSqlType Interval = Add (typeof (TimeSpan), "interval").SetIsTimeSpan ();
 		public static readonly PSqlType Time = Add (typeof (TimeSpan), "time", "time without time zone").SetIsTimeSpan ();
 		public static readonly PSqlType TimeTz = Add (typeof (TimeSpan), "time with time zone").SetIsTimeSpan ();

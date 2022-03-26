@@ -81,6 +81,7 @@ SELECT  n.nspname as schema,
 FROM pg_catalog.pg_namespace n
         INNER JOIN pg_catalog.pg_proc p ON pronamespace = n.oid
 WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+		AND p.prokind = 'p'
     ;
 ";
 

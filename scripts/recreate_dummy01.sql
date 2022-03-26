@@ -211,3 +211,11 @@ AS $$
         get_array := '{5, 8, 2, 0, 1}'::int[];
     END;
 $$;
+
+-- DROP PROCEDURE ext.Empty;
+CREATE PROCEDURE ext.Empty ()
+LANGUAGE plpgsql
+AS $$
+    BEGIN
+    END;
+$$;

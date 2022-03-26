@@ -850,13 +850,19 @@ namespace ParseProcs
 					from kw_select in SpracheUtils.SqlToken ("select")
 					from distinct in SpracheUtils.SqlToken ("distinct").Optional ()
 					from list in PSelectListST
-					from into_t in
-						(
-							from _1 in SpracheUtils.SqlToken ("into")
-							from _2 in PQualifiedIdentifierLST
-							select 0
-						).Optional ()
+					from into_t1 in
+					(
+						from _1 in SpracheUtils.SqlToken ("into")
+						from _2 in PQualifiedIdentifierLST.CommaDelimitedST ()
+						select 0
+					).Optional ()
 					from from_cl in PFromClauseOptionalST
+					from into_t2 in
+					(
+						from _1 in SpracheUtils.SqlToken ("into")
+						from _2 in PQualifiedIdentifierLST.CommaDelimitedST ()
+						select 0
+					).Optional ()
 					from _w in PWhereClauseOptionalST
 					from _g in PGroupByClauseOptionalST
 					select new OrdinarySelect (list, from_cl)
@@ -947,6 +953,8 @@ namespace ParseProcs
 									select 0
 								)
 								.Or (PFullSelectStatementRefST.Get.Return (0))
+								// just one level of () is provided currently
+								.Or (PFullSelectStatementRefST.Get.InParentsST ().Return (0))
 							select 0
 						)
 						.Or
@@ -968,6 +976,13 @@ namespace ParseProcs
 					select body
 				;
 
+			var PBeginEndST =
+					from _1 in SpracheUtils.SqlToken ("begin")
+					from inst in PInstructionRefST.Get.Many ()
+					from _2 in SpracheUtils.SqlToken ("end")
+					select inst.SelectMany (i => i).ToArray ()
+				;
+
 			var PInstructionST =
 					from _exc in SpracheUtils.AnyTokenST ("exception when others then").Optional ()
 					from body in
@@ -979,11 +994,12 @@ namespace ParseProcs
 										(
 											// variable assignment
 											from _1 in PColumnNameLST
-											from _2 in SpracheUtils.SqlToken (":=")
+											from _2 in SpracheUtils.AnyTokenST (":=", "=")
 											from _3 in PExpressionRefST.Get
 											select 0
 										)
 										.Or (PSelectFullST.Return (0))
+										.Or (SpracheUtils.SqlToken ("null").Return (0))
 										.Or
 										(
 											// insert
@@ -1083,6 +1099,7 @@ namespace ParseProcs
 								.SelectMany (e => e)
 								.ToArray ()
 						)
+						.Or (PBeginEndST)
 						.Or (PLoopExST)
 					from _ in SpracheUtils.SqlToken (";")
 					select body
@@ -1110,27 +1127,20 @@ namespace ParseProcs
 						).AtLeastOnce ()
 						select vars.ToArray ()
 					).Optional ()
-					from body in
-					(
-						from _1 in SpracheUtils.SqlToken ("begin")
-						from inst in PInstructionRefST.Get.AtLeastOnce ()
-						from _2 in SpracheUtils.SqlToken ("end")
-						select inst.SelectMany (i => i).ToArray ()
-					)
+					from body in PBeginEndST
 					select new { vars = declare.GetOrElse (new NamedTyped[0]), body }
 				;
 
 			//
 			PProcedureST.Parse (@"
-BEGIN
-	open x_appointments for
-	  SELECT 
-	  	5
-	  FROM salonpay.customers as c
-	  INNER JOIN salonpay.appointment_services as2
-	  	ON as2.appointment_id = a.appointment_id
-;
-END;
+    begin
+        select country_id
+          into l_country_id
+          from countries_all
+         where upper(country_name) = upper(p_country);
+    exception when others then
+        null;
+    end;
 ");
 
 			//
