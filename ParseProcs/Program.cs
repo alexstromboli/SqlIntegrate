@@ -1,8 +1,12 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 
 using Sprache;
+using Newtonsoft.Json;
+
+using ParseProcs.Datasets;
 
 namespace ParseProcs
 {
@@ -1151,8 +1155,12 @@ namespace ParseProcs
 			ReadDatabase (ConnectionString, TablesDict, ProceduresDict, FunctionsDict, SchemaOrder);
 
 			// parse all procedures
+			Module ModuleReport = new Module { Procedures = new List<Datasets.Procedure> () };
+
 			foreach (var proc in ProceduresDict.Values)
 			{
+				var ProcedureReport = new Datasets.Procedure { Schema = proc.Schema, Name = proc.Name, ResultSets = new List<ResultSet> () };
+
 				try
 				{
 					var Parse = PProcedureST.Parse (proc.SourceCode);
@@ -1173,9 +1181,18 @@ namespace ParseProcs
 						         .Where (s => s != null)
 					        )
 					{
-						var Set = drs.GetResult (rcProc);
+						NamedDataReturn Set = drs.GetResult (rcProc);
+
+						ResultSet ResultSetReport = new ResultSet
+						{
+							Name = Set.Name, Comments = Set.ServiceComment.ToTrivialArray ().ToList (),
+							Columns = Set.Table.Columns.Select (c => new Column { Name = c.Name, SqlBaseType = c.Type.BaseType.Display, IsArray = c.Type.IsArray }).ToList ()
+						};
+
+						ProcedureReport.ResultSets.Add (ResultSetReport);
 					}
 
+					ModuleReport.Procedures.Add (ProcedureReport);
 					Console.WriteLine ($"{proc.Name} ok");
 				}
 				catch (Exception ex)
@@ -1183,6 +1200,8 @@ namespace ParseProcs
 					Console.WriteLine ($"{proc.Name} failed: {ex.Message}");
 				}
 			}
+
+			File.WriteAllText ("out.json", JsonConvert.SerializeObject (ModuleReport, Formatting.Indented));
 
 			//
 			var sel01 = PDataReturnStatementST.Parse ("open ref01 for select 654");
