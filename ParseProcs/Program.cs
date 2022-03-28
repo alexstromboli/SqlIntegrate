@@ -133,12 +133,12 @@ namespace ParseProcs
 	public class OpenDataset
 	{
 		public string Name { get; }
-		public string LastComment { get; }
+		public string[] Comments { get; }
 
-		public OpenDataset (string Name, string LastComment)
+		public OpenDataset (string Name, string[] Comments)
 		{
 			this.Name = Name;
-			this.LastComment = LastComment;
+			this.Comments = Comments;
 		}
 	}
 
@@ -296,7 +296,7 @@ namespace ParseProcs
 	{
 		public string Name;
 		public ITable Table;
-		public string ServiceComment;
+		public string[] Comments;
 	}
 
 	public class DataReturnStatement
@@ -317,7 +317,7 @@ namespace ParseProcs
 			var Result = new NamedDataReturn
 			{
 				Name = Open.Name,
-				ServiceComment = Open.LastComment,
+				Comments = Open.Comments,
 				Table = FullSelect.GetTable (rc)
 			};
 
@@ -935,7 +935,7 @@ namespace ParseProcs
 					from _cm1 in SpracheUtils.AllCommentsST ()
 					from kw_for in Parse.IgnoreCase ("for")
 					from _cm2 in SpracheUtils.AllCommentsST ()
-					select new OpenDataset (name, _cm2.LastOrDefault ())
+					select new OpenDataset (name, _cm2.ToArray ())
 				;
 
 			var PDataReturnStatementST =
@@ -1195,7 +1195,8 @@ namespace ParseProcs
 
 						ResultSet ResultSetReport = new ResultSet
 						{
-							Name = Set.Name, Comments = Set.ServiceComment.ToTrivialArray ().ToList (),
+							Name = Set.Name,
+							Comments = Set.Comments.ToList (),
 							Columns = Set.Table.Columns.Select (c => new Column
 							{
 								Name = c.Name,

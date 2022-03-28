@@ -88,6 +88,10 @@ AS $$
 BEGIN
     OPEN res01 FOR
         -- special comment
+        /*
+            multiline comment
+            about semantics
+        */
     WITH RECURSIVE C AS
         (
             SELECT 5 AS done
