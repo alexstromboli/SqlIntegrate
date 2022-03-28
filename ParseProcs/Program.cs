@@ -1159,7 +1159,17 @@ namespace ParseProcs
 
 			foreach (var proc in ProceduresDict.Values)
 			{
-				var ProcedureReport = new Datasets.Procedure { Schema = proc.Schema, Name = proc.Name, ResultSets = new List<ResultSet> () };
+				var ProcedureReport = new Datasets.Procedure
+				{
+					Schema = proc.Schema, Name = proc.Name, Arguments = proc.Arguments.Select (a =>
+						new Datasets.Argument
+						{
+							Name = a.Name,
+							SqlType = new SqlType (a.Type),
+							IsOut = a.Direction == Argument.DirectionType.InOut
+						}).ToList (),
+					ResultSets = new List<ResultSet> ()
+				};
 
 				try
 				{
@@ -1186,7 +1196,11 @@ namespace ParseProcs
 						ResultSet ResultSetReport = new ResultSet
 						{
 							Name = Set.Name, Comments = Set.ServiceComment.ToTrivialArray ().ToList (),
-							Columns = Set.Table.Columns.Select (c => new Column { Name = c.Name, SqlBaseType = c.Type.BaseType.Display, IsArray = c.Type.IsArray }).ToList ()
+							Columns = Set.Table.Columns.Select (c => new Column
+							{
+								Name = c.Name,
+								SqlType = new SqlType (c.Type)
+							}).ToList ()
 						};
 
 						ProcedureReport.ResultSets.Add (ResultSetReport);
