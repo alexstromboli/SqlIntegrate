@@ -105,53 +105,61 @@ namespace MakeWrapper
 			sb.AppendLine (CodeGenerationUtils.AutomaticWarning);
 
 			using (sb.AppendLine ("namespace Gen").UseCurlyBraces ())
-			foreach (var p in Module.Procedures.OrderBy (p => p.Name))
 			{
-				sb.AppendLine ();
-				sb.AppendLine ("#region " + p.Name);
-
-				string[] Args = p.Arguments
-						.Where (a => a.SqlType.SqlBaseType != "refcursor")
-						.Select (a => $"{CastToDict[a.SqlType.ToString ()]} {a.Name}")
-						.ToArray ()
-					;
-
-				string MethodDeclPrefix = "public void " + p.Name + " (";
-				if (Args.Length <= 2)
+				foreach (var ns in Module.Procedures.GroupBy (p => p.Schema).OrderBy (g => g.Key))
 				{
-					string ArgsDef = string.Join (", ", Args);
-					sb.AppendLine (MethodDeclPrefix + ArgsDef + ")");
-				}
-				else
-				{
-					sb.AppendLine (MethodDeclPrefix);
-					bool First = true;
-					foreach (string a in Args)
+					sb.AppendLine ();
+					using (sb.AppendLine ("namespace " + ns.Key).UseCurlyBraces ())
 					{
-						sb.TypeIndent (2)
-							.TypeText ((First ? "  " : ", ") + a)
-							.AppendLine ()
-							;
-						First = false;
-					}
-					sb.AppendLine (")", 1);
-				}
-
-				using (sb.UseCurlyBraces ())
-				{
-					foreach (var Set in p.ResultSets)
-					{
-						using (sb.AppendLine ("// " + Set.Name).UseCurlyBraces ())
+						foreach (var p in ns.OrderBy (p => p.Name))
 						{
-							foreach (var c in Set.Columns)
+							sb.AppendLine ("#region " + p.Name);
+
+							string[] Args = p.Arguments
+									.Where (a => a.SqlType.SqlBaseType != "refcursor")
+									.Select (a => $"{CastToDict[a.SqlType.ToString ()]} {a.Name}")
+									.ToArray ()
+								;
+
+							string MethodDeclPrefix = "public void " + p.Name + " (";
+							if (Args.Length <= 2)
 							{
-								sb.AppendLine ($"{CastToDict[c.SqlType.ToString ()]} {c.Name};");
+								string ArgsDef = string.Join (", ", Args);
+								sb.AppendLine (MethodDeclPrefix + ArgsDef + ")");
 							}
+							else
+							{
+								sb.AppendLine (MethodDeclPrefix);
+								bool First = true;
+								foreach (string a in Args)
+								{
+									sb.TypeIndent (2)
+										.TypeText ((First ? "  " : ", ") + a)
+										.AppendLine ()
+										;
+									First = false;
+								}
+								sb.AppendLine (")", 1);
+							}
+
+							using (sb.UseCurlyBraces ())
+							{
+								foreach (var Set in p.ResultSets)
+								{
+									using (sb.AppendLine ("// " + Set.Name).UseCurlyBraces ())
+									{
+										foreach (var c in Set.Columns)
+										{
+											sb.AppendLine ($"{CastToDict[c.SqlType.ToString ()]} {c.Name};");
+										}
+									}
+								}
+							}
+
+							sb.AppendLine ("#endregion ");
 						}
 					}
 				}
-
-				sb.AppendLine ("#endregion ");
 			}
 
 			CodeGenerationUtils.EnsureFileContents (OutputPath, sb.ToString ());
