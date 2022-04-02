@@ -11,6 +11,26 @@ using Utils.CodeGeneration;
 
 namespace MakeWrapper
 {
+	public static class Utils
+	{
+		public class Item<T>
+		{
+			public T Value;
+			public bool IsFirst;
+			public int Index;
+		}
+
+		public static IEnumerable<Item<T>> Indexed<T> (this IEnumerable<T> coll)
+		{
+			int i = -1;
+			return coll.Select (e =>
+			{
+				++i;
+				return new Item<T> { Value = e, Index = i, IsFirst = i == 0 };
+			});
+		}
+	}
+
 	// this map is closed
 	// only for native .NET types
 	// third parties' types (like NodaTime) must be handled separately
@@ -104,24 +124,37 @@ namespace MakeWrapper
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
 			sb.AppendLine (CodeGenerationUtils.AutomaticWarning);
 
-			using (sb.AppendLine ("namespace Gen").UseCurlyBraces ())
+			using (sb.UseCurlyBraces ("namespace Gen"))
 			{
-				foreach (var ns in Module.Procedures.GroupBy (p => p.Schema).OrderBy (g => g.Key))
+				foreach (var ns in Module.Procedures
+					         .GroupBy (p => p.Schema)
+					         .OrderBy (g => g.Key)
+					         .Indexed ()
+				         )
 				{
-					sb.AppendLine ();
-					using (sb.AppendLine ("namespace " + ns.Key).UseCurlyBraces ())
+					if (!ns.IsFirst)
 					{
-						foreach (var p in ns.OrderBy (p => p.Name))
-						{
-							sb.AppendLine ("#region " + p.Name);
+						sb.AppendLine ();
+					}
 
-							string[] Args = p.Arguments
+					using (sb.UseCurlyBraces ("namespace " + ns.Value.Key))
+					{
+						foreach (var p in ns.Value.OrderBy (p => p.Name).Indexed ())
+						{
+							if (!p.IsFirst)
+							{
+								sb.AppendLine ();
+							}
+
+							sb.AppendLine ("#region " + p.Value.Name);
+
+							string[] Args = p.Value.Arguments
 									.Where (a => a.SqlType.SqlBaseType != "refcursor")
 									.Select (a => $"{CastToDict[a.SqlType.ToString ()]} {a.Name}")
 									.ToArray ()
 								;
 
-							string MethodDeclPrefix = "public void " + p.Name + " (";
+							string MethodDeclPrefix = "public void " + p.Value.Name + " (";
 							if (Args.Length <= 2)
 							{
 								string ArgsDef = string.Join (", ", Args);
@@ -130,25 +163,25 @@ namespace MakeWrapper
 							else
 							{
 								sb.AppendLine (MethodDeclPrefix);
-								bool First = true;
-								foreach (string a in Args)
+								foreach (var a in Args.Indexed ())
 								{
-									sb.TypeIndent (2)
-										.TypeText ((First ? "  " : ", ") + a)
-										.AppendLine ()
-										;
-									First = false;
+									sb.AppendLine ((a.IsFirst ? "  " : ", ") + a.Value, 2);
 								}
 								sb.AppendLine (")", 1);
 							}
 
 							using (sb.UseCurlyBraces ())
 							{
-								foreach (var Set in p.ResultSets)
+								foreach (var Set in p.Value.ResultSets.Indexed ())
 								{
-									using (sb.AppendLine ("// " + Set.Name).UseCurlyBraces ())
+									if (!Set.IsFirst)
 									{
-										foreach (var c in Set.Columns)
+										sb.AppendLine ();
+									}
+
+									using (sb.AppendLine ("// " + Set.Value.Name).UseCurlyBraces ())
+									{
+										foreach (var c in Set.Value.Columns)
 										{
 											sb.AppendLine ($"{CastToDict[c.SqlType.ToString ()]} {c.Name};");
 										}

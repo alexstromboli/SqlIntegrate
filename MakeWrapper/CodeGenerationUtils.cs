@@ -174,7 +174,11 @@ namespace Utils.CodeGeneration
 		{
 			if (!string.IsNullOrWhiteSpace (Line))
 			{
-				TypeIndent (AddedDepth);
+				if (StringBuilder.Length == 0 || StringBuilder[^1] == '\n')
+				{
+					TypeIndent (AddedDepth);
+				}
+
 				StringBuilder.AppendLine (Line);
 			}
 			else
@@ -195,8 +199,13 @@ namespace Utils.CodeGeneration
 			return new Block (this, AddedDepth);
 		}
 
-		public IDisposable UseCurlyBraces (bool IncludeOpen = true, int AddedDepth = 1)
+		public IDisposable UseCurlyBraces (string Caption = null, bool IncludeOpen = true, int AddedDepth = 1)
 		{
+			if (!string.IsNullOrWhiteSpace (Caption))
+			{
+				AppendLine (Caption);
+			}
+
 			return new Block (this, AddedDepth, IncludeOpen ? "{" : null, "}");
 		}
 
