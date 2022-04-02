@@ -51,6 +51,7 @@ namespace ParseProcs
 		}
 
 		protected static Dictionary<string, PSqlType> _Map;
+		public static IReadOnlyDictionary<string, PSqlType> Map => _Map;
 
 		public static PSqlType GetForSqlTypeName (string PSqlTypeNameL)
 		{

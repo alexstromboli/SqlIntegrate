@@ -10,6 +10,12 @@ namespace ParseProcs.Datasets
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public bool IsArray = false;
 
+		public SqlType ()
+		{
+			SqlBaseType = null;
+			IsArray = false;
+		}
+
 		public SqlType (PSqlType Type)
 		{
 			SqlBaseType = Type.BaseType.Display;
@@ -51,6 +57,11 @@ namespace ParseProcs.Datasets
 		public SqlType SqlType;
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public bool IsOut = false;
+
+		public override string ToString ()
+		{
+			return (IsOut ? "INOUT " : "") + Name + " " + SqlType;
+		}
 	}
 
 	public class Procedure
