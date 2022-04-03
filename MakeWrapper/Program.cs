@@ -128,7 +128,7 @@ namespace MakeWrapper
 			public ResultSet Origin;
 			public string CursorName;
 			public string RowCsClassName;
-			public string SetCsClassName;
+			public string SetCsTypeName;
 			public string PropertyName;
 			public bool IsSingleRow;
 			public bool IsSingleColumn => Properties.Count == 1;
@@ -275,7 +275,7 @@ namespace MakeWrapper
 											Set.RowCsClassName = Set.Properties[0].ClrType;
 										}
 
-										Set.SetCsClassName = Set.IsSingleRow
+										Set.SetCsTypeName = Set.IsSingleRow
 											? Set.RowCsClassName
 											: $"List<{Set.RowCsClassName}>";
 
@@ -289,7 +289,7 @@ namespace MakeWrapper
 							}
 							if (ResultMap.IsSingleSet)
 							{
-								ResultMap.ResultClassName = ResultMap.ResultSets[0].SetCsClassName;
+								ResultMap.ResultClassName = ResultMap.ResultSets[0].SetCsTypeName;
 							}
 
 							//
@@ -319,6 +319,32 @@ namespace MakeWrapper
 									.Select (a => (a.IsOut ? "ref " : "") + $"{a.ClrType} {a.CsName}")
 									.ToArray ()
 								;
+
+							foreach (var Set in ResultMap.ResultSets.Where (s => !s.IsSingleColumn))
+							{
+								using (sb.UseCurlyBraces ($"public class {Set.RowCsClassName}"))
+								{
+									foreach (var P in Set.Properties)
+									{
+										sb.AppendLine ($"public {P.ClrType} {P.CsName};");
+									}
+								}
+
+								sb.AppendLine ();
+							}
+
+							if (ResultMap.HasResults && !ResultMap.IsSingleSet)
+							{
+								using (sb.UseCurlyBraces ($"public class {ResultMap.ResultClassName}"))
+								{
+									foreach (var Set in ResultMap.ResultSets)
+									{
+										sb.AppendLine ($"public {Set.SetCsTypeName} {Set.CursorName};");
+									}
+								}
+
+								sb.AppendLine ();
+							}
 
 							string MethodDeclPrefix = $"public {ResultMap.ResultClassName} {p.Value.Name} (";
 							if (Args.Length <= 2)
@@ -400,7 +426,7 @@ namespace MakeWrapper
 												sb.AppendLine (
 														$"ResCmd.CommandText = {$"FETCH ALL IN {Set.CursorName.ToDoubleQuotes ()};".ToDoubleQuotes ()};")
 													.AppendLine (
-														$"{Set.SetCsClassName} Set = {(Set.IsSingleRow ? $"null" : $"new {Set.SetCsClassName} ()")};")
+														$"{Set.SetCsTypeName} Set = {(Set.IsSingleRow ? $"null" : $"new {Set.SetCsTypeName} ()")};")
 													.AppendLine ()
 													;
 
