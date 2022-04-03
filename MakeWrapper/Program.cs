@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Collections.Generic;
 
 using Newtonsoft.Json;
@@ -28,6 +29,15 @@ namespace MakeWrapper
 				++i;
 				return new Item<T> { Value = e, Index = i, IsFirst = i == 0 };
 			});
+		}
+
+		public static string ToDoubleQuotes (this string Input)
+		{
+			return new StringBuilder ("\"")
+					.Append (Input.Replace ("\"", "\\\""))
+					.Append ('\"')
+					.ToString ()
+				;
 		}
 	}
 
@@ -122,7 +132,9 @@ namespace MakeWrapper
 			}
 
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
-			sb.AppendLine (CodeGenerationUtils.AutomaticWarning);
+			sb.AppendLine (CodeGenerationUtils.AutomaticWarning)
+				.AppendLine ("using Npgsql;")
+				;
 
 			using (sb.UseCurlyBraces ("namespace Gen"))
 			{
@@ -150,7 +162,7 @@ namespace MakeWrapper
 
 							string[] Args = p.Value.Arguments
 									.Where (a => a.SqlType.SqlBaseType != "refcursor")
-									.Select (a => $"{CastToDict[a.SqlType.ToString ()]} {a.Name}")
+									.Select (a => (a.IsOut ? "ref " : "") + $"{CastToDict[a.SqlType.ToString ()]} {a.Name}")
 									.ToArray ()
 								;
 
@@ -172,6 +184,51 @@ namespace MakeWrapper
 
 							using (sb.UseCurlyBraces ())
 							{
+								using (p.Value.ResultSets.Count > 0
+									       ? sb.UseCurlyBraces ("using (var Tran = Conn.BeginTransaction ())")
+									       : null)
+								{
+									using (sb.UseCurlyBraces ("using (var Cmd = Conn.CreateCommand ())"))
+									{
+										string Params = string.Join (", ", p.Value.Arguments.Select (a => "@" + a.Name));
+										string Call =
+											$"call {p.Value.Schema.ToDoubleQuotes ()}.{p.Value.Name.ToDoubleQuotes ()} ({Params});"
+												.ToDoubleQuotes ();
+										sb.AppendLine ($"Cmd.CommandText = {Call};");
+
+										foreach (var a in p.Value.Arguments)
+										{
+											if (a.SqlType.SqlBaseType == "refcursor")
+											{
+												if (a.IsOut)
+												{
+													sb.AppendLine ($"Cmd.Parameters.Add (new NpgsqlParameter (\"@{a.Name}\", NpgsqlDbType.Refcursor) {{ Direction = ParameterDirection.InputOutput, Value = \"{a.Name}\" }});");
+												}
+											}
+											else
+											{
+												sb.AppendLine ($"Cmd.Parameters.AddWithValue (\"@{a.Name}\", (object){a.Name} ?? DBNull.Value)"
+												               + (a.IsOut
+													               ? ".Direction = ParameterDirection.InputOutput"
+													               : "")
+												               + ";");
+											}
+										}
+
+										sb.AppendLine ("cmd.ExecuteNonQuery ();");
+
+										foreach (var oa in p.Value.Arguments.Where (a => a.SqlType.SqlBaseType != "refcursor" && a.IsOut).Indexed ())
+										{
+											if (oa.IsFirst)
+											{
+												sb.AppendLine ();
+											}
+
+											sb.AppendLine ($"{oa.Value.Name} = Cmd.Parameters[{("@"+oa.Value.Name).ToDoubleQuotes ()}].Value as string;");
+										}
+									}
+								}
+
 								foreach (var Set in p.Value.ResultSets.Indexed ())
 								{
 									if (!Set.IsFirst)
