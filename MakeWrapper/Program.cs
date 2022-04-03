@@ -270,7 +270,7 @@ namespace MakeWrapper
 
 										Set.SetCsClassName = Set.IsSingleRow
 											? Set.RowCsClassName
-											: $"List<Set.RowCsClassName>";
+											: $"List<{Set.RowCsClassName}>";
 
 										return Set;
 									})
@@ -377,6 +377,14 @@ namespace MakeWrapper
 											sb.AppendLine ($"{oa.Value.CsName} = Cmd.Parameters[{oa.Value.CallParamName}].Value as {oa.Value.ClrType};");
 										}
 
+										if (ResultMap.HasResults)
+										{
+											sb.AppendLine ()
+												.AppendLine (
+													$"{ResultMap.ResultClassName} Result = {(ResultMap.IsSingleSet ? "null" : "new " + ResultMap.ResultClassName + " ()")};"
+												);
+										}
+
 										foreach (var Set in ResultMap.ResultSets)
 										{
 											sb.AppendLine ();
@@ -384,9 +392,8 @@ namespace MakeWrapper
 											{
 												sb.AppendLine (
 														$"ResCmd.CommandText = {$"FETCH ALL IN {Set.CursorName.ToDoubleQuotes ()};".ToDoubleQuotes ()};")
-													.AppendLine (Set.IsSingleRow
-														? $"{Set.RowCsClassName} Row = null;"
-														: $"List<{Set.RowCsClassName}> Set = new List<{Set.RowCsClassName}> ();")
+													.AppendLine (
+														$"{Set.SetCsClassName} Set = {(Set.IsSingleRow ? $"null" : $"new {Set.SetCsClassName} ()")};")
 													.AppendLine ()
 													;
 
@@ -398,7 +405,7 @@ namespace MakeWrapper
 														sb.TypeIndent ();
 														if (Set.IsSingleRow)
 														{
-															sb.TypeText ("Row = ");
+															sb.TypeText ("Set = ");
 														}
 														else
 														{
@@ -429,6 +436,16 @@ namespace MakeWrapper
 														}
 													}
 												}
+
+												sb.AppendLine ();
+												if (ResultMap.IsSingleSet)
+												{
+													sb.AppendLine ($"Result = Set;");
+												}
+												else
+												{
+													sb.AppendLine ($"Result.{Set.PropertyName} = Set;");
+												}
 											}
 										}
 
@@ -438,6 +455,12 @@ namespace MakeWrapper
 												.AppendLine ("Tran.Commit ();");
 										}
 									}
+								}
+
+								if (ResultMap.HasResults)
+								{
+									sb.AppendLine ()
+										.AppendLine ($"return Result;");
 								}
 							}
 
