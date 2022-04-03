@@ -90,6 +90,7 @@ BEGIN
         -- special comment
         /*
             multiline comment
+            # 1
             about semantics
         */
     WITH RECURSIVE C AS
@@ -222,4 +223,64 @@ LANGUAGE plpgsql
 AS $$
     BEGIN
     END;
+$$;
+
+-- DROP PROCEDURE get_single_row;
+CREATE PROCEDURE get_single_row (INOUT partial refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN partial FOR
+            -- # 1
+    SELECT  id,
+            name,
+            name as float
+    FROM Rooms;
+END;
+$$;
+
+-- DROP PROCEDURE get_scalar;
+CREATE PROCEDURE get_scalar (INOUT partial refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN partial FOR
+            -- # 1
+    SELECT  name::uuid
+    FROM Rooms R
+    ORDER BY R.order;
+END;
+$$;
+
+-- DROP PROCEDURE get_user_and_details;
+CREATE PROCEDURE get_user_and_details (INOUT "user" refcursor, INOUT details refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN "user" FOR
+            -- # 1
+    SELECT  name
+    FROM Rooms R;
+
+    OPEN details FOR
+    SELECT
+        id,
+        lastname,
+        firstname,
+        dob,
+        tab_num,
+        effect
+    FROM ext.Persons;
+END;
+$$;
+
+-- DROP PROCEDURE get_array;
+CREATE PROCEDURE get_array (INOUT names refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN names FOR
+    SELECT  name
+    FROM Rooms;
+END;
 $$;

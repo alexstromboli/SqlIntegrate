@@ -1216,6 +1216,12 @@ namespace ParseProcs
 				}
 			}
 
+			ModuleReport.Procedures = ModuleReport.Procedures
+					.OrderBy (p => p.Schema)
+					.ThenBy (p => p.Name)
+					.ToList ()
+				;
+
 			File.WriteAllText ("out.json", JsonConvert.SerializeObject (ModuleReport, Formatting.Indented));
 
 			//

@@ -131,6 +131,8 @@ namespace MakeWrapper
 			public string SetCsClassName;
 			public string PropertyName;
 			public bool IsSingleRow;
+			public bool IsSingleColumn => Properties.Count == 1;
+			public bool IsScalar => IsSingleRow && IsSingleColumn;
 			public List<Property> Properties;
 
 			public override string ToString ()
@@ -267,6 +269,11 @@ namespace MakeWrapper
 												})
 												.ToList ()
 										};
+
+										if (Set.IsSingleColumn)
+										{
+											Set.RowCsClassName = Set.Properties[0].ClrType;
+										}
 
 										Set.SetCsClassName = Set.IsSingleRow
 											? Set.RowCsClassName
@@ -412,27 +419,39 @@ namespace MakeWrapper
 															sb.TypeText ("Set.Add (");
 														}
 
-														sb.AppendLine ($"new {Set.RowCsClassName}")
-															.AppendLine ("{");
-
-														using (sb.UseBlock ())
+														if (Set.IsSingleColumn)
 														{
-															foreach (var c in Set.Properties.Indexed ())
+															sb.TypeText (Set.Properties[0].ReaderExpression ("Rdr"));
+														}
+														else
+														{
+															sb.AppendLine ($"new {Set.RowCsClassName}")
+																.AppendLine ("{");
+
+															using (sb.UseBlock ())
 															{
-																sb.TypeIndent ()
-																	.TypeText (c.IsFirst ? "  " : ", ")
-																	.AppendLine (
-																		$"{c.Value.CsName} = {c.Value.ReaderExpression ("Rdr")}");
+																foreach (var c in Set.Properties.Indexed ())
+																{
+																	sb.TypeIndent ()
+																		.TypeText (c.IsFirst
+																			? "  "
+																			: ", ")
+																		.AppendLine (
+																			$"{c.Value.CsName} = {c.Value.ReaderExpression ("Rdr")}");
+																}
 															}
+
+															sb.TypeIndent ()
+																.TypeText ("}");
 														}
 
 														if (Set.IsSingleRow)
 														{
-															sb.AppendLine ("};");
+															sb.AppendLine (";");
 														}
 														else
 														{
-															sb.AppendLine ("});");
+															sb.AppendLine (");");
 														}
 													}
 												}
