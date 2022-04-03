@@ -39,6 +39,21 @@ namespace MakeWrapper
 					.ToString ()
 				;
 		}
+
+		public static string ValidCsName (this string Name)
+		{
+			if (Name.Contains (' '))
+			{
+				return Name.Replace (' ', '_');
+			}
+
+			if (Program.CsKeywords.Contains (Name))
+			{
+				return "_" + Name;
+			}
+
+			return Name;
+		}
 	}
 
 	// this map is closed
@@ -80,8 +95,21 @@ namespace MakeWrapper
 		}
 	}
 
+	class WrapperProcedureArgument
+	{
+		public Argument Origin;
+		public string NativeName;
+		public string CsName;
+		public string CallParamName;
+		public string ClrType;
+		public bool IsCursor;
+		public bool IsOut;
+	}
+
 	class Program
 	{
+		public static SortedSet<string> CsKeywords = new SortedSet<string> (new[] { "abstract", "event", "new", "struct", "as", "explicit", "null", "switch", "base", "extern", "object", "this", "bool", "false", "operator", "throw", "break", "finally", "out", "true", "byte", "fixed", "override", "try", "case", "float", "params", "typeof", "catch", "for", "private", "uint", "char", "foreach", "protected", "ulong", "checked", "goto", "public", "unchecked", "class", "if", "readonly", "unsafe", "const", "implicit", "ref", "ushort", "continue", "in", "return", "using", "decimal", "int", "sbyte", "virtual", "default", "interface", "sealed", "volatile", "delegate", "internal", "short", "void", "do", "is", "sizeof", "while", "double", "lock", "stackalloc", "else", "long", "static", "enum", "namespace", "string" });
+
 		static void Main (string[] args)
 		{
 			string ModuleInputPath = Path.GetFullPath (args[0]);
@@ -134,6 +162,7 @@ namespace MakeWrapper
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
 			sb.AppendLine (CodeGenerationUtils.AutomaticWarning)
 				.AppendLine ("using Npgsql;")
+				.AppendLine ()
 				;
 
 			using (sb.UseCurlyBraces ("namespace Gen"))
@@ -149,7 +178,7 @@ namespace MakeWrapper
 						sb.AppendLine ();
 					}
 
-					using (sb.UseCurlyBraces ("namespace " + ns.Value.Key))
+					using (sb.UseCurlyBraces ("namespace " + ns.Value.Key.ValidCsName ()))
 					{
 						foreach (var p in ns.Value.OrderBy (p => p.Name).Indexed ())
 						{
@@ -160,9 +189,23 @@ namespace MakeWrapper
 
 							sb.AppendLine ("#region " + p.Value.Name);
 
-							string[] Args = p.Value.Arguments
-									.Where (a => a.SqlType.SqlBaseType != "refcursor")
-									.Select (a => (a.IsOut ? "ref " : "") + $"{CastToDict[a.SqlType.ToString ()]} {a.Name}")
+							WrapperProcedureArgument[] WrapperProcedureArguments = p.Value.Arguments
+									.Select (a => new WrapperProcedureArgument
+									{
+										Origin = a,
+										NativeName = a.Name,
+										CallParamName = ("@" + a.Name).ToDoubleQuotes (),
+										CsName = a.Name.ValidCsName (),
+										ClrType = CastToDict.TryGetValue (a.SqlType.ToString (), out var t) ? t : null,
+										IsOut = a.IsOut,
+										IsCursor = a.SqlType.SqlBaseType == "refcursor"
+									})
+									.ToArray ()
+								;
+
+							string[] Args = WrapperProcedureArguments
+									.Where (a => !a.IsCursor)
+									.Select (a => (a.IsOut ? "ref " : "") + $"{a.ClrType} {a.CsName}")
 									.ToArray ()
 								;
 
@@ -184,30 +227,32 @@ namespace MakeWrapper
 
 							using (sb.UseCurlyBraces ())
 							{
-								using (p.Value.ResultSets.Count > 0
+								bool UseTransaction = p.Value.ResultSets.Count > 0;
+
+								using (UseTransaction
 									       ? sb.UseCurlyBraces ("using (var Tran = Conn.BeginTransaction ())")
 									       : null)
 								{
 									using (sb.UseCurlyBraces ("using (var Cmd = Conn.CreateCommand ())"))
 									{
-										string Params = string.Join (", ", p.Value.Arguments.Select (a => "@" + a.Name));
+										string Params = string.Join (", ", WrapperProcedureArguments.Select (a => a.CallParamName));
 										string Call =
 											$"call {p.Value.Schema.ToDoubleQuotes ()}.{p.Value.Name.ToDoubleQuotes ()} ({Params});"
 												.ToDoubleQuotes ();
 										sb.AppendLine ($"Cmd.CommandText = {Call};");
 
-										foreach (var a in p.Value.Arguments)
+										foreach (var a in WrapperProcedureArguments)
 										{
-											if (a.SqlType.SqlBaseType == "refcursor")
+											if (a.IsCursor)
 											{
 												if (a.IsOut)
 												{
-													sb.AppendLine ($"Cmd.Parameters.Add (new NpgsqlParameter (\"@{a.Name}\", NpgsqlDbType.Refcursor) {{ Direction = ParameterDirection.InputOutput, Value = \"{a.Name}\" }});");
+													sb.AppendLine ($"Cmd.Parameters.Add (new NpgsqlParameter ({a.CallParamName}, NpgsqlDbType.Refcursor) {{ Direction = ParameterDirection.InputOutput, Value = \"{a.CsName}\" }});");
 												}
 											}
 											else
 											{
-												sb.AppendLine ($"Cmd.Parameters.AddWithValue (\"@{a.Name}\", (object){a.Name} ?? DBNull.Value)"
+												sb.AppendLine ($"Cmd.Parameters.AddWithValue ({a.CallParamName}, (object){a.CsName} ?? DBNull.Value)"
 												               + (a.IsOut
 													               ? ".Direction = ParameterDirection.InputOutput"
 													               : "")
@@ -215,32 +260,46 @@ namespace MakeWrapper
 											}
 										}
 
-										sb.AppendLine ("cmd.ExecuteNonQuery ();");
+										sb.AppendLine ()
+											.AppendLine ("Cmd.ExecuteNonQuery ();");
 
-										foreach (var oa in p.Value.Arguments.Where (a => a.SqlType.SqlBaseType != "refcursor" && a.IsOut).Indexed ())
+										foreach (var oa in WrapperProcedureArguments.Where (a => !a.IsCursor && a.IsOut).Indexed ())
 										{
 											if (oa.IsFirst)
 											{
 												sb.AppendLine ();
 											}
 
-											sb.AppendLine ($"{oa.Value.Name} = Cmd.Parameters[{("@"+oa.Value.Name).ToDoubleQuotes ()}].Value as string;");
+											sb.AppendLine ($"{oa.Value.CsName} = Cmd.Parameters[{oa.Value.CallParamName}].Value as {oa.Value.ClrType};");
 										}
-									}
-								}
 
-								foreach (var Set in p.Value.ResultSets.Indexed ())
-								{
-									if (!Set.IsFirst)
-									{
-										sb.AppendLine ();
-									}
-
-									using (sb.AppendLine ("// " + Set.Value.Name).UseCurlyBraces ())
-									{
-										foreach (var c in Set.Value.Columns)
+										foreach (var Set in p.Value.ResultSets)
 										{
-											sb.AppendLine ($"{CastToDict[c.SqlType.ToString ()]} {c.Name};");
+											sb.AppendLine ();
+											using (sb.UseCurlyBraces ($"using (var ResCmd = Conn.CreateCommand ())"))
+											{
+												sb.AppendLine ($"ResCmd.CommandText = {$"FETCH ALL IN {Set.Name.ToDoubleQuotes ()};".ToDoubleQuotes ()};")
+													.AppendLine ();
+
+												using (sb.UseCurlyBraces ("using (var Rdr = ResCmd.ExecuteReader ())"))
+												{
+													using (sb.UseCurlyBraces ("while (Rdr.Read ())"))
+													{
+														foreach (var c in Set.Columns)
+														{
+															string ClrType = CastToDict[c.SqlType.ToString ()];
+															sb.AppendLine (
+																$"{ClrType} {c.Name} = Rdr[{c.Name.ToDoubleQuotes ()}] as {ClrType};");
+														}
+													}
+												}
+											}
+										}
+
+										if (UseTransaction)
+										{
+											sb.AppendLine ()
+												.AppendLine ("Tran.Commit ();");
 										}
 									}
 								}
