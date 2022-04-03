@@ -127,21 +127,23 @@ namespace MakeWrapper
 
 			public ResultSet Origin;
 			public string CursorName;
-			public string CsClassName;
+			public string RowCsClassName;
+			public string SetCsClassName;
 			public string PropertyName;
 			public bool IsSingleRow;
 			public List<Property> Properties;
 
 			public override string ToString ()
 			{
-				return CsClassName;
+				return RowCsClassName;
 			}
 		}
 
 		public Procedure Origin;
 		public string ResultClassName;
 		public List<Set> ResultSets;
-		public bool IsSingleSet;
+		public bool HasResults => ResultSets.Count > 0;
+		public bool IsSingleSet => ResultSets.Count == 1;
 
 		public override string ToString ()
 		{
@@ -232,38 +234,56 @@ namespace MakeWrapper
 								Origin = p.Value,
 								ResultClassName = p.Value.Name.Replace (' ', '_') + "_Result",
 								ResultSets = p.Value.ResultSets
-									.Select (s => new ProcedureResult.Set
+									.Select (s =>
 									{
-										Origin = s,
-										CursorName = s.Name,
-										CsClassName = p.Value.Name.Replace (' ', '_') + "_Result_" + s.Name.ValidCsName (),
-										PropertyName = s.Name.ValidCsName (),
-										IsSingleRow = s.Comments
-											.SelectMany (c => c.Split ('\n'))
-											.Any (c => Regex.IsMatch (c, @"\s*#\s+1(\s|$)")),
-										Properties = s.Columns
-											.Select (c =>
-											{
-												var Property = new ProcedureResult.Set.Property
+										var Set = new ProcedureResult.Set
+										{
+											Origin = s,
+											CursorName = s.Name,
+											RowCsClassName = p.Value.Name.Replace (' ', '_') + "_Result_" +
+											              s.Name.ValidCsName (),
+											PropertyName = s.Name.ValidCsName (),
+											IsSingleRow = s.Comments
+												.SelectMany (c => c.Split ('\n'))
+												.Any (c => Regex.IsMatch (c, @"\s*#\s+1(\s|$)")),
+											Properties = s.Columns
+												.Select (c =>
 												{
-													Origin = c,
-													NativeName = c.Name,
-													ClrType = CastToDict.TryGetValue (c.SqlType.ToString (), out var t)
-														? t
-														: null,
-													CsName = c.Name.ValidCsName ()
-												};
+													var Property = new ProcedureResult.Set.Property
+													{
+														Origin = c,
+														NativeName = c.Name,
+														ClrType = CastToDict.TryGetValue (c.SqlType.ToString (),
+															out var t)
+															? t
+															: null,
+														CsName = c.Name.ValidCsName ()
+													};
 
-												Property.ReaderExpression = rdr =>
-													$"{rdr}[{Property.NativeName.ToDoubleQuotes ()}] as {Property.ClrType}";
+													Property.ReaderExpression = rdr =>
+														$"{rdr}[{Property.NativeName.ToDoubleQuotes ()}] as {Property.ClrType}";
 
-												return Property;
-											})
-											.ToList ()
+													return Property;
+												})
+												.ToList ()
+										};
+
+										Set.SetCsClassName = Set.IsSingleRow
+											? Set.RowCsClassName
+											: $"List<Set.RowCsClassName>";
+
+										return Set;
 									})
 									.ToList ()
 							};
-							ResultMap.IsSingleSet = ResultMap.ResultSets.Count == 1;
+							if (!ResultMap.HasResults)
+							{
+								ResultMap.ResultClassName = "void";
+							}
+							if (ResultMap.IsSingleSet)
+							{
+								ResultMap.ResultClassName = ResultMap.ResultSets[0].SetCsClassName;
+							}
 
 							//
 							if (!p.IsFirst)
@@ -293,7 +313,7 @@ namespace MakeWrapper
 									.ToArray ()
 								;
 
-							string MethodDeclPrefix = "public void " + p.Value.Name + " (";
+							string MethodDeclPrefix = $"public {ResultMap.ResultClassName} {p.Value.Name} (";
 							if (Args.Length <= 2)
 							{
 								string ArgsDef = string.Join (", ", Args);
@@ -365,8 +385,8 @@ namespace MakeWrapper
 												sb.AppendLine (
 														$"ResCmd.CommandText = {$"FETCH ALL IN {Set.CursorName.ToDoubleQuotes ()};".ToDoubleQuotes ()};")
 													.AppendLine (Set.IsSingleRow
-														? $"{Set.CsClassName} Row = null;"
-														: $"List<{Set.CsClassName}> Set = new List<{Set.CsClassName}> ();")
+														? $"{Set.RowCsClassName} Row = null;"
+														: $"List<{Set.RowCsClassName}> Set = new List<{Set.RowCsClassName}> ();")
 													.AppendLine ()
 													;
 
@@ -385,7 +405,7 @@ namespace MakeWrapper
 															sb.TypeText ("Set.Add (");
 														}
 
-														sb.AppendLine ($"new {Set.CsClassName}")
+														sb.AppendLine ($"new {Set.RowCsClassName}")
 															.AppendLine ("{");
 
 														using (sb.UseBlock ())
