@@ -199,14 +199,14 @@ namespace Utils.CodeGeneration
 			return new Block (this, AddedDepth);
 		}
 
-		public IDisposable UseCurlyBraces (string Caption = null, bool IncludeOpen = true, int AddedDepth = 1)
+		public IDisposable UseCurlyBraces (string Caption = null, bool IncludeOpen = true, int AddedDepth = 1, bool Semicolon = false)
 		{
 			if (!string.IsNullOrWhiteSpace (Caption))
 			{
 				AppendLine (Caption);
 			}
 
-			return new Block (this, AddedDepth, IncludeOpen ? "{" : null, "}");
+			return new Block (this, AddedDepth, IncludeOpen ? "{" : null, Semicolon ? "};" : "}");
 		}
 
 		public IDisposable UseParentheses (bool IncludeOpen = true, int AddedDepth = 1)

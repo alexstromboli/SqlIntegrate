@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 using Newtonsoft.Json;
 
@@ -106,6 +107,48 @@ namespace MakeWrapper
 		public bool IsOut;
 	}
 
+	class ProcedureResult
+	{
+		public class Set
+		{
+			public class Property
+			{
+				public Column Origin;
+				public string NativeName;
+				public string CsName;
+				public string ClrType;
+				public Func<string, string> ReaderExpression;
+
+				public override string ToString ()
+				{
+					return (CsName ?? NativeName) + " " + ClrType;
+				}
+			}
+
+			public ResultSet Origin;
+			public string CursorName;
+			public string CsClassName;
+			public string PropertyName;
+			public bool IsSingleRow;
+			public List<Property> Properties;
+
+			public override string ToString ()
+			{
+				return CsClassName;
+			}
+		}
+
+		public Procedure Origin;
+		public string ResultClassName;
+		public List<Set> ResultSets;
+		public bool IsSingleSet;
+
+		public override string ToString ()
+		{
+			return ResultClassName;
+		}
+	}
+
 	class Program
 	{
 		public static SortedSet<string> CsKeywords = new SortedSet<string> (new[] { "abstract", "event", "new", "struct", "as", "explicit", "null", "switch", "base", "extern", "object", "this", "bool", "false", "operator", "throw", "break", "finally", "out", "true", "byte", "fixed", "override", "try", "case", "float", "params", "typeof", "catch", "for", "private", "uint", "char", "foreach", "protected", "ulong", "checked", "goto", "public", "unchecked", "class", "if", "readonly", "unsafe", "const", "implicit", "ref", "ushort", "continue", "in", "return", "using", "decimal", "int", "sbyte", "virtual", "default", "interface", "sealed", "volatile", "delegate", "internal", "short", "void", "do", "is", "sizeof", "while", "double", "lock", "stackalloc", "else", "long", "static", "enum", "namespace", "string" });
@@ -161,6 +204,8 @@ namespace MakeWrapper
 
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
 			sb.AppendLine (CodeGenerationUtils.AutomaticWarning)
+				.AppendLine ("using System.Collections.Generic;")
+				.AppendLine ()
 				.AppendLine ("using Npgsql;")
 				.AppendLine ()
 				;
@@ -182,6 +227,45 @@ namespace MakeWrapper
 					{
 						foreach (var p in ns.Value.OrderBy (p => p.Name).Indexed ())
 						{
+							ProcedureResult ResultMap = new ProcedureResult
+							{
+								Origin = p.Value,
+								ResultClassName = p.Value.Name.Replace (' ', '_') + "_Result",
+								ResultSets = p.Value.ResultSets
+									.Select (s => new ProcedureResult.Set
+									{
+										Origin = s,
+										CursorName = s.Name,
+										CsClassName = p.Value.Name.Replace (' ', '_') + "_Result_" + s.Name.ValidCsName (),
+										PropertyName = s.Name.ValidCsName (),
+										IsSingleRow = s.Comments
+											.SelectMany (c => c.Split ('\n'))
+											.Any (c => Regex.IsMatch (c, @"\s*#\s+1(\s|$)")),
+										Properties = s.Columns
+											.Select (c =>
+											{
+												var Property = new ProcedureResult.Set.Property
+												{
+													Origin = c,
+													NativeName = c.Name,
+													ClrType = CastToDict.TryGetValue (c.SqlType.ToString (), out var t)
+														? t
+														: null,
+													CsName = c.Name.ValidCsName ()
+												};
+
+												Property.ReaderExpression = rdr =>
+													$"{rdr}[{Property.NativeName.ToDoubleQuotes ()}] as {Property.ClrType}";
+
+												return Property;
+											})
+											.ToList ()
+									})
+									.ToList ()
+							};
+							ResultMap.IsSingleSet = ResultMap.ResultSets.Count == 1;
+
+							//
 							if (!p.IsFirst)
 							{
 								sb.AppendLine ();
@@ -273,23 +357,55 @@ namespace MakeWrapper
 											sb.AppendLine ($"{oa.Value.CsName} = Cmd.Parameters[{oa.Value.CallParamName}].Value as {oa.Value.ClrType};");
 										}
 
-										foreach (var Set in p.Value.ResultSets)
+										foreach (var Set in ResultMap.ResultSets)
 										{
 											sb.AppendLine ();
 											using (sb.UseCurlyBraces ($"using (var ResCmd = Conn.CreateCommand ())"))
 											{
-												sb.AppendLine ($"ResCmd.CommandText = {$"FETCH ALL IN {Set.Name.ToDoubleQuotes ()};".ToDoubleQuotes ()};")
-													.AppendLine ();
+												sb.AppendLine (
+														$"ResCmd.CommandText = {$"FETCH ALL IN {Set.CursorName.ToDoubleQuotes ()};".ToDoubleQuotes ()};")
+													.AppendLine (Set.IsSingleRow
+														? $"{Set.CsClassName} Row = null;"
+														: $"List<{Set.CsClassName}> Set = new List<{Set.CsClassName}> ();")
+													.AppendLine ()
+													;
 
 												using (sb.UseCurlyBraces ("using (var Rdr = ResCmd.ExecuteReader ())"))
 												{
-													using (sb.UseCurlyBraces ("while (Rdr.Read ())"))
+													using (sb.UseCurlyBraces ((Set.IsSingleRow ? "if" : "while") +
+													                          " (Rdr.Read ())"))
 													{
-														foreach (var c in Set.Columns)
+														sb.TypeIndent ();
+														if (Set.IsSingleRow)
 														{
-															string ClrType = CastToDict[c.SqlType.ToString ()];
-															sb.AppendLine (
-																$"{ClrType} {c.Name} = Rdr[{c.Name.ToDoubleQuotes ()}] as {ClrType};");
+															sb.TypeText ("Row = ");
+														}
+														else
+														{
+															sb.TypeText ("Set.Add (");
+														}
+
+														sb.AppendLine ($"new {Set.CsClassName}")
+															.AppendLine ("{");
+
+														using (sb.UseBlock ())
+														{
+															foreach (var c in Set.Properties.Indexed ())
+															{
+																sb.TypeIndent ()
+																	.TypeText (c.IsFirst ? "  " : ", ")
+																	.AppendLine (
+																		$"{c.Value.CsName} = {c.Value.ReaderExpression ("Rdr")}");
+															}
+														}
+
+														if (Set.IsSingleRow)
+														{
+															sb.AppendLine ("};");
+														}
+														else
+														{
+															sb.AppendLine ("});");
 														}
 													}
 												}
