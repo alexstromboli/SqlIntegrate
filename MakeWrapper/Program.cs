@@ -129,51 +129,60 @@ namespace MakeWrapper
 		public bool IsOut;
 	}
 
-	class ProcedureResult
+	class Schema
 	{
-		public class Set
+		public class Procedure
 		{
-			public class Property
+			public class Set
 			{
-				public Column Origin;
-				public string NativeName;
-				public string CsName;
-				public string ClrType;
-				public Func<string, string> ReaderExpression;
+				public class Property
+				{
+					public Column Origin;
+					public string NativeName;
+					public string CsName;
+					public string ClrType;
+					public Func<string, string> ReaderExpression;
+
+					public override string ToString ()
+					{
+						return (CsName ?? NativeName) + " " + ClrType;
+					}
+				}
+
+				public ResultSet Origin;
+				public string CursorName;
+				public string RowCsClassName;
+				public string SetCsTypeName;
+				public string PropertyName;
+				public bool IsSingleRow;
+				public bool IsSingleColumn => Properties.Count == 1;
+				public bool IsScalar => IsSingleRow && IsSingleColumn;
+				public List<Property> Properties;
 
 				public override string ToString ()
 				{
-					return (CsName ?? NativeName) + " " + ClrType;
+					return RowCsClassName;
 				}
 			}
 
-			public ResultSet Origin;
-			public string CursorName;
-			public string RowCsClassName;
-			public string SetCsTypeName;
-			public string PropertyName;
-			public bool IsSingleRow;
-			public bool IsSingleColumn => Properties.Count == 1;
-			public bool IsScalar => IsSingleRow && IsSingleColumn;
-			public List<Property> Properties;
+			public ParseProcs.Datasets.Procedure Origin;
+			public string NativeName;
+			public string CsName;
+			public WrapperProcedureArgument[] Arguments;
+			public string ResultClassName;
+			public List<Set> ResultSets;
+			public bool HasResults => ResultSets.Count > 0;
+			public bool IsSingleSet => ResultSets.Count == 1;
 
 			public override string ToString ()
 			{
-				return RowCsClassName;
+				return ResultClassName;
 			}
 		}
 
-		public Procedure Origin;
-		public WrapperProcedureArgument[] Arguments;
-		public string ResultClassName;
-		public List<Set> ResultSets;
-		public bool HasResults => ResultSets.Count > 0;
-		public bool IsSingleSet => ResultSets.Count == 1;
-
-		public override string ToString ()
-		{
-			return ResultClassName;
-		}
+		public string NativeName;
+		public string CsClassName;
+		public Procedure[] Procedures;
 	}
 
 	class Program
@@ -229,6 +238,93 @@ namespace MakeWrapper
 				CastToDict["interval[]"] = "Duration?[]";
 			}
 
+			//
+			Schema[] Schemas = Module.Procedures
+					.GroupBy (p => p.Schema)
+					.OrderBy (g => g.Key)
+					.Select (s =>
+					{
+						return new Schema
+						{
+							NativeName = s.Key,
+							CsClassName = s.Key.ValidCsName (),
+							Procedures = s
+								.OrderBy (p => p.Name)
+								.Select (p => new Schema.Procedure
+								{
+									Origin = p,
+									NativeName = p.Name,
+									CsName = p.Name.ValidCsName (),
+									Arguments = p.Arguments
+										.Select (a => new WrapperProcedureArgument
+										{
+											Origin = a,
+											NativeName = a.Name,
+											CallParamName = ("@" + a.Name).ToDoubleQuotes (),
+											CsName = a.Name.ValidCsName (),
+											ClrType = CastToDict.TryGetValue (a.SqlType.ToString (), out var t)
+												? t
+												: null,
+											IsOut = a.IsOut,
+											IsCursor = a.SqlType.SqlBaseType == "refcursor"
+										})
+										.ToArray (),
+									ResultClassName = p.Name.ValidCsNamePart () + "_Result",
+									ResultSets = p.ResultSets
+										.Select (s =>
+										{
+											var Set = new Schema.Procedure.Set
+											{
+												Origin = s,
+												CursorName = s.Name,
+												RowCsClassName = p.Name.ValidCsNamePart () + "_Result_" +
+												                 s.Name.ValidCsName (),
+												PropertyName = s.Name.ValidCsName (),
+												IsSingleRow = s.Comments
+													.SelectMany (c => c.Split ('\n'))
+													.Any (c => Regex.IsMatch (c, @"\s*#\s+1(\s|$)")),
+												Properties = s.Columns
+													.Select (c =>
+													{
+														var Property = new Schema.Procedure.Set.Property
+														{
+															Origin = c,
+															NativeName = c.Name,
+															ClrType = CastToDict.TryGetValue (c.SqlType.ToString (),
+																out var t)
+																? t
+																: null,
+															CsName = c.Name.ValidCsName ()
+														};
+
+														Property.ReaderExpression = rdr =>
+															$"{rdr}[{Property.NativeName.ToDoubleQuotes ()}] as {Property.ClrType}";
+
+														return Property;
+													})
+													.ToList ()
+											};
+
+											if (Set.IsSingleColumn)
+											{
+												Set.RowCsClassName = Set.Properties[0].ClrType;
+											}
+
+											Set.SetCsTypeName = Set.IsSingleRow
+												? Set.RowCsClassName
+												: $"List<{Set.RowCsClassName}>";
+
+											return Set;
+										})
+										.ToList ()
+								})
+								.ToArray ()
+						};
+					})
+					.ToArray ()
+				;
+
+			//
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
 			sb.AppendLine (CodeGenerationUtils.AutomaticWarning)
 				.AppendLine ("using System.Collections.Generic;")
@@ -239,27 +335,22 @@ namespace MakeWrapper
 
 			using (sb.UseCurlyBraces ("namespace Gen"))
 			{
-				foreach (var ns in Module.Procedures
-					         .GroupBy (p => p.Schema)
-					         .OrderBy (g => g.Key)
-					         .Indexed ()
-				         )
+				foreach (var nsi in Schemas.Indexed ())
 				{
-					if (!ns.IsFirst)
+					var ns = nsi.Value;
+
+					if (!nsi.IsFirst)
 					{
 						sb.AppendLine ();
 					}
 
-					string SchemaName = ns.Value.Key;
-					string SchemaClassName = ns.Value.Key.ValidCsName ();
-
-					using (sb.UseCurlyBraces ($"public class {SchemaClassName}"))
+					using (sb.UseCurlyBraces ($"public class {ns.CsClassName}"))
 					{
 						sb.AppendLine ("public NpgsqlConnection Conn;")
 							.AppendLine ("public string SchemaName;")
 							.AppendLine ();
 
-						using (sb.UseCurlyBraces ($"public {SchemaClassName} (NpgsqlConnection Conn, string SchemaName)"))
+						using (sb.UseCurlyBraces ($"public {ns.CsClassName} (NpgsqlConnection Conn, string SchemaName)"))
 						{
 							sb.AppendLine ("this.Conn = Conn;")
 								.AppendLine ("this.SchemaName = SchemaName;")
@@ -268,96 +359,34 @@ namespace MakeWrapper
 
 						sb.AppendLine ();
 
-						foreach (var p in ns.Value.OrderBy (p => p.Name).Indexed ())
+						foreach (var pi in ns.Procedures.Indexed ())
 						{
-							ProcedureResult ResultMap = new ProcedureResult
+							var p = pi.Value;
+
+							if (!p.HasResults)
 							{
-								Origin = p.Value,
-								Arguments = p.Value.Arguments
-									.Select (a => new WrapperProcedureArgument
-									{
-										Origin = a,
-										NativeName = a.Name,
-										CallParamName = ("@" + a.Name).ToDoubleQuotes (),
-										CsName = a.Name.ValidCsName (),
-										ClrType = CastToDict.TryGetValue (a.SqlType.ToString (), out var t) ? t : null,
-										IsOut = a.IsOut,
-										IsCursor = a.SqlType.SqlBaseType == "refcursor"
-									})
-									.ToArray (),
-								ResultClassName = p.Value.Name.ValidCsNamePart () + "_Result",
-								ResultSets = p.Value.ResultSets
-									.Select (s =>
-									{
-										var Set = new ProcedureResult.Set
-										{
-											Origin = s,
-											CursorName = s.Name,
-											RowCsClassName = p.Value.Name.ValidCsNamePart () + "_Result_" +
-											                 s.Name.ValidCsName (),
-											PropertyName = s.Name.ValidCsName (),
-											IsSingleRow = s.Comments
-												.SelectMany (c => c.Split ('\n'))
-												.Any (c => Regex.IsMatch (c, @"\s*#\s+1(\s|$)")),
-											Properties = s.Columns
-												.Select (c =>
-												{
-													var Property = new ProcedureResult.Set.Property
-													{
-														Origin = c,
-														NativeName = c.Name,
-														ClrType = CastToDict.TryGetValue (c.SqlType.ToString (),
-															out var t)
-															? t
-															: null,
-														CsName = c.Name.ValidCsName ()
-													};
-
-													Property.ReaderExpression = rdr =>
-														$"{rdr}[{Property.NativeName.ToDoubleQuotes ()}] as {Property.ClrType}";
-
-													return Property;
-												})
-												.ToList ()
-										};
-
-										if (Set.IsSingleColumn)
-										{
-											Set.RowCsClassName = Set.Properties[0].ClrType;
-										}
-
-										Set.SetCsTypeName = Set.IsSingleRow
-											? Set.RowCsClassName
-											: $"List<{Set.RowCsClassName}>";
-
-										return Set;
-									})
-									.ToList ()
-							};
-							if (!ResultMap.HasResults)
-							{
-								ResultMap.ResultClassName = "void";
+								p.ResultClassName = "void";
 							}
-							if (ResultMap.IsSingleSet)
+							if (p.IsSingleSet)
 							{
-								ResultMap.ResultClassName = ResultMap.ResultSets[0].SetCsTypeName;
+								p.ResultClassName = p.ResultSets[0].SetCsTypeName;
 							}
 
 							//
-							if (!p.IsFirst)
+							if (!pi.IsFirst)
 							{
 								sb.AppendLine ();
 							}
 
-							sb.AppendLine ("#region " + p.Value.Name);
+							sb.AppendLine ("#region " + pi.Value.CsName);
 
-							string[] Args = ResultMap.Arguments
+							string[] Args = p.Arguments
 									.Where (a => !a.IsCursor)
 									.Select (a => (a.IsOut ? "ref " : "") + $"{a.ClrType} {a.CsName}")
 									.ToArray ()
 								;
 
-							foreach (var Set in ResultMap.ResultSets.Where (s => !s.IsSingleColumn))
+							foreach (var Set in p.ResultSets.Where (s => !s.IsSingleColumn))
 							{
 								using (sb.UseCurlyBraces ($"public class {Set.RowCsClassName}"))
 								{
@@ -370,11 +399,11 @@ namespace MakeWrapper
 								sb.AppendLine ();
 							}
 
-							if (ResultMap.HasResults && !ResultMap.IsSingleSet)
+							if (p.HasResults && !p.IsSingleSet)
 							{
-								using (sb.UseCurlyBraces ($"public class {ResultMap.ResultClassName}"))
+								using (sb.UseCurlyBraces ($"public class {p.ResultClassName}"))
 								{
-									foreach (var Set in ResultMap.ResultSets)
+									foreach (var Set in p.ResultSets)
 									{
 										sb.AppendLine ($"public {Set.SetCsTypeName} {Set.CursorName};");
 									}
@@ -383,7 +412,7 @@ namespace MakeWrapper
 								sb.AppendLine ();
 							}
 
-							string MethodDeclPrefix = $"public {ResultMap.ResultClassName} {p.Value.Name} (";
+							string MethodDeclPrefix = $"public {p.ResultClassName} {pi.Value.CsName} (";
 							if (Args.Length <= 2)
 							{
 								string ArgsDef = string.Join (", ", Args);
@@ -401,7 +430,7 @@ namespace MakeWrapper
 
 							using (sb.UseCurlyBraces ())
 							{
-								bool UseTransaction = p.Value.ResultSets.Count > 0;
+								bool UseTransaction = pi.Value.ResultSets.Count > 0;
 
 								using (UseTransaction
 									       ? sb.UseCurlyBraces ("using (var Tran = Conn.BeginTransaction ())")
@@ -409,13 +438,13 @@ namespace MakeWrapper
 								{
 									using (sb.UseCurlyBraces ("using (var Cmd = Conn.CreateCommand ())"))
 									{
-										string Params = string.Join (", ", ResultMap.Arguments.Select (a => a.CallParamName));
+										string Params = string.Join (", ", p.Arguments.Select (a => a.CallParamName));
 										string Call =
 											"call \"".ToDoubleQuotes () + " + SchemaName + " +
-											$"\".{p.Value.Name.ToDoubleQuotes ()} ({Params});".ToDoubleQuotes ();
+											$"\".{pi.Value.NativeName.ToDoubleQuotes ()} ({Params});".ToDoubleQuotes ();
 										sb.AppendLine ($"Cmd.CommandText = {Call};");
 
-										foreach (var a in ResultMap.Arguments)
+										foreach (var a in p.Arguments)
 										{
 											if (a.IsCursor)
 											{
@@ -437,7 +466,7 @@ namespace MakeWrapper
 										sb.AppendLine ()
 											.AppendLine ("Cmd.ExecuteNonQuery ();");
 
-										foreach (var oa in ResultMap.Arguments.Where (a => !a.IsCursor && a.IsOut).Indexed ())
+										foreach (var oa in p.Arguments.Where (a => !a.IsCursor && a.IsOut).Indexed ())
 										{
 											if (oa.IsFirst)
 											{
@@ -447,15 +476,15 @@ namespace MakeWrapper
 											sb.AppendLine ($"{oa.Value.CsName} = Cmd.Parameters[{oa.Value.CallParamName}].Value as {oa.Value.ClrType};");
 										}
 
-										if (ResultMap.HasResults)
+										if (p.HasResults)
 										{
 											sb.AppendLine ()
 												.AppendLine (
-													$"{ResultMap.ResultClassName} Result = {(ResultMap.IsSingleSet ? "null" : "new " + ResultMap.ResultClassName + " ()")};"
+													$"{p.ResultClassName} Result = {(p.IsSingleSet ? "null" : "new " + p.ResultClassName + " ()")};"
 												);
 										}
 
-										foreach (var Set in ResultMap.ResultSets)
+										foreach (var Set in p.ResultSets)
 										{
 											sb.AppendLine ();
 											using (sb.UseCurlyBraces ($"using (var ResCmd = Conn.CreateCommand ())"))
@@ -516,7 +545,7 @@ namespace MakeWrapper
 												}
 
 												sb.AppendLine ();
-												if (ResultMap.IsSingleSet)
+												if (p.IsSingleSet)
 												{
 													sb.AppendLine ($"Result = Set;");
 												}
@@ -535,7 +564,7 @@ namespace MakeWrapper
 									}
 								}
 
-								if (ResultMap.HasResults)
+								if (p.HasResults)
 								{
 									sb.AppendLine ()
 										.AppendLine ($"return Result;");
