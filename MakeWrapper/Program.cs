@@ -182,6 +182,7 @@ namespace MakeWrapper
 
 		public string NativeName;
 		public string CsClassName;
+		public string NameHolderVar;
 		public Procedure[] Procedures;
 	}
 
@@ -196,6 +197,7 @@ namespace MakeWrapper
 			Module Module = JsonConvert.DeserializeObject<Module> (ModuleJson);
 
 			bool UseNodaTime = true;
+			bool UseSchemaSettings = true;
 			string OutputPath = Path.GetFullPath ("dbproc.cs");
 
 			// build type map
@@ -248,6 +250,7 @@ namespace MakeWrapper
 						{
 							NativeName = s.Key,
 							CsClassName = s.Key.ValidCsName (),
+							NameHolderVar = "Name_" + s.Key.ValidCsNamePart (),
 							Procedures = s
 								.OrderBy (p => p.Name)
 								.Select (p => new Schema.Procedure
@@ -345,13 +348,14 @@ namespace MakeWrapper
 						string ValueHolderName = "m_" + ns.CsClassName;
 
 						sb.AppendLine ($"protected {ns.CsClassName} {ValueHolderName} = null;");
+						sb.AppendLine ($"protected string {ns.NameHolderVar} = null;");
 						using (sb.UseCurlyBraces ($"public {ns.CsClassName} {ns.CsClassName}"))
 						{
 							using (sb.UseCurlyBraces ("get"))
 							{
 								using (sb.UseCurlyBraces ($"if ({ValueHolderName} == null)"))
 								{
-									sb.AppendLine ($"{ValueHolderName} = new {ns.CsClassName} (Conn, {ns.NativeName.ToDoubleQuotes ()});");
+									sb.AppendLine ($"{ValueHolderName} = new {ns.CsClassName} (Conn, {ns.NameHolderVar});");
 								}
 
 								sb.AppendLine ($"return {ValueHolderName};");
@@ -361,16 +365,20 @@ namespace MakeWrapper
 
 					sb.AppendLine ();
 
-					using (sb.UseCurlyBraces ($"public DbProc (NpgsqlConnection Conn)"))
+					using (sb.UseCurlyBraces ($"public DbProc (NpgsqlConnection Conn{(UseSchemaSettings ? string.Join ("", Schemas.Select (s => ", string " + s.NameHolderVar)) : "")})"))
 					{
 						sb.AppendLine ("this.Conn = Conn;");
+						foreach (var ns in Schemas)
+						{
+							sb.AppendLine ($"this.{ns.NameHolderVar} = {(UseSchemaSettings ? ns.NameHolderVar : ns.NativeName.ToDoubleQuotes ())};");
+						}
 					}
 				}
 
-				sb.AppendLine ();
-
 				foreach (var ns in Schemas)
 				{
+					sb.AppendLine ();
+
 					using (sb.UseCurlyBraces ($"public class {ns.CsClassName}"))
 					{
 						sb.AppendLine ("public NpgsqlConnection Conn;")
