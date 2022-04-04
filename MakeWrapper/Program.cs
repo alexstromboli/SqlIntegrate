@@ -164,6 +164,7 @@ namespace MakeWrapper
 		}
 
 		public Procedure Origin;
+		public WrapperProcedureArgument[] Arguments;
 		public string ResultClassName;
 		public List<Set> ResultSets;
 		public bool HasResults => ResultSets.Count > 0;
@@ -272,6 +273,18 @@ namespace MakeWrapper
 							ProcedureResult ResultMap = new ProcedureResult
 							{
 								Origin = p.Value,
+								Arguments = p.Value.Arguments
+									.Select (a => new WrapperProcedureArgument
+									{
+										Origin = a,
+										NativeName = a.Name,
+										CallParamName = ("@" + a.Name).ToDoubleQuotes (),
+										CsName = a.Name.ValidCsName (),
+										ClrType = CastToDict.TryGetValue (a.SqlType.ToString (), out var t) ? t : null,
+										IsOut = a.IsOut,
+										IsCursor = a.SqlType.SqlBaseType == "refcursor"
+									})
+									.ToArray (),
 								ResultClassName = p.Value.Name.ValidCsNamePart () + "_Result",
 								ResultSets = p.Value.ResultSets
 									.Select (s =>
@@ -281,7 +294,7 @@ namespace MakeWrapper
 											Origin = s,
 											CursorName = s.Name,
 											RowCsClassName = p.Value.Name.ValidCsNamePart () + "_Result_" +
-											              s.Name.ValidCsName (),
+											                 s.Name.ValidCsName (),
 											PropertyName = s.Name.ValidCsName (),
 											IsSingleRow = s.Comments
 												.SelectMany (c => c.Split ('\n'))
@@ -338,21 +351,7 @@ namespace MakeWrapper
 
 							sb.AppendLine ("#region " + p.Value.Name);
 
-							WrapperProcedureArgument[] WrapperProcedureArguments = p.Value.Arguments
-									.Select (a => new WrapperProcedureArgument
-									{
-										Origin = a,
-										NativeName = a.Name,
-										CallParamName = ("@" + a.Name).ToDoubleQuotes (),
-										CsName = a.Name.ValidCsName (),
-										ClrType = CastToDict.TryGetValue (a.SqlType.ToString (), out var t) ? t : null,
-										IsOut = a.IsOut,
-										IsCursor = a.SqlType.SqlBaseType == "refcursor"
-									})
-									.ToArray ()
-								;
-
-							string[] Args = WrapperProcedureArguments
+							string[] Args = ResultMap.Arguments
 									.Where (a => !a.IsCursor)
 									.Select (a => (a.IsOut ? "ref " : "") + $"{a.ClrType} {a.CsName}")
 									.ToArray ()
@@ -410,13 +409,13 @@ namespace MakeWrapper
 								{
 									using (sb.UseCurlyBraces ("using (var Cmd = Conn.CreateCommand ())"))
 									{
-										string Params = string.Join (", ", WrapperProcedureArguments.Select (a => a.CallParamName));
+										string Params = string.Join (", ", ResultMap.Arguments.Select (a => a.CallParamName));
 										string Call =
 											"call \"".ToDoubleQuotes () + " + SchemaName + " +
 											$"\".{p.Value.Name.ToDoubleQuotes ()} ({Params});".ToDoubleQuotes ();
 										sb.AppendLine ($"Cmd.CommandText = {Call};");
 
-										foreach (var a in WrapperProcedureArguments)
+										foreach (var a in ResultMap.Arguments)
 										{
 											if (a.IsCursor)
 											{
@@ -438,7 +437,7 @@ namespace MakeWrapper
 										sb.AppendLine ()
 											.AppendLine ("Cmd.ExecuteNonQuery ();");
 
-										foreach (var oa in WrapperProcedureArguments.Where (a => !a.IsCursor && a.IsOut).Indexed ())
+										foreach (var oa in ResultMap.Arguments.Where (a => !a.IsCursor && a.IsOut).Indexed ())
 										{
 											if (oa.IsFirst)
 											{
