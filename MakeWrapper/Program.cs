@@ -22,6 +22,11 @@ namespace MakeWrapper
 			public int Index;
 		}
 
+		public class CollItem<T> : Item<T>
+		{
+			public bool IsLast;
+		}
+
 		public static IEnumerable<Item<T>> Indexed<T> (this IEnumerable<T> coll)
 		{
 			int i = -1;
@@ -29,6 +34,16 @@ namespace MakeWrapper
 			{
 				++i;
 				return new Item<T> { Value = e, Index = i, IsFirst = i == 0 };
+			});
+		}
+
+		public static IEnumerable<CollItem<T>> Indexed<T> (this ICollection<T> coll)
+		{
+			int i = -1;
+			return coll.Select (e =>
+			{
+				++i;
+				return new CollItem<T> { Value = e, Index = i, IsFirst = i == 0, IsLast = i == coll.Count - 1 };
 			});
 		}
 
@@ -41,12 +56,19 @@ namespace MakeWrapper
 				;
 		}
 
-		public static string ValidCsName (this string Name)
+		public static string ValidCsNamePart (this string Name)
 		{
 			if (Name.Contains (' '))
 			{
 				return Name.Replace (' ', '_');
 			}
+
+			return Name;
+		}
+
+		public static string ValidCsName (this string Name)
+		{
+			Name = Name.ValidCsNamePart ();
 
 			if (Program.CsKeywords.Contains (Name))
 			{
@@ -234,7 +256,7 @@ namespace MakeWrapper
 							ProcedureResult ResultMap = new ProcedureResult
 							{
 								Origin = p.Value,
-								ResultClassName = p.Value.Name.Replace (' ', '_') + "_Result",
+								ResultClassName = p.Value.Name.ValidCsNamePart () + "_Result",
 								ResultSets = p.Value.ResultSets
 									.Select (s =>
 									{
@@ -242,7 +264,7 @@ namespace MakeWrapper
 										{
 											Origin = s,
 											CursorName = s.Name,
-											RowCsClassName = p.Value.Name.Replace (' ', '_') + "_Result_" +
+											RowCsClassName = p.Value.Name.ValidCsNamePart () + "_Result_" +
 											              s.Name.ValidCsName (),
 											PropertyName = s.Name.ValidCsName (),
 											IsSingleRow = s.Comments
@@ -357,7 +379,7 @@ namespace MakeWrapper
 								sb.AppendLine (MethodDeclPrefix);
 								foreach (var a in Args.Indexed ())
 								{
-									sb.AppendLine ((a.IsFirst ? "  " : ", ") + a.Value, 2);
+									sb.AppendLine (a.Value + (a.IsLast ? " " : ","), 2);
 								}
 								sb.AppendLine (")", 1);
 							}
@@ -458,12 +480,8 @@ namespace MakeWrapper
 															{
 																foreach (var c in Set.Properties.Indexed ())
 																{
-																	sb.TypeIndent ()
-																		.TypeText (c.IsFirst
-																			? "  "
-																			: ", ")
-																		.AppendLine (
-																			$"{c.Value.CsName} = {c.Value.ReaderExpression ("Rdr")}");
+																	sb.AppendLine (
+																		$"{c.Value.CsName} = {c.Value.ReaderExpression ("Rdr")}{(c.IsLast ? "" : ",")}");
 																}
 															}
 
