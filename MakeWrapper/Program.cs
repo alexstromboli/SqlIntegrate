@@ -335,15 +335,42 @@ namespace MakeWrapper
 
 			using (sb.UseCurlyBraces ("namespace Gen"))
 			{
-				foreach (var nsi in Schemas.Indexed ())
+				using (sb.UseCurlyBraces ("public class DbProc"))
 				{
-					var ns = nsi.Value;
+					sb.AppendLine ("public NpgsqlConnection Conn;")
+						.AppendLine ();
 
-					if (!nsi.IsFirst)
+					foreach (var ns in Schemas)
 					{
-						sb.AppendLine ();
+						string ValueHolderName = "m_" + ns.CsClassName;
+
+						sb.AppendLine ($"protected {ns.CsClassName} {ValueHolderName} = null;");
+						using (sb.UseCurlyBraces ($"public {ns.CsClassName} {ns.CsClassName}"))
+						{
+							using (sb.UseCurlyBraces ("get"))
+							{
+								using (sb.UseCurlyBraces ($"if ({ValueHolderName} == null)"))
+								{
+									sb.AppendLine ($"{ValueHolderName} = new {ns.CsClassName} (Conn, {ns.NativeName.ToDoubleQuotes ()});");
+								}
+
+								sb.AppendLine ($"return {ValueHolderName};");
+							}
+						}
 					}
 
+					sb.AppendLine ();
+
+					using (sb.UseCurlyBraces ($"public DbProc (NpgsqlConnection Conn)"))
+					{
+						sb.AppendLine ("this.Conn = Conn;");
+					}
+				}
+
+				sb.AppendLine ();
+
+				foreach (var ns in Schemas)
+				{
 					using (sb.UseCurlyBraces ($"public class {ns.CsClassName}"))
 					{
 						sb.AppendLine ("public NpgsqlConnection Conn;")
