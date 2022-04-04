@@ -249,8 +249,24 @@ namespace MakeWrapper
 						sb.AppendLine ();
 					}
 
-					using (sb.UseCurlyBraces ("namespace " + ns.Value.Key.ValidCsName ()))
+					string SchemaName = ns.Value.Key;
+					string SchemaClassName = ns.Value.Key.ValidCsName ();
+
+					using (sb.UseCurlyBraces ($"public class {SchemaClassName}"))
 					{
+						sb.AppendLine ("public NpgsqlConnection Conn;")
+							.AppendLine ("public string SchemaName;")
+							.AppendLine ();
+
+						using (sb.UseCurlyBraces ($"public {SchemaClassName} (NpgsqlConnection Conn, string SchemaName)"))
+						{
+							sb.AppendLine ("this.Conn = Conn;")
+								.AppendLine ("this.SchemaName = SchemaName;")
+								;
+						}
+
+						sb.AppendLine ();
+
 						foreach (var p in ns.Value.OrderBy (p => p.Name).Indexed ())
 						{
 							ProcedureResult ResultMap = new ProcedureResult
@@ -396,8 +412,8 @@ namespace MakeWrapper
 									{
 										string Params = string.Join (", ", WrapperProcedureArguments.Select (a => a.CallParamName));
 										string Call =
-											$"call {p.Value.Schema.ToDoubleQuotes ()}.{p.Value.Name.ToDoubleQuotes ()} ({Params});"
-												.ToDoubleQuotes ();
+											"call \"".ToDoubleQuotes () + " + SchemaName + " +
+											$"\".{p.Value.Name.ToDoubleQuotes ()} ({Params});".ToDoubleQuotes ();
 										sb.AppendLine ($"Cmd.CommandText = {Call};");
 
 										foreach (var a in WrapperProcedureArguments)
