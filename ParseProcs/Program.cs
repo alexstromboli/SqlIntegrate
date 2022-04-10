@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Sprache;
 using Newtonsoft.Json;
 
+using Utils;
 using ParseProcs.Datasets;
 
 namespace ParseProcs
@@ -292,6 +293,38 @@ namespace ParseProcs
 		}
 	}
 
+	public class ValuesBlock : ITableRetriever
+	{
+		public SPolynom[] Values;
+		public string TableName;
+		public string[] ColumnNames;
+
+		public ValuesBlock (SPolynom[] Values, string TableName, string[] ColumnNames)
+		{
+			this.Values = Values;
+			this.TableName = TableName;
+			this.ColumnNames = ColumnNames;
+		}
+
+		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
+		{
+			Table t = new Table (TableName);
+
+			foreach (var ValueExp in Values.Indexed ())
+			{
+				int Pos = ValueExp.Index;
+				string ColName = Pos < ColumnNames.Length ? ColumnNames[Pos] : null;
+
+				if (ColName != null || !OnlyNamed)
+				{
+					t.AddColumn (ValueExp.Value.GetResult (Context).WithName (ColName));
+				}
+			}
+
+			return t;
+		}
+	}
+
 	public class NamedDataReturn
 	{
 		public string Name;
@@ -430,15 +463,6 @@ namespace ParseProcs
 
 			// direct or 'as'
 			var PTableAliasLST = PColumnNameLST;
-
-			// valid for function name
-			/*
-			var PFunctionNameLST = PAlphaNumericL
-					.Where (n => n.NotROrC () && PSqlType.GetForSqlTypeName (n) == null)
-					.Or (PDoubleQuotedString.ToLower ())
-					.SqlToken ()
-				;
-				*/
 
 			// lowercase
 			var PQualifiedIdentifierLST =
@@ -627,7 +651,7 @@ namespace ParseProcs
 						from _2 in SpracheUtils.SqlToken ("distinct").Optional ()
 						from exp in PExpressionRefST.Get
 						from _3 in SpracheUtils.SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
+						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).WithName (f))
 					)
 					.Or (
 						from f in SpracheUtils.SqlToken ("count")
@@ -645,7 +669,7 @@ namespace ParseProcs
 						from _2 in SpracheUtils.SqlToken (",")
 						from subst in PExpressionRefST.Get
 						from _3 in SpracheUtils.SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, exp.GetResult (rc).Type))
+						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).WithName (f))
 					)
 					.Or (
 						from kw in PAlphaNumericL.SqlToken ()
@@ -692,10 +716,10 @@ namespace ParseProcs
 							(l, r) => rc =>
 							{
 								var NamedTyped = l (rc);
-								return new NamedTyped (NamedTyped.Name, NamedTyped.Type.BaseType);
+								return NamedTyped.WithType (NamedTyped.Type.BaseType);
 							}))
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
-							(l, r) => rc => new NamedTyped (l (rc).Name, PSqlType.GetForSqlTypeName(tc)))))
+							(l, r) => rc => l (rc).WithType (PSqlType.GetForSqlTypeName(tc)))))
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
 							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Many ()
@@ -776,7 +800,7 @@ namespace ParseProcs
 							{
 								var nt = exp.GetResult (rc);
 								var res = alias_cl.IsDefined
-									? new NamedTyped (alias_cl.Get (), nt.Type)
+									? nt.WithName (alias_cl.Get ())
 									: nt;
 
 								return res.ToTrivialArray ();
@@ -804,21 +828,48 @@ namespace ParseProcs
 				).Optional ()
 				;
 
+			var PValuesClauseST =
+					from _1 in SpracheUtils.SqlToken ("values")
+					from v in PExpressionRefST.Get
+						.CommaDelimitedST ()
+						.InParentsST ()
+						.CommaDelimitedST ()
+					select v.First ()
+				;
+
+			var PValuesSourceST =
+					from v in PValuesClauseST.InParentsST ()
+					from kw_as in SpracheUtils.SqlToken ("as").Optional ()
+					from table_name in
+						PTableAliasLST // here: use PTableAliasClauseOptionalST to exclude selected keywords
+					from column_names in PColumnNameLST.CommaDelimitedST ().InParentsST ().Optional ()
+					select new ValuesBlock (v.ToArray (),
+						table_name,
+						column_names.GetOrDefault ()?.ToArray () ?? new string[0])
+				;
+
 			var PFromTableExpressionST =
-				from table in
+					from table in
 					(
-						PUnnestST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p => new UnnestTableRetriever (p))
+						PUnnestST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p =>
+								new UnnestTableRetriever (p))
 							// or-ed after unnest
-							.Or (PFunctionCallST.Select (qi => new NamedTableRetriever (qi)	// stub
-									))
+							.Or (PFunctionCallST.Select (qi => new NamedTableRetriever (qi) // stub
+							))
 							// or-ed after function calls
 							.Or (PQualifiedIdentifierLST.Select (qi => new NamedTableRetriever (qi)))
 							.Or (PFullSelectStatementRefST.Get.InParentsST ())
+							.Or (PValuesSourceST)
 					)
-				from alias_cl in PTableAliasClauseOptionalST (
-					new[] { "loop", "on", "inner", "left", "right", "cross", "join", "where", "group", "order", "limit", "having" }
-					)		// stub, for cases like 'for ... in select * from mytable loop ... end loop'
-				select new FromTableExpression (table, alias_cl.GetOrDefault ());
+					from alias_cl in PTableAliasClauseOptionalST (
+						new[]
+						{
+							"loop", "on", "inner", "left", "right", "cross", "join", "where", "group", "order", "limit",
+							"having"
+						}
+					) // stub, for cases like 'for ... in select * from mytable loop ... end loop'
+					select new FromTableExpression (table, alias_cl.GetOrDefault ())
+				;
 
 			var PFromClauseOptionalST =
 				(
@@ -852,7 +903,17 @@ namespace ParseProcs
 
 			var POrdinarySelectST =
 					from kw_select in SpracheUtils.SqlToken ("select")
-					from distinct in SpracheUtils.SqlToken ("distinct").Optional ()
+					from distinct in
+					(
+						from _1 in SpracheUtils.SqlToken ("distinct")
+						from _2 in
+						(
+							from _3 in SpracheUtils.SqlToken ("on")
+							from _4 in PExpressionRefST.Get.InParentsST ()
+							select 0
+						).Optional ()
+						select 0
+					).Optional ()
 					from list in PSelectListST
 					from into_t1 in
 					(
@@ -912,13 +973,8 @@ namespace ParseProcs
 					from _3 in PColumnNameLST.CommaDelimitedST ().AtLeastOnce ()
 						.InParentsST ()
 						.Optional ()
-					from _4 in
-					(
-						from _1 in SpracheUtils.SqlToken ("values")
-						from _2 in PExpressionRefST.Get.CommaDelimitedST ().AtLeastOnce ()
-							.InParentsST ()
-						select 0
-					).Or (PSelectST.Return (0))
+					from _4 in PValuesSourceST.Return (0)
+						.Or (PSelectST.Return (0))
 					// here: provide data return
 					from _ret in
 					(

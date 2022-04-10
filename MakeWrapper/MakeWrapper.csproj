@@ -16,6 +16,9 @@
       <Compile Include="..\ParseProcs\PSqlType.cs">
         <Link>PSqlType.cs</Link>
       </Compile>
+      <Compile Include="..\ParseProcs\Utils.cs">
+        <Link>Utils.cs</Link>
+      </Compile>
     </ItemGroup>
 
 </Project>

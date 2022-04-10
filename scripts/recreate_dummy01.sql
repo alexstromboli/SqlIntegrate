@@ -284,3 +284,29 @@ BEGIN
     FROM Rooms;
 END;
 $$;
+
+-- DROP PROCEDURE get_join_single;
+CREATE PROCEDURE get_join_single (INOUT "joined" refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN "joined" FOR
+    SELECT  DISTINCT ON (documents.id) *
+    FROM    (
+            VALUES
+            (1, 'Test Title'),
+            (2, 'Test Title 2')
+            ) documents (id, title)
+    JOIN    (
+            VALUES
+            (1, 1, '2006-01-01'::DATE),
+            (2, 1, '2007-01-01'::DATE),
+            (3, 1, '2008-01-01'::DATE),
+            (4, 2, '2009-01-01'::DATE),
+            (5, 2, '2010-01-01'::DATE)
+            ) updates (id, document_id, date)
+    ON      updates.document_id = documents.id
+    ORDER BY
+            documents.id, updates.date DESC;
+END;
+$$;

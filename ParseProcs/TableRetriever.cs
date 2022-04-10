@@ -71,7 +71,7 @@ namespace ParseProcs
 
 		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
 		{
-			return new Table (new NamedTyped (FunctionName, Parameter (Context).Type));
+			return new Table (Parameter (Context).WithName (FunctionName));
 		}
 	}
 }
