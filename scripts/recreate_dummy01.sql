@@ -68,7 +68,7 @@ INSERT INTO Own VALUES ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 12);
 INSERT INTO Own VALUES ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 20);
 INSERT INTO Own VALUES ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 2);
 
--- DROP PROCEDURE Persons_GetAll
+-- DROP PROCEDURE Persons_GetAll;
 CREATE PROCEDURE Persons_GetAll (INOUT Users refcursor)
 LANGUAGE 'plpgsql'
 AS $$
@@ -308,5 +308,33 @@ BEGIN
     ON      updates.document_id = documents.id
     ORDER BY
             documents.id, updates.date DESC;
+
+    -- insert, returning nothing
+    INSERT INTO Own (id_person, id_room)
+    SELECT  P.id,
+            R.id
+    FROM ext.Persons AS P
+        CROSS JOIN Rooms AS R
+    WHERE P.lastname = 'Pevshitz'
+        AND R.name = 'HR'
+    ;
+END;
+$$;
+
+-- DROP PROCEDURE get_inserted;
+CREATE PROCEDURE get_inserted (INOUT inserted refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN inserted FOR
+    INSERT INTO Own (id_person, id_room)
+    SELECT  P.id,
+            R.id
+    FROM ext.Persons AS P
+        CROSS JOIN Rooms AS R
+    WHERE P.lastname = 'Pevshitz'
+        AND R.name = 'HR'
+    RETURNING *
+    ;
 END;
 $$;

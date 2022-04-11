@@ -170,21 +170,20 @@ namespace ParseProcs
 	public class SelectStatement : ITableRetriever
 	{
 		public Func<RequestContext, IReadOnlyList<NamedTyped>> List { get; }
-		public IOption<FromTableExpression[]> FromClause { get; }
-		public bool IsMany { get; }
+		// can be null
+		public FromTableExpression[] Froms { get; }
 		public string Name { get; }
 
-		public SelectStatement (Func<RequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause, bool IsMany,
+		public SelectStatement (Func<RequestContext, IReadOnlyList<NamedTyped>> List, FromTableExpression[] Froms,
 			string Name = null)
 		{
 			this.List = List;
-			this.FromClause = FromClause;
-			this.IsMany = IsMany;
+			this.Froms = Froms;
 			this.Name = Name;
 		}
 
 		public SelectStatement (SelectStatement Core, string Name)
-			: this (Core.List, Core.FromClause, Core.IsMany, Name)
+			: this (Core.List, Core.Froms, Name)
 		{
 		}
 
@@ -195,29 +194,24 @@ namespace ParseProcs
 				new Dictionary<string, IReadOnlyList<NamedTyped>> ();
 			List<NamedTyped> AllAsteriskedEntries = new List<NamedTyped> ();
 
-			if (FromClause.IsDefined)
+			if (Froms != null && Froms.Length > 0)
 			{
-				FromTableExpression[] Froms = FromClause.Get ();
-
-				if (Froms != null && Froms.Length > 0)
+				foreach (var f in Froms)
 				{
-					foreach (var f in Froms)
+					ITable Table = f.TableRetriever.GetTable (Context);
+					var Refs = Table.GetAllColumnReferences (Context.ModuleContext, f.Alias);
+					AllColumns.AddRange (Refs.Columns);
+
+					foreach (var ast in Refs.Asterisks)
 					{
-						ITable Table = f.TableRetriever.GetTable (Context);
-						var Refs = Table.GetAllColumnReferences (Context.ModuleContext, f.Alias);
-						AllColumns.AddRange (Refs.Columns);
-
-						foreach (var ast in Refs.Asterisks)
+						if (ast.Key == "*")
 						{
-							if (ast.Key == "*")
-							{
-								AllAsteriskedEntries.AddRange (ast.Value);
-							}
+							AllAsteriskedEntries.AddRange (ast.Value);
+						}
 
-							if (ast.Key != "*")
-							{
-								Asterisks[ast.Key] = ast.Value;
-							}
+						if (ast.Key != "*")
+						{
+							Asterisks[ast.Key] = ast.Value;
 						}
 					}
 				}
@@ -262,6 +256,7 @@ namespace ParseProcs
 
 	public class FullSelectStatement : ITableRetriever
 	{
+		// can be null
 		public IOption<IEnumerable<SelectStatement>> Cte { get; }
 		public SelectStatement SelectBody { get; }
 
@@ -275,7 +270,7 @@ namespace ParseProcs
 		{
 			RequestContext CurrentContext = Context;
 
-			if (Cte.IsDefined)
+			if (Cte != null && Cte.IsDefined)
 			{
 				var Levels = Cte.Get ();
 				if (Levels != null)
@@ -939,7 +934,7 @@ namespace ParseProcs
 						.Select (ss => ss.ToArray ())
 					from ord in POrderByClauseOptionalST
 					from limit in SpracheUtils.SqlToken ("limit").Then (p => Parse.Number.SqlToken ()).Optional ()
-					select new SelectStatement (seq[0].List, seq[0].FromClause, seq.Length > 1)
+					select new SelectStatement (seq[0].List, seq[0].FromClause.GetOrDefault ())
 				;
 
 			var PCteLevelST =
@@ -969,20 +964,24 @@ namespace ParseProcs
 					// insert
 					from cte in PCteTopOptionalST
 					from _1 in SpracheUtils.AnyTokenST ("insert into")
-					from _2 in PQualifiedIdentifierLST
+					from table_name in PQualifiedIdentifierLST
 					from _3 in PColumnNameLST.CommaDelimitedST ().AtLeastOnce ()
 						.InParentsST ()
 						.Optional ()
 					from _4 in PValuesSourceST.Return (0)
 						.Or (PSelectST.Return (0))
 					// here: provide data return
-					from _ret in
+					from returning in
 					(
 						from _1 in SpracheUtils.SqlToken ("returning")
 						from _sel in PSelectListST
-						select 0
+						select _sel
 					).Optional ()
-					select 0
+					select returning.IsDefined
+						? new FullSelectStatement (null,
+							new SelectStatement (returning.Get (),
+								new FromTableExpression (new NamedTableRetriever (table_name), null).ToTrivialArray ()))
+						: null
 				;
 
 			var POpenDatasetST =
@@ -997,7 +996,7 @@ namespace ParseProcs
 			var PDataReturnStatementST =
 					from open in POpenDatasetST
 					from p_select in PSelectFullST
-						.Or (PInsertFullST.Return<int, FullSelectStatement> (null))
+						.Or (PInsertFullST)
 					select new DataReturnStatement (open, p_select)
 				;
 
@@ -1086,7 +1085,7 @@ namespace ParseProcs
 										)
 										.Or (PSelectFullST.Return (0))
 										.Or (SpracheUtils.SqlToken ("null").Return (0))
-										.Or (PInsertFullST)
+										.Or (PInsertFullST.Return (0))
 										.Or
 										(
 											// update
