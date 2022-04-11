@@ -529,16 +529,24 @@ namespace ParseProcs
 				;
 
 			var PTypeST =
-					from t in PBaseTypeST
-					from array in
-						(
-							from _1 in Parse.String ("[").SqlToken ()
-							from _2 in Parse.String ("]").SqlToken ()
-							select 1
-						)
-						.AtLeastOnce ()
-						.Optional ()
-					select t + (array.IsDefined ? "[]" : "");
+					(
+						from _tn in PQualifiedIdentifierLST
+						from _ps in SpracheUtils.SqlToken ("%")
+						from _rt in SpracheUtils.SqlToken ("rowtype")
+						select (string)null
+					)
+					.Or (
+						from t in PBaseTypeST
+						from array in
+							(
+								from _1 in Parse.String ("[").SqlToken ()
+								from _2 in Parse.String ("]").SqlToken ()
+								select 1
+							)
+							.AtLeastOnce ()
+							.Optional ()
+						select t + (array.IsDefined ? "[]" : "")
+					)
 				;
 
 			var PSimpleTypeCastST =
@@ -968,7 +976,7 @@ namespace ParseProcs
 					from _3 in PColumnNameLST.CommaDelimitedST ().AtLeastOnce ()
 						.InParentsST ()
 						.Optional ()
-					from _4 in PValuesSourceST.Return (0)
+					from _4 in PValuesClauseST.Return (0)
 						.Or (PSelectST.Return (0))
 					// here: provide data return
 					from returning in
@@ -1061,15 +1069,34 @@ namespace ParseProcs
 					select body
 				;
 
+			var PExceptionBlockST =
+					from _exc in SpracheUtils.SqlToken ("exception")
+					from _blocks in
+					(
+						from _when in SpracheUtils.SqlToken ("when")
+						from _cond in PExpressionRefST.Get
+						from _then in SpracheUtils.SqlToken ("then")
+						from _inst in PInstructionRefST.Get.AtLeastOnce ()
+						select _inst
+					).AtLeastOnce ()
+					select _blocks
+						.SelectMany (b => b)
+						.SelectMany (b => b)
+						.ToArray ()
+				;
+
 			var PBeginEndST =
 					from _1 in SpracheUtils.SqlToken ("begin")
 					from inst in PInstructionRefST.Get.Many ()
+					from exc in PExceptionBlockST.Optional ()
 					from _2 in SpracheUtils.SqlToken ("end")
-					select inst.SelectMany (i => i).ToArray ()
+					select inst
+						.SelectMany (i => i)
+						.Concat (exc.Get ())
+						.ToArray ()
 				;
 
 			var PInstructionST =
-					from _exc in SpracheUtils.AnyTokenST ("exception when others then").Optional ()
 					from body in
 						(
 							from drs in
@@ -1198,6 +1225,25 @@ namespace ParseProcs
 					from body in PBeginEndST
 					select new { vars = declare.GetOrElse (new NamedTyped[0]), body }
 				;
+
+			//
+			(
+				from _1 in PProcedureST
+				from _2 in SpracheUtils.SqlToken ("~")
+				select 0
+			).Parse (@"
+begin
+	r := 0;
+
+exception
+	when t then
+		e := 3;
+   when others then
+	    x_return_status := 'E';
+
+end
+~
+");
 
 			//
 			string ConnectionString = "server=127.0.0.1;port=5432;database=dummy01;uid=alexey;pwd=1234";
