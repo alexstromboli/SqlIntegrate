@@ -555,6 +555,24 @@ namespace ParseProcs
 					select t
 				;
 
+			var PSelectFirstColumnST = PFullSelectStatementRefST.Get.InParentsST ()
+				.Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
+					fss.GetTable (rc, false).Columns[0]
+				);
+
+			var PArrayST =
+					from array_kw in SpracheUtils.SqlToken ("array")
+					from body in PExpressionRefST.Get.CommaDelimitedST ().InBracketsST ()
+						.Select<IEnumerable<SPolynom>, Func<RequestContext, NamedTyped>> (arr =>
+							rc =>
+								arr.Select (it => it.GetResult (rc))
+									.FirstOrDefault (nt => nt.Type != PSqlType.Null) ??
+								new NamedTyped (PSqlType.Null))
+						.Or (PSelectFirstColumnST)
+					select (Func<RequestContext, NamedTyped>)(rc =>
+						new NamedTyped ("array", body (rc).Type.ArrayType))
+				;
+
 			var PFunctionCallST =
 					from n in PQualifiedIdentifierLST
 					from arg in PExpressionRefST.Get
@@ -629,9 +647,7 @@ namespace ParseProcs
 							.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
 							rc.NamedDict[p.JoinDot ()]
 							))
-						.Or (PFullSelectStatementRefST.Get.InParentsST ().Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
-							fss.GetTable (rc, false).Columns[0]
-						))
+						.Or (PSelectFirstColumnST)
 				;
 
 			var PAtomicST =
@@ -704,6 +720,7 @@ namespace ParseProcs
 							case_c.Branches.First ().GetResult (rc).Type
 						))
 					)
+					.Or (PArrayST)
 					.Or (PBaseAtomicST)
 				;
 
@@ -1092,7 +1109,7 @@ namespace ParseProcs
 					from _2 in SpracheUtils.SqlToken ("end")
 					select inst
 						.SelectMany (i => i)
-						.Concat (exc.Get ())
+						.ConcatIfNotNull (exc.GetOrDefault ())
 						.ToArray ()
 				;
 
@@ -1190,7 +1207,7 @@ namespace ParseProcs
 							from _4 in SpracheUtils.AnyTokenST ("end if")
 							select ThenIns
 								.Concat (ElsifC.SelectMany (e => e))
-								.Concat (ElseC.GetOrElse (new DataReturnStatement[0][]))
+								.ConcatIfNotNull (ElseC.GetOrDefault ())
 								.SelectMany (e => e)
 								.ToArray ()
 						)
@@ -1232,16 +1249,13 @@ namespace ParseProcs
 				from _2 in SpracheUtils.SqlToken ("~")
 				select 0
 			).Parse (@"
-begin
-	r := 0;
-
-exception
-	when t then
-		e := 3;
-   when others then
-	    x_return_status := 'E';
-
-end
+BEGIN
+    OPEN names FOR
+    SELECT  name,
+            array[null, null, true, false],
+            array(with r as (select name from Depts) select distinct * from r) as names
+    FROM Rooms;
+END
 ~
 ");
 
@@ -1260,9 +1274,18 @@ end
 
 			foreach (var proc in ProceduresDict.Values)
 			{
+				if (proc.Arguments.Any (a => a.Type == null))
+				{
+					// here: handle table types
+					Console.WriteLine ($"{proc.Name} failed: unknown argument type");
+					continue;
+				}
+
 				var ProcedureReport = new Datasets.Procedure
 				{
-					Schema = proc.Schema, Name = proc.Name, Arguments = proc.Arguments.Select (a =>
+					Schema = proc.Schema,
+					Name = proc.Name,
+					Arguments = proc.Arguments.Select (a =>
 						new Datasets.Argument
 						{
 							Name = a.Name,

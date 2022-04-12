@@ -37,6 +37,11 @@ namespace Utils
 				return new CollItem<T> { Value = e, Index = i, IsFirst = i == 0, IsLast = i == coll.Count - 1 };
 			});
 		}
+
+		public static IEnumerable<T> ConcatIfNotNull<T> (this IEnumerable<T> ThisColl, IEnumerable<T> Other)
+		{
+			return Other == null ? ThisColl : ThisColl.Concat (Other);
+		}
 	}
 
 	public static class CsUtils

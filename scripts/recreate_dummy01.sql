@@ -280,7 +280,9 @@ LANGUAGE 'plpgsql'
 AS $$
 BEGIN
     OPEN names FOR
-    SELECT  name
+    SELECT  name,
+            array[null, null, true, false],
+            array(with r as (select name from Depts) select distinct * from r) as names
     FROM Rooms;
 END;
 $$;

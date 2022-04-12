@@ -59,8 +59,16 @@ namespace ParseProcs
 		public static Parser<T> InParentsST<T> (this Parser<T> Inner)
 		{
 			return Inner.Contained (
-				Parse.Char ('(').SqlToken (),
-				Parse.Char (')').SqlToken ()
+				SqlToken ("("),
+				SqlToken (")")
+			);
+		}
+
+		public static Parser<T> InBracketsST<T> (this Parser<T> Inner)
+		{
+			return Inner.Contained (
+				SqlToken ("["),
+				SqlToken ("]")
 			);
 		}
 
