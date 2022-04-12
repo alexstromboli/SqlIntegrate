@@ -676,7 +676,7 @@ namespace ParseProcs
 						from f in SpracheUtils.SqlToken ("count")
 						from _1 in SpracheUtils.SqlToken ("(")
 						from _2 in SpracheUtils.SqlToken ("distinct").Optional ()
-						from exp in PExpressionRefST.Get.Return (0).Or (PAsteriskSelectEntryST.Return (0))
+						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SpracheUtils.SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
 					)
@@ -995,7 +995,26 @@ namespace ParseProcs
 						.Optional ()
 					from _4 in PValuesClauseST.Return (0)
 						.Or (PSelectST.Return (0))
-					// here: provide data return
+					from conflict in
+					(
+						from _on in SpracheUtils.AnyTokenST ("on conflict")
+						from trg in PExpressionRefST.Get.InParentsST ()
+						from _1 in SpracheUtils.SqlToken ("do")
+						from act in SpracheUtils.SqlToken ("nothing").Return (0)
+							.Or (
+								from act in SpracheUtils.AnyTokenST ("update set")
+								from _set in
+								(
+									from col in PColumnNameLST
+									from eq in SpracheUtils.SqlToken ("=")
+									from val in PExpressionRefST.Get
+									select 0
+								).CommaDelimitedST ()
+								from wh in PWhereClauseOptionalST
+								select 0
+							)
+						select 0
+					).Optional ()
 					from returning in
 					(
 						from _1 in SpracheUtils.SqlToken ("returning")
@@ -1189,7 +1208,7 @@ namespace ParseProcs
 							from _1 in SpracheUtils.SqlToken ("if")
 							from _2 in PExpressionRefST.Get
 							from _3 in SpracheUtils.SqlToken ("then")
-							from ThenIns in PInstructionRefST.Get.AtLeastOnce ()
+							from ThenIns in PInstructionRefST.Get.Many () //AtLeastOnce ()
 							from ElsifC in
 							(
 								from _1 in SpracheUtils.AnyTokenST ("elsif", "elseif")
@@ -1243,18 +1262,13 @@ namespace ParseProcs
 					select new { vars = declare.GetOrElse (new NamedTyped[0]), body }
 				;
 
-			//
+			//	DEBUG
 			(
 				from _1 in PProcedureST
 				from _2 in SpracheUtils.SqlToken ("~")
 				select 0
 			).Parse (@"
 BEGIN
-    OPEN names FOR
-    SELECT  name,
-            array[null, null, true, false],
-            array(with r as (select name from Depts) select distinct * from r) as names
-    FROM Rooms;
 END
 ~
 ");

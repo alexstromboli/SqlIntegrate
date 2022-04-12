@@ -18,7 +18,7 @@ CREATE TABLE ext.Persons
 
 CREATE TABLE Rooms
 (
-    id int,
+    id int PRIMARY KEY,
     name varchar(30),
     extents int[]
 );
