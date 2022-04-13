@@ -4,7 +4,8 @@ namespace ParseProcs
 {
 	public class Procedure : SchemaEntity
 	{
-		public string SourceCode { get; protected set; }
+		public uint Oid { get; }
+		public string SourceCode { get; }
 
 		protected List<Argument> _Arguments;
 		public IReadOnlyList<Argument> Arguments => _Arguments;
@@ -12,9 +13,10 @@ namespace ParseProcs
 		protected Dictionary<string, Argument> _ArgumentsDict;
 		public IReadOnlyDictionary<string, Argument> ArgumentsDict => _ArgumentsDict;
 
-		public Procedure (string Schema, string Name, string SourceCode)
+		public Procedure (string Schema, string Name, uint Oid, string SourceCode)
 			: base (Schema, Name)
 		{
+			this.Oid = Oid;
 			this.SourceCode = SourceCode;
 			_Arguments = new List<Argument> ();
 			_ArgumentsDict = new Dictionary<string, Argument> ();
@@ -26,7 +28,7 @@ namespace ParseProcs
 			{
 				return Existing;
 			}
-			
+
 			_Arguments.Add (Argument);
 			_ArgumentsDict[Argument.Name] = Argument;
 

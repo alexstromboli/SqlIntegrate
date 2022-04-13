@@ -157,7 +157,8 @@ AS $$
 $$ LANGUAGE plpgsql;
 
 -- DROP PROCEDURE RoomsForPerson;
-CREATE PROCEDURE RoomsForPerson (id_person uuid,
+CREATE PROCEDURE RoomsForPerson (
+        id_person uuid,
         INOUT res01 refcursor,
         INOUT res02 refcursor,
         bwahaha int[],

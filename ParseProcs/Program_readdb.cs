@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 using Npgsql;
 
+using Utils;
+
 namespace ParseProcs
 {
 	partial class Program
@@ -17,6 +19,29 @@ namespace ParseProcs
 			using (var conn = new NpgsqlConnection (ConnectionString))
 			{
 				conn.Open ();
+
+				// types
+				Dictionary<uint, string> TypesDict = new Dictionary<uint, string> ();
+				using (var cmd = conn.CreateCommand ())
+				{
+					cmd.CommandText = @"
+SELECT  oid,
+        typname
+FROM pg_catalog.pg_type
+;
+";
+
+					using (var rdr = cmd.ExecuteReader ())
+					{
+						while (rdr.Read ())
+						{
+							uint Oid = (uint) rdr["oid"];
+							string Name = (string) rdr["typname"];
+
+							TypesDict[Oid] = Name;
+						}
+					}
+				}
 
 				using (var cmd = conn.CreateCommand ())
 				{
@@ -72,11 +97,16 @@ ORDER BY table_schema, table_name, ordinal_position;
 					}
 				}
 
+				// procedures
 				using (var cmd = conn.CreateCommand ())
 				{
 					cmd.CommandText = @"
 SELECT  n.nspname as schema,
         p.proname as name,
+        p.oid,
+        p.proargmodes,
+        p.proargnames,
+        p.proallargtypes,
         p.prosrc
 FROM pg_catalog.pg_namespace n
         INNER JOIN pg_catalog.pg_proc p ON pronamespace = n.oid
@@ -89,60 +119,44 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 					{
 						while (rdr.Read ())
 						{
-							string Schema = (string) rdr["schema"];
-							string Name = (string) rdr["name"];
+							string Schema = (string)rdr["schema"];
+							string Name = (string)rdr["name"];
+							uint Oid = (uint)rdr["oid"];
 							string SourceCode = (string) rdr["prosrc"];
 
-							Procedure p = new Procedure (Schema, Name, SourceCode);
-							ProceduresDict[p.Display] = p;
-						}
-					}
-				}
+							Procedure p = new Procedure (Schema, Name, Oid, SourceCode);
 
-				using (var cmd = conn.CreateCommand ())
-				{
-					cmd.CommandText = @"
-SELECT proc.specific_schema AS procedure_schema,
-       proc.routine_name AS procedure_name,
-       args.parameter_mode,
-       args.parameter_name,
-       args.udt_name::regtype::varchar AS data_type
-FROM information_schema.routines proc
-	INNER JOIN information_schema.parameters args
-          ON proc.specific_schema = args.specific_schema
-          	AND proc.specific_name = args.specific_name
-WHERE proc.routine_type = 'PROCEDURE'
-ORDER BY procedure_schema,
-         proc.specific_name,
-         procedure_name,
-         args.ordinal_position
-         ;
-";
-
-					using (var rdr = cmd.ExecuteReader ())
-					{
-						while (rdr.Read ())
-						{
-							string Schema = (string) rdr["procedure_schema"];
-							string ProcedureName = (string) rdr["procedure_name"];
-							string ArgumentDirection = (string) rdr["parameter_mode"];
-							string ArgumentName = (string) rdr["parameter_name"];
-							string Type = (string) rdr["data_type"];
-
-							if (!ProceduresDict.TryGetValue (SchemaEntity.GetDisplay (Schema, ProcedureName),
-								out Procedure p))
+							char[] ArgModes = rdr["proargmodes"] as char[];
+							if (ArgModes != null)
 							{
-								continue;
+								string[] ArgNames = (string[])rdr["proargnames"];
+								uint[] ArgTypeCodes = (uint[])rdr["proallargtypes"];
+
+								Argument.DirectionType[] ArgDirections = ArgModes.Select (c =>
+									c == 'b' ? Argument.DirectionType.InOut : Argument.DirectionType.In).ToArray ();
+								string[] ArgTypes = ArgTypeCodes.Select (n => TypesDict[n]).ToArray ();
+
+								foreach (var arg in ArgNames.Indexed ())
+								{
+									string Type = ArgTypes[arg.Index];
+									PSqlType SqlType;
+
+									if (Type.StartsWith ("_"))
+									{
+										SqlType = PSqlType.GetForSqlTypeName (Type[1..])?.ArrayType;
+									}
+									else
+									{
+										SqlType = PSqlType.GetForSqlTypeName (Type);
+									}
+
+									Argument c = new Argument (arg.Value, SqlType, ArgDirections[arg.Index]);
+									p.AddArgument (c);
+								}
 							}
 
-							Argument.DirectionType Direction = ArgumentDirection == "INOUT"
-									? Argument.DirectionType.InOut
-									: Argument.DirectionType.In
-								;
-
-							// here: arrays?
-							Argument c = new Argument (ArgumentName, PSqlType.GetForSqlTypeName(Type), Direction);
-							p.AddArgument (c);
+							//
+							ProceduresDict[Oid.ToString ()] = p;
 						}
 					}
 				}
