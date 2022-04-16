@@ -1,0 +1,592 @@
+{
+  "Procedures": [
+    {
+      "Schema": "USER",
+      "Name": "get_array",
+      "Arguments": [
+        {
+          "Name": "names",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "names",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "name",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "array",
+              "SqlType": {
+                "SqlBaseType": "bool",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "names",
+              "SqlType": {
+                "SqlBaseType": "varchar",
+                "IsArray": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "get_inserted",
+      "Arguments": [
+        {
+          "Name": "inserted",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "inserted",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id_person",
+              "SqlType": {
+                "SqlBaseType": "uuid"
+              }
+            },
+            {
+              "Name": "id_room",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "get_join_single",
+      "Arguments": [
+        {
+          "Name": "joined",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "joined",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "title",
+              "SqlType": {
+                "SqlBaseType": "text"
+              }
+            },
+            {
+              "Name": "document_id",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "date",
+              "SqlType": {
+                "SqlBaseType": "date"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "get_scalar",
+      "Arguments": [
+        {
+          "Name": "partial",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "partial",
+          "Comments": [
+            " # 1"
+          ],
+          "Columns": [
+            {
+              "Name": "name",
+              "SqlType": {
+                "SqlBaseType": "uuid"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "get_single_row",
+      "Arguments": [
+        {
+          "Name": "partial",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "partial",
+          "Comments": [
+            " # 1"
+          ],
+          "Columns": [
+            {
+              "Name": "id",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "name",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "float",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "get_user_and_details",
+      "Arguments": [
+        {
+          "Name": "user",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "details",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "user",
+          "Comments": [
+            " # 1"
+          ],
+          "Columns": [
+            {
+              "Name": "name",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            }
+          ]
+        },
+        {
+          "Name": "details",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id",
+              "SqlType": {
+                "SqlBaseType": "uuid"
+              }
+            },
+            {
+              "Name": "lastname",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "firstname",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "dob",
+              "SqlType": {
+                "SqlBaseType": "date"
+              }
+            },
+            {
+              "Name": "tab_num",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "effect",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "getdeptchain",
+      "Arguments": [
+        {
+          "Name": "p_id",
+          "SqlType": {
+            "SqlBaseType": "int"
+          }
+        },
+        {
+          "Name": "res01",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "res01",
+          "Comments": [
+            " special comment",
+            "\n            multiline comment\n            # 1\n            about semantics\n        "
+          ],
+          "Columns": [
+            {
+              "Name": "id",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "name",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "float",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "persons_getall",
+      "Arguments": [
+        {
+          "Name": "users",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "users",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "num",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "id",
+              "SqlType": {
+                "SqlBaseType": "uuid"
+              }
+            },
+            {
+              "Name": "lastname",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "firstname",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "dob",
+              "SqlType": {
+                "SqlBaseType": "date"
+              }
+            },
+            {
+              "Name": "tab_num",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "effect",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "roomsforperson",
+      "Arguments": [
+        {
+          "Name": "id_person",
+          "SqlType": {
+            "SqlBaseType": "uuid"
+          }
+        },
+        {
+          "Name": "res01",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "res02",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "bwahaha",
+          "SqlType": {
+            "SqlBaseType": "int",
+            "IsArray": true
+          }
+        },
+        {
+          "Name": "get_array",
+          "SqlType": {
+            "SqlBaseType": "int",
+            "IsArray": true
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "name",
+          "SqlType": {
+            "SqlBaseType": "varchar"
+          }
+        },
+        {
+          "Name": "over",
+          "SqlType": {
+            "SqlBaseType": "bool"
+          }
+        },
+        {
+          "Name": "dt01",
+          "SqlType": {
+            "SqlBaseType": "date"
+          }
+        },
+        {
+          "Name": "dt02",
+          "SqlType": {
+            "SqlBaseType": "timestamp"
+          }
+        },
+        {
+          "Name": "dt03",
+          "SqlType": {
+            "SqlBaseType": "interval"
+          }
+        },
+        {
+          "Name": "dt04",
+          "SqlType": {
+            "SqlBaseType": "time"
+          }
+        },
+        {
+          "Name": "txt",
+          "SqlType": {
+            "SqlBaseType": "text"
+          }
+        },
+        {
+          "Name": "amount",
+          "SqlType": {
+            "SqlBaseType": "money"
+          }
+        },
+        {
+          "Name": "came",
+          "SqlType": {
+            "SqlBaseType": "bigint"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "done",
+          "SqlType": {
+            "SqlBaseType": "char"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "res01",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id",
+              "SqlType": {
+                "SqlBaseType": "uuid"
+              }
+            },
+            {
+              "Name": "lastname",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "firstname",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "dob",
+              "SqlType": {
+                "SqlBaseType": "date"
+              }
+            },
+            {
+              "Name": "tab_num",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "them_all",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "piece",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "sample",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "had it",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            }
+          ]
+        },
+        {
+          "Name": "res02",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "name",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "extents",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "ord",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "json",
+              "SqlType": {
+                "SqlBaseType": "json"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "ext",
+      "Name": "calc",
+      "Arguments": [],
+      "ResultSets": []
+    },
+    {
+      "Schema": "ext",
+      "Name": "empty",
+      "Arguments": [],
+      "ResultSets": []
+    }
+  ]
+}

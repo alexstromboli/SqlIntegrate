@@ -395,6 +395,9 @@ namespace ParseProcs
 
 		static void Main (string[] args)
 		{
+			string ConnectionString = args[0];
+			string OutputFileName = args[1];
+
 			// postfix ST means that the result is 'SQL token',
 			// i.e. duly processes comments and whitespaces
 
@@ -1274,8 +1277,6 @@ END
 ");
 
 			//
-			string ConnectionString = "server=127.0.0.1;port=5432;database=dummy01;uid=alexey;pwd=1234";
-
 			Dictionary<string, DbTable> TablesDict = new Dictionary<string, DbTable> ();
 			Dictionary<string, Procedure> ProceduresDict = new Dictionary<string, Procedure> ();
 			Dictionary<string, PSqlType> FunctionsDict = new Dictionary<string, PSqlType> ();
@@ -1360,7 +1361,7 @@ END
 					.ToList ()
 				;
 
-			File.WriteAllText ("out.json", JsonConvert.SerializeObject (ModuleReport, Formatting.Indented));
+			File.WriteAllText (OutputFileName, JsonConvert.SerializeObject (ModuleReport, Formatting.Indented));
 
 			//
 			var sel01 = PDataReturnStatementST.Parse ("open ref01 for select 654");
