@@ -271,15 +271,21 @@ END;
 $$;
 
 -- DROP PROCEDURE get_array;
-CREATE PROCEDURE get_array (INOUT names refcursor)
+CREATE PROCEDURE get_array (INOUT names refcursor, INOUT by_person refcursor)
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
     OPEN names FOR
-    SELECT  name,
+    SELECT  extents,
             array[null, null, true, false],
             array(with r as (select name from Depts) select distinct * from r) as names
     FROM Rooms;
+
+    OPEN by_person FOR
+    SELECT  id_person,
+            array_agg(id_room)
+    FROM Own
+    GROUP BY id_person;
 END;
 $$;
 

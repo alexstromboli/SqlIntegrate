@@ -10,6 +10,13 @@
             "SqlBaseType": "refcursor"
           },
           "IsOut": true
+        },
+        {
+          "Name": "by_person",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
         }
       ],
       "ResultSets": [
@@ -18,9 +25,10 @@
           "Comments": [],
           "Columns": [
             {
-              "Name": "name",
+              "Name": "extents",
               "SqlType": {
-                "SqlBaseType": "varchar"
+                "SqlBaseType": "int",
+                "IsArray": true
               }
             },
             {
@@ -34,6 +42,25 @@
               "Name": "names",
               "SqlType": {
                 "SqlBaseType": "varchar",
+                "IsArray": true
+              }
+            }
+          ]
+        },
+        {
+          "Name": "by_person",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id_person",
+              "SqlType": {
+                "SqlBaseType": "uuid"
+              }
+            },
+            {
+              "Name": "array_agg",
+              "SqlType": {
+                "SqlBaseType": "int",
                 "IsArray": true
               }
             }

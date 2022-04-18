@@ -573,7 +573,7 @@ namespace ParseProcs
 								new NamedTyped (PSqlType.Null))
 						.Or (PSelectFirstColumnST)
 					select (Func<RequestContext, NamedTyped>)(rc =>
-						new NamedTyped ("array", body (rc).Type.ArrayType))
+						body (rc).ToArray ().WithName ("array"))
 				;
 
 			var PFunctionCallST =
@@ -682,6 +682,14 @@ namespace ParseProcs
 						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SpracheUtils.SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
+					)
+					.Or (
+						from f in SpracheUtils.SqlToken ("array_agg")
+						from _1 in SpracheUtils.SqlToken ("(")
+						from _2 in SpracheUtils.SqlToken ("distinct").Optional ()
+						from exp in PExpressionRefST.Get
+						from _3 in SpracheUtils.SqlToken (")")
+						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
 					)
 					.Or (PUnnestST)
 					.Or (

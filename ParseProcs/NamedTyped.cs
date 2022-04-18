@@ -29,6 +29,11 @@ namespace ParseProcs
 		{
 			return new NamedTyped (Name, NewType);
 		}
+
+		public NamedTyped ToArray ()
+		{
+			return new NamedTyped (Name, Type.ArrayType);
+		}
 	}
 
 	public class NamedLazyTyped : NamedTyped
