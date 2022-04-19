@@ -17,6 +17,13 @@
             "SqlBaseType": "refcursor"
           },
           "IsOut": true
+        },
+        {
+          "Name": "unnest",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
         }
       ],
       "ResultSets": [
@@ -44,6 +51,13 @@
                 "SqlBaseType": "varchar",
                 "IsArray": true
               }
+            },
+            {
+              "Name": "order",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
             }
           ]
         },
@@ -62,6 +76,36 @@
               "SqlType": {
                 "SqlBaseType": "int",
                 "IsArray": true
+              }
+            }
+          ]
+        },
+        {
+          "Name": "unnest",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "unnest",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "e",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "w",
+              "SqlType": {
+                "SqlBaseType": "text"
+              }
+            },
+            {
+              "Name": "qw",
+              "SqlType": {
+                "SqlBaseType": "text"
               }
             }
           ]

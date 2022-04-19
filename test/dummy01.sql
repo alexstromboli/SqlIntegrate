@@ -271,14 +271,15 @@ END;
 $$;
 
 -- DROP PROCEDURE get_array;
-CREATE PROCEDURE get_array (INOUT names refcursor, INOUT by_person refcursor)
+CREATE PROCEDURE get_array (INOUT names refcursor, INOUT by_person refcursor, INOUT "unnest" refcursor)
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
     OPEN names FOR
     SELECT  extents,
             array[null, null, true, false],
-            array(with r as (select name from Depts) select distinct * from r) as names
+            array(with r as (select name from Depts) select distinct * from r) as names,
+            '{5, 8, 2}'::int[] "order"
     FROM Rooms;
 
     OPEN by_person FOR
@@ -286,6 +287,14 @@ BEGIN
             array_agg(id_room)
     FROM Own
     GROUP BY id_person;
+
+    OPEN "unnest" FOR
+    SELECT  unnest(array[2, 4, 9]),      -- unnamed (goes 'unnest'), converted to rows
+            unnest(array[7, 11]) AS e,   -- named ('e'), converted to rows
+            W,  -- simple name
+            W.W AS QW   -- self-qualified name
+    FROM unnest(array['X', 'Y']) W
+    ;
 END;
 $$;
 
