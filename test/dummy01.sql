@@ -353,7 +353,7 @@ END;
 $$;
 
 -- DROP PROCEDURE get_literals;
-CREATE PROCEDURE get_literals (INOUT result refcursor)
+CREATE PROCEDURE get_literals (INOUT result refcursor, INOUT nulls refcursor, INOUT nulled_arrays refcursor)
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
@@ -368,6 +368,29 @@ BEGIN
             .238::money as money,
             'n'::varchar(5) as varchar,
             false as bool
+        ;
+
+    OPEN nulls FOR
+    SELECT  null::int as int,
+            null::numeric as numeric,
+            null::float as float,
+            null::real as real,
+            null::bigint as bigint,
+            null::smallint as smallint,
+            null::money as money,
+            null::varchar as varchar,
+            null::uuid as uuid,
+            null::timestamp as timestamp,
+            null::date as date,
+            null::bool as bool
+        ;
+
+    OPEN nulled_arrays FOR
+    SELECT  array[null, 2, 9] as int,
+            array[null, 2.5] as numeric,
+            array[null, 2.5::float] as float,
+            array[null, '7702f204a409546693f71875b263e804'::uuid] as uuid,
+            array[null, true, false] as bool
         ;
 END;
 $$;

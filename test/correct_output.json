@@ -194,6 +194,20 @@
             "SqlBaseType": "refcursor"
           },
           "IsOut": true
+        },
+        {
+          "Name": "nulls",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "nulled_arrays",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
         }
       ],
       "ResultSets": [
@@ -259,6 +273,125 @@
               "Name": "bool",
               "SqlType": {
                 "SqlBaseType": "bool"
+              }
+            }
+          ]
+        },
+        {
+          "Name": "nulls",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "int",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "real",
+              "SqlType": {
+                "SqlBaseType": "real"
+              }
+            },
+            {
+              "Name": "bigint",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "smallint",
+              "SqlType": {
+                "SqlBaseType": "smallint"
+              }
+            },
+            {
+              "Name": "money",
+              "SqlType": {
+                "SqlBaseType": "money"
+              }
+            },
+            {
+              "Name": "varchar",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "uuid",
+              "SqlType": {
+                "SqlBaseType": "uuid"
+              }
+            },
+            {
+              "Name": "timestamp",
+              "SqlType": {
+                "SqlBaseType": "timestamp"
+              }
+            },
+            {
+              "Name": "date",
+              "SqlType": {
+                "SqlBaseType": "date"
+              }
+            },
+            {
+              "Name": "bool",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            }
+          ]
+        },
+        {
+          "Name": "nulled_arrays",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "int",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "float",
+              "SqlType": {
+                "SqlBaseType": "float",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "uuid",
+              "SqlType": {
+                "SqlBaseType": "uuid",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "bool",
+              "SqlType": {
+                "SqlBaseType": "bool",
+                "IsArray": true
               }
             }
           ]
