@@ -419,9 +419,12 @@ namespace ParseProcs
 			var PInteger = Parse.Number;
 			var PDecimal =
 					from i in Parse.Number.Optional ()
-					from p in Parse.Char ('.')
-					from f in Parse.Number.Optional ()
-					where i.IsDefined || f.IsDefined
+					from frac in
+					(
+						from p in Parse.Char ('.')
+						from f in Parse.Number.Optional ()
+						select p + f.GetOrElse ("")
+					).Optional ()
 					from exp in
 					(
 						from e in Parse.Chars ('e', 'E')
@@ -429,8 +432,9 @@ namespace ParseProcs
 						from d in Parse.Number
 						select $"{e}{s}{d}"
 					).Optional ()
-					select i.GetOrElse ("") + p + f.GetOrElse ("")
-					       + exp.GetOrElse ("")
+					where frac.IsDefined || exp.IsDefined
+					select i.GetOrElse ("") + frac.GetOrElse ("")
+					                        + exp.GetOrElse ("")
 				;
 
 			var PBooleanLiteral = Parse.IgnoreCase ("true")
@@ -707,7 +711,11 @@ namespace ParseProcs
 						from _2 in SpracheUtils.SqlToken (",")
 						from subst in PExpressionRefST.Get
 						from _3 in SpracheUtils.SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).WithName (f))
+						select (Func<RequestContext, NamedTyped>)(rc =>
+						{
+							var ExpRes = exp.GetResult (rc);
+							return (ExpRes.Type == PSqlType.Null ? subst.GetResult (rc) : ExpRes).WithName (f);
+						})
 					)
 					.Or (
 						from kw in PAlphaNumericL.SqlToken ()
@@ -718,8 +726,10 @@ namespace ParseProcs
 					)
 					.Or (
 						(
-							from kw in SpracheUtils.AnyTokenST ("all", "any")
-							from exp in PExpressionRefST.Get.InParentsST ()
+							from kw in SpracheUtils.AnyTokenST ("all", "any", "some")
+							from exp in PExpressionRefST.Get.Return (0)
+								.Or (PFullSelectStatementRefST.Get.Return (0))
+								.InParentsST ()
 							select 0
 						).ProduceType (PSqlType.Null)
 					)

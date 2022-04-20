@@ -352,6 +352,18 @@
               "SqlType": {
                 "SqlBaseType": "bool"
               }
+            },
+            {
+              "Name": "coalesce_first",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "coalesce_second",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
             }
           ]
         },
@@ -847,6 +859,51 @@
               "Name": "type_bigint_bigint",
               "SqlType": {
                 "SqlBaseType": "varchar"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "get_operators",
+      "Arguments": [
+        {
+          "Name": "result",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "result",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "t1",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "t2",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "t3",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "sum",
+              "SqlType": {
+                "SqlBaseType": "int"
               }
             }
           ]

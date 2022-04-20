@@ -360,7 +360,7 @@ BEGIN
     OPEN result FOR
     SELECT  2 as int,
             1.5 as numeric,
-            1.26e-3 as numeric_e_neg,
+            1e-3 as numeric_e_neg,
             1.26e+3 as numeric_e_pos,
             1.26e2 as numeric_e_def,
             .238::real as real,
@@ -382,7 +382,9 @@ BEGIN
             null::uuid as uuid,
             null::timestamp as timestamp,
             null::date as date,
-            null::bool as bool
+            null::bool as bool,
+            coalesce(true, false) AS coalesce_first,
+            coalesce(null, 1e-2) AS coalesce_second
         ;
 
     OPEN nulled_arrays FOR
@@ -531,6 +533,21 @@ done
           res_bigint_bigint,
           pg_typeof(res_bigint_bigint) AS type_bigint_bigint
         FROM R
+    ;
+END;
+$$;
+
+-- DROP PROCEDURE get_operators;
+CREATE PROCEDURE get_operators (INOUT result refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN result FOR
+    SELECT  5 > all(array[2, 1, 4]) AS t1,
+            10 > any(select id from rooms) as t2,
+            10 > some(select id from rooms) as t2,
+            2 IN (select id from rooms) as t3,
+            - 5 - - - - 11 sum  -- no 'as', and unary minuses
     ;
 END;
 $$;
