@@ -351,3 +351,23 @@ BEGIN
     ;
 END;
 $$;
+
+-- DROP PROCEDURE get_literals;
+CREATE PROCEDURE get_literals (INOUT result refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN result FOR
+    SELECT  2 as int,
+            1.5 as numeric,
+            1.26e-3 as numeric_e_neg,
+            1.26e+3 as numeric_e_pos,
+            1.26e2 as numeric_e_def,
+            .238::real as real,
+            4.::float as float,
+            .238::money as money,
+            'n'::varchar(5) as varchar,
+            false as bool
+        ;
+END;
+$$;

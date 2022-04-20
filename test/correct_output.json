@@ -186,6 +186,87 @@
     },
     {
       "Schema": "USER",
+      "Name": "get_literals",
+      "Arguments": [
+        {
+          "Name": "result",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "result",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "int",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "numeric_e_neg",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "numeric_e_pos",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "numeric_e_def",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "real",
+              "SqlType": {
+                "SqlBaseType": "real"
+              }
+            },
+            {
+              "Name": "float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "money",
+              "SqlType": {
+                "SqlBaseType": "money"
+              }
+            },
+            {
+              "Name": "varchar",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "bool",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "get_scalar",
       "Arguments": [
         {

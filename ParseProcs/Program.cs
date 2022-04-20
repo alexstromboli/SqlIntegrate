@@ -422,7 +422,15 @@ namespace ParseProcs
 					from p in Parse.Char ('.')
 					from f in Parse.Number.Optional ()
 					where i.IsDefined || f.IsDefined
+					from exp in
+					(
+						from e in Parse.Chars ('e', 'E')
+						from s in Parse.Chars ('+', '-').Optional ()
+						from d in Parse.Number
+						select $"{e}{s}{d}"
+					).Optional ()
 					select i.GetOrElse ("") + p + f.GetOrElse ("")
+					       + exp.GetOrElse ("")
 				;
 
 			var PBooleanLiteral = Parse.IgnoreCase ("true")

@@ -1,0 +1,73 @@
+- various types
+- - tables
+- - arguments
+- - - including 'inout'
+- - variables
+- - type casts
+- - value literals
+
+- types include
+- - arrays
+- - lengths
+
+- 'from' source types
+- - table
+- - cte
+- - select
+- - function
+- - values
+- - unnest
+
+- comment under 'open'
+- combinations of select (union, etc)
+- joins (inner, cross, etc)
+- conflicts between names
+- - table names
+- - aliases
+- - cte names
+
+- arrays
+- - literal
+- - unnest
+- - - in select
+- - - in from
+- - array(select)
+- - type cast
+- - 'inout' arguments
+- - array_agg
+- - take item by index
+
+- aggregates
+- expression types
+- - precedence
+- open insert returning
+
+- aliases
+- - 'as' or direct
+- - keywords
+- - items' default names
+
+- case
+- - expression
+- - instruction
+
+- null, not null, is true, etc
+- rowtype
+- functions, builtin or custom
+- distinct, distinct on
+- select as expression
+- row_number
+- coalesce
+- all, any
+- exists
+- unary minus
+- between
+- select asterisk
+- - with qualifier
+- select into
+
+- insert
+- update
+- delete
+- loops
+- if
