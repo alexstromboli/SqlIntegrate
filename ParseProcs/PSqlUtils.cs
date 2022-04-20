@@ -44,6 +44,21 @@ namespace ParseProcs
 		{
 			if (Left.IsNumber && Right.IsNumber)
 			{
+				if (Left.BaseType == PSqlType.Money || Right.BaseType == PSqlType.Money)
+				{
+					return PSqlType.Money;
+				}
+
+				if (Left.BaseType == PSqlType.Real || Right.BaseType == PSqlType.Real)
+				{
+					if (Left.BaseType == PSqlType.Real && Right.BaseType == PSqlType.Real)
+					{
+						return PSqlType.Real;
+					}
+
+					return PSqlType.Float;
+				}
+
 				return Left.NumericLevel > Right.NumericLevel
 					? Left
 					: Right;

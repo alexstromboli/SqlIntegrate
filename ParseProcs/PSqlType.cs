@@ -12,8 +12,8 @@ namespace ParseProcs
 			SmallInt,
 			Int,
 			BigInt,
-			Decimal,
 			Real,
+			Decimal,
 			Float,
 			Money
 		}
@@ -111,6 +111,6 @@ namespace ParseProcs
 
 		public static readonly PSqlType Text = Add (typeof (string), "text").SetIsText ();
 		public static readonly PSqlType Char = Add (typeof (string), "char", "character", "bpchar").SetIsText ();
-		public static readonly PSqlType VarChar = Add (typeof (string), "varchar", "character varying", "name", "cstring").SetIsText ();
+		public static readonly PSqlType VarChar = Add (typeof (string), "varchar", "character varying", "name", "cstring", "regtype").SetIsText ();
 	}
 }

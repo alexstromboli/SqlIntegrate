@@ -267,6 +267,461 @@
     },
     {
       "Schema": "USER",
+      "Name": "get_numeric_types_math",
+      "Arguments": [
+        {
+          "Name": "result",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "result",
+          "Comments": [
+            " # 1"
+          ],
+          "Columns": [
+            {
+              "Name": "res_numeric_numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "type_numeric_numeric",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_numeric_real",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_numeric_real",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_numeric_float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_numeric_float",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_numeric_int",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "type_numeric_int",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_numeric_smallint",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "type_numeric_smallint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_numeric_bigint",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "type_numeric_bigint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_real_numeric",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_real_numeric",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_real_real",
+              "SqlType": {
+                "SqlBaseType": "real"
+              }
+            },
+            {
+              "Name": "type_real_real",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_real_float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_real_float",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_real_int",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_real_int",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_real_smallint",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_real_smallint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_real_bigint",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_real_bigint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_float_numeric",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_float_numeric",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_float_real",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_float_real",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_float_float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_float_float",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_float_int",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_float_int",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_float_smallint",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_float_smallint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_float_bigint",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_float_bigint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_int_numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "type_int_numeric",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_int_real",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_int_real",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_int_float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_int_float",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_int_int",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "type_int_int",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_int_smallint",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "type_int_smallint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_int_bigint",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "type_int_bigint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_smallint_numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "type_smallint_numeric",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_smallint_real",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_smallint_real",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_smallint_float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_smallint_float",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_smallint_int",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "type_smallint_int",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_smallint_smallint",
+              "SqlType": {
+                "SqlBaseType": "smallint"
+              }
+            },
+            {
+              "Name": "type_smallint_smallint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_smallint_bigint",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "type_smallint_bigint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_bigint_numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "type_bigint_numeric",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_bigint_real",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_bigint_real",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_bigint_float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "type_bigint_float",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_bigint_int",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "type_bigint_int",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_bigint_smallint",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "type_bigint_smallint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "res_bigint_bigint",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "type_bigint_bigint",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "get_scalar",
       "Arguments": [
         {

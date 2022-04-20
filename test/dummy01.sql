@@ -371,3 +371,143 @@ BEGIN
         ;
 END;
 $$;
+
+-- DROP PROCEDURE get_numeric_types_math;
+CREATE PROCEDURE get_numeric_types_math (INOUT result refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    /*
+A=(numeric real float int smallint bigint)
+for F in "${A[@]}"; do
+    for S in "${A[@]}"; do
+        echo "1::$F + 1::$S AS res_""$F""_$S,"
+    done
+done
+
+for F in "${A[@]}"; do
+    for S in "${A[@]}"; do
+        echo "res_""$F""_$S,"
+        echo "pg_typeof(res_""$F""_$S) AS type_""$F""_$S,"
+    done
+done
+    */
+    OPEN result FOR
+        -- # 1
+    WITH R AS
+    (
+        SELECT
+          1::numeric + 1::numeric AS res_numeric_numeric,
+          1::numeric + 1::real AS res_numeric_real,
+          1::numeric + 1::float AS res_numeric_float,
+          1::numeric + 1::int AS res_numeric_int,
+          1::numeric + 1::smallint AS res_numeric_smallint,
+          1::numeric + 1::bigint AS res_numeric_bigint,
+          1::real + 1::numeric AS res_real_numeric,
+          1::real + 1::real AS res_real_real,
+          1::real + 1::float AS res_real_float,
+          1::real + 1::int AS res_real_int,
+          1::real + 1::smallint AS res_real_smallint,
+          1::real + 1::bigint AS res_real_bigint,
+          1::float + 1::numeric AS res_float_numeric,
+          1::float + 1::real AS res_float_real,
+          1::float + 1::float AS res_float_float,
+          1::float + 1::int AS res_float_int,
+          1::float + 1::smallint AS res_float_smallint,
+          1::float + 1::bigint AS res_float_bigint,
+          1::int + 1::numeric AS res_int_numeric,
+          1::int + 1::real AS res_int_real,
+          1::int + 1::float AS res_int_float,
+          1::int + 1::int AS res_int_int,
+          1::int + 1::smallint AS res_int_smallint,
+          1::int + 1::bigint AS res_int_bigint,
+          1::smallint + 1::numeric AS res_smallint_numeric,
+          1::smallint + 1::real AS res_smallint_real,
+          1::smallint + 1::float AS res_smallint_float,
+          1::smallint + 1::int AS res_smallint_int,
+          1::smallint + 1::smallint AS res_smallint_smallint,
+          1::smallint + 1::bigint AS res_smallint_bigint,
+          1::bigint + 1::numeric AS res_bigint_numeric,
+          1::bigint + 1::real AS res_bigint_real,
+          1::bigint + 1::float AS res_bigint_float,
+          1::bigint + 1::int AS res_bigint_int,
+          1::bigint + 1::smallint AS res_bigint_smallint,
+          1::bigint + 1::bigint AS res_bigint_bigint
+    )
+        SELECT
+          res_numeric_numeric,
+          pg_typeof(res_numeric_numeric) AS type_numeric_numeric,
+          res_numeric_real,
+          pg_typeof(res_numeric_real) AS type_numeric_real,
+          res_numeric_float,
+          pg_typeof(res_numeric_float) AS type_numeric_float,
+          res_numeric_int,
+          pg_typeof(res_numeric_int) AS type_numeric_int,
+          res_numeric_smallint,
+          pg_typeof(res_numeric_smallint) AS type_numeric_smallint,
+          res_numeric_bigint,
+          pg_typeof(res_numeric_bigint) AS type_numeric_bigint,
+          res_real_numeric,
+          pg_typeof(res_real_numeric) AS type_real_numeric,
+          res_real_real,
+          pg_typeof(res_real_real) AS type_real_real,
+          res_real_float,
+          pg_typeof(res_real_float) AS type_real_float,
+          res_real_int,
+          pg_typeof(res_real_int) AS type_real_int,
+          res_real_smallint,
+          pg_typeof(res_real_smallint) AS type_real_smallint,
+          res_real_bigint,
+          pg_typeof(res_real_bigint) AS type_real_bigint,
+          res_float_numeric,
+          pg_typeof(res_float_numeric) AS type_float_numeric,
+          res_float_real,
+          pg_typeof(res_float_real) AS type_float_real,
+          res_float_float,
+          pg_typeof(res_float_float) AS type_float_float,
+          res_float_int,
+          pg_typeof(res_float_int) AS type_float_int,
+          res_float_smallint,
+          pg_typeof(res_float_smallint) AS type_float_smallint,
+          res_float_bigint,
+          pg_typeof(res_float_bigint) AS type_float_bigint,
+          res_int_numeric,
+          pg_typeof(res_int_numeric) AS type_int_numeric,
+          res_int_real,
+          pg_typeof(res_int_real) AS type_int_real,
+          res_int_float,
+          pg_typeof(res_int_float) AS type_int_float,
+          res_int_int,
+          pg_typeof(res_int_int) AS type_int_int,
+          res_int_smallint,
+          pg_typeof(res_int_smallint) AS type_int_smallint,
+          res_int_bigint,
+          pg_typeof(res_int_bigint) AS type_int_bigint,
+          res_smallint_numeric,
+          pg_typeof(res_smallint_numeric) AS type_smallint_numeric,
+          res_smallint_real,
+          pg_typeof(res_smallint_real) AS type_smallint_real,
+          res_smallint_float,
+          pg_typeof(res_smallint_float) AS type_smallint_float,
+          res_smallint_int,
+          pg_typeof(res_smallint_int) AS type_smallint_int,
+          res_smallint_smallint,
+          pg_typeof(res_smallint_smallint) AS type_smallint_smallint,
+          res_smallint_bigint,
+          pg_typeof(res_smallint_bigint) AS type_smallint_bigint,
+          res_bigint_numeric,
+          pg_typeof(res_bigint_numeric) AS type_bigint_numeric,
+          res_bigint_real,
+          pg_typeof(res_bigint_real) AS type_bigint_real,
+          res_bigint_float,
+          pg_typeof(res_bigint_float) AS type_bigint_float,
+          res_bigint_int,
+          pg_typeof(res_bigint_int) AS type_bigint_int,
+          res_bigint_smallint,
+          pg_typeof(res_bigint_smallint) AS type_bigint_smallint,
+          res_bigint_bigint,
+          pg_typeof(res_bigint_bigint) AS type_bigint_bigint
+        FROM R
+    ;
+END;
+$$;
