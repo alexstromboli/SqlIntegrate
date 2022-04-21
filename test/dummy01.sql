@@ -400,6 +400,7 @@ BEGIN
             now() - '2020-03-01'::date AS interval,
             5 > 4 AS bool,
             5 <= 2*3 AnD NOT 4.5 isnull AS "bool 2",
+            EXISTS (SELECT 1 FROM Rooms WHERE id = 12) "bool 3",
             800 - (select 50::money * 6.1)::numeric::bigint AS bigint,
             5 * 1 betWEEN 1 and 6 + 2 AS "betWEEN 2",
             50::money * 6.1 AS "money 2",

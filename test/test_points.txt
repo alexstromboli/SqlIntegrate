@@ -59,7 +59,7 @@
 + row_number
 + coalesce
 + all, any
-- exists
++ exists
 + unary minus
 + between
 + select asterisk

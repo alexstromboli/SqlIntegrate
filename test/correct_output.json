@@ -985,6 +985,12 @@
               }
             },
             {
+              "Name": "bool 3",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
               "Name": "bigint",
               "SqlType": {
                 "SqlBaseType": "bigint"
