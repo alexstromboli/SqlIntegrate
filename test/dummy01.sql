@@ -384,7 +384,9 @@ BEGIN
             now() - '2020-03-01'::date AS interval,
             5 > 4 AS bool,
             5 <= 2*3 AnD NOT 4.5 isnull AS "bool 2",
-            800 - (select 50::money * 6.1)::numeric::bigint AS bigint
+            800 - (select 50::money * 6.1)::numeric::bigint AS bigint,
+            (with rooms as (select id::bigint as name from rooms order by id) select array_agg(name) from rooms)[2],     -- array_agg bigint
+            (select array_agg(name) from rooms)[2] array_agg_2     -- array_agg_2 varchar
         ;
 
     OPEN nulls FOR

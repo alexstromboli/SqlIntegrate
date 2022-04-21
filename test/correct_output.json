@@ -983,6 +983,18 @@
               "SqlType": {
                 "SqlBaseType": "bigint"
               }
+            },
+            {
+              "Name": "array_agg",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "array_agg_2",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
             }
           ]
         },
