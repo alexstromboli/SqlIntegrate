@@ -28,14 +28,14 @@
 
 + arrays
 + - literal
-- - unnest
-- - - in select
-- - - in from
++ - unnest
++ - - in select
++ - - in from
 - - array(select)
-- - type cast
++ - type cast
 - - 'inout' arguments
 - - array_agg
-- - take item by index
++ - take item by index
 
 - aggregates
 + expression types
@@ -48,7 +48,7 @@
 - - items' default names
 
 - case
-- - expression
++ - expression
 - - instruction
 
 + null, not null, is true, etc

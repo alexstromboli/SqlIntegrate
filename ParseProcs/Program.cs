@@ -651,7 +651,7 @@ namespace ParseProcs
 						// PInteger must be or-ed after PDecimal
 						.Or (PInteger.SqlToken ().ProduceType (PSqlType.Int))
 						.Or (PBooleanLiteral.SqlToken ().ProduceType (PSqlType.Bool))
-						.Or (PSingleQuotedString.SqlToken ().ProduceType (PSqlType.Text))
+						.Or (PSingleQuotedString.SqlToken ().ProduceType (PSqlType.VarChar))
 						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
 						.Or (PFunctionCallST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
@@ -803,9 +803,9 @@ namespace ParseProcs
 						.Or (PBinaryDisjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
 							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Text))))
+							(l, r) => rc => new NamedTyped (PSqlType.VarChar))))
 						.Or (PBetweenOperatorST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Between, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Text), true)))
+							(l, r) => rc => new NamedTyped (PSqlType.Bool), true)))
 				;
 
 			var PPolynomST =
@@ -1481,7 +1481,7 @@ done
 			TestExpr ("(5+4)*8", PSqlType.Int);
 			TestExpr ("150-(5+4)::smallint*8", PSqlType.Int);
 			TestExpr ("150-(5+4)::bigint*8", PSqlType.BigInt);
-			TestExpr ("(150-(5+4)::smallint*8)||'tail'||'_more'", PSqlType.Text);
+			TestExpr ("(150-(5+4)::smallint*8)||'tail'||'_more'", PSqlType.VarChar);
 			TestExpr ("''::interval+''::date", PSqlType.Timestamp);
 			TestExpr ("'irrelevant'::date+'nonsense'::interval", PSqlType.Timestamp);
 			TestExpr ("'irrelevant'::date+'nonsense'::time", PSqlType.Timestamp);
@@ -1497,7 +1497,7 @@ done
 			TestExpr ("6*(2+3) betWEEN 1 and 6", PSqlType.Bool);
 			TestExpr ("true and 6*(2+3) betWEEN 1 and 6 and 6>5 or (5=2+9)", PSqlType.Bool);
 
-			TestExpr ("case when 6 * ( 2 + 3 ) betWEEN 1 and 6 then 'test' else null end", PSqlType.Text);
+			TestExpr ("case when 6 * ( 2 + 3 ) betWEEN 1 and 6 then 'test' else null end", PSqlType.VarChar);
 
 			TestExpr ("a.b.c::bigint", PSqlType.BigInt);		// test irrelevance of the left part of a type cast
 			TestExpr ("('{6, 9, 3}'::int[])[1]", PSqlType.Int);		// test taking an array item

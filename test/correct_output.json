@@ -99,13 +99,13 @@
             {
               "Name": "w",
               "SqlType": {
-                "SqlBaseType": "text"
+                "SqlBaseType": "varchar"
               }
             },
             {
               "Name": "qw",
               "SqlType": {
-                "SqlBaseType": "text"
+                "SqlBaseType": "varchar"
               }
             }
           ]
@@ -165,7 +165,7 @@
             {
               "Name": "title",
               "SqlType": {
-                "SqlBaseType": "text"
+                "SqlBaseType": "varchar"
               }
             },
             {
@@ -1010,6 +1010,12 @@
             },
             {
               "Name": "array_agg_2",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "case",
               "SqlType": {
                 "SqlBaseType": "varchar"
               }

@@ -66,7 +66,7 @@ namespace ParseProcs
 
 			if (Operator == "->>" || Operator == "#>>")
 			{
-				return PSqlType.Text;
+				return PSqlType.VarChar;
 			}
 
 			if (Operator == "->" || Operator == "#>")
@@ -78,7 +78,7 @@ namespace ParseProcs
 			    || Left.IsText && Right.IsNumber)
 			{
 				return Operator == "||"
-					? PSqlType.Text
+					? PSqlType.VarChar
 					: PSqlType.Int;
 			}
 
