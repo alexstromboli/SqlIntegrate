@@ -6,7 +6,7 @@
 + - type casts
 + - value literals
 
-- types include
++ types include
 + - arrays
 + - lengths
 
@@ -16,14 +16,14 @@
 - - select
 - - function
 - - values
-- - unnest
++ - unnest
 
 + comment under 'open'
 - combinations of select (union, etc)
-- joins (inner, cross, etc)
++ joins (inner, cross, etc)
 - conflicts between names
 - - table names
-- - aliases
++ - aliases
 + - cte names
 
 + arrays
@@ -34,7 +34,7 @@
 - - array(select)
 + - type cast
 - - 'inout' arguments
-- - array_agg
++ - array_agg
 + - take item by index
 
 - aggregates
@@ -44,8 +44,8 @@
 
 + aliases
 + - 'as' or direct
-- - keywords
-- - items' default names
++ - keywords
++ - items' default names
 
 - case
 + - expression
@@ -56,14 +56,14 @@
 + functions, builtin or custom
 - distinct, distinct on
 + select as expression
-- row_number
++ row_number
 + coalesce
 + all, any
 - exists
 + unary minus
 + between
-- select asterisk
-- - with qualifier
++ select asterisk
++ - with qualifier
 - select into
 
 - insert

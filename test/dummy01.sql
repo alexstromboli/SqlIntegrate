@@ -64,14 +64,25 @@ INSERT INTO Own VALUES ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 20);
 INSERT INTO Own VALUES ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 2);
 
 -- DROP PROCEDURE Persons_GetAll;
-CREATE PROCEDURE Persons_GetAll (INOUT Users refcursor)
+CREATE PROCEDURE Persons_GetAll (INOUT Users refcursor, INOUT ownership refcursor)
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
     OPEN Users FOR
-    SELECT  ROW_NUMBER() OVER (ORDER BY id) AS num,
+    SELECT  ROW_NUMBER() OVER (ORDER BY dob, lastname) AS num,
             *
-    FROM Persons
+    FROM ext.Persons
+    ORDER BY id
+    ;
+
+    OPEN ownership FOR
+    SELECT  P.lastname,
+            CASE WHEN VALUES.id NOTNULL THEN ROW_NUMBER ( /* number rooms for each owner */ ) OVER (PARTITION BY P.id ORDER BY VALUES.id) END num,
+            VALUES.*
+    FROM ext.Persons AS P
+        LEFT JOIN Own ON Own.id_person = P.id
+        LEFT JOIN Rooms VALUES ON VALUES.id = Own.id_room
+    ORDER BY P.lastname
     ;
 END;
 $$;

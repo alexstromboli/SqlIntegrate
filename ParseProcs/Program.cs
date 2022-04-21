@@ -528,7 +528,7 @@ namespace ParseProcs
 			var PBinaryMatchingOperatorsST = SpracheUtils.AnyTokenST (
 				"is"
 			);
-			var PNullMatchingOperatorsST = SpracheUtils.AnyTokenST ("isnull", "not null");
+			var PNullMatchingOperatorsST = SpracheUtils.AnyTokenST ("isnull", "notnull");
 
 			var PNegationST = SpracheUtils.AnyTokenST ("not");
 			var PBinaryConjunctionST = SpracheUtils.AnyTokenST ("and");
@@ -745,7 +745,7 @@ namespace ParseProcs
 					.Or (
 						from case_c in GetCase (PExpressionRefST.Get, PExpressionRefST.Get)
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
-							case_c.ElseC.Get ()?.GetResult (rc).Name ?? case_c.CaseH,
+							case_c.ElseC.GetOrDefault ()?.GetResult (rc).Name ?? case_c.CaseH,
 							case_c.Branches.First ().GetResult (rc).Type
 						))
 					)

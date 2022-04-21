@@ -1213,6 +1213,13 @@
             "SqlBaseType": "refcursor"
           },
           "IsOut": true
+        },
+        {
+          "Name": "ownership",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
         }
       ],
       "ResultSets": [
@@ -1260,6 +1267,43 @@
               "Name": "effect",
               "SqlType": {
                 "SqlBaseType": "int"
+              }
+            }
+          ]
+        },
+        {
+          "Name": "ownership",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "p.lastname",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "num",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "id",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "name",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "extents",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
               }
             }
           ]
