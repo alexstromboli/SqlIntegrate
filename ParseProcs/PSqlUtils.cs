@@ -82,14 +82,10 @@ namespace ParseProcs
 					: PSqlType.Int;
 			}
 
-			if (Left.IsDate && Right.IsTimeSpan)
+			if (Left.IsDate && Right.IsTimeSpan
+			    || Left.IsTimeSpan && Right.IsDate)
 			{
-				return Left;
-			}
-
-			if (Left.IsTimeSpan && Right.IsDate)
-			{
-				return Right;
+				return PSqlType.Timestamp;
 			}
 
 			if (Left.IsTimeSpan && Right.IsTimeSpan)

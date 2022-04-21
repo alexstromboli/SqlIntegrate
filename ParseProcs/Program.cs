@@ -1482,9 +1482,9 @@ done
 			TestExpr ("150-(5+4)::smallint*8", PSqlType.Int);
 			TestExpr ("150-(5+4)::bigint*8", PSqlType.BigInt);
 			TestExpr ("(150-(5+4)::smallint*8)||'tail'||'_more'", PSqlType.Text);
-			TestExpr ("''::interval+''::date", PSqlType.Date);
-			TestExpr ("'irrelevant'::date+'nonsense'::interval", PSqlType.Date);
-			TestExpr ("'irrelevant'::date+'nonsense'::time", PSqlType.Date);
+			TestExpr ("''::interval+''::date", PSqlType.Timestamp);
+			TestExpr ("'irrelevant'::date+'nonsense'::interval", PSqlType.Timestamp);
+			TestExpr ("'irrelevant'::date+'nonsense'::time", PSqlType.Timestamp);
 			TestExpr ("'irrelevant'::date-'nonsense'::date", PSqlType.Interval);
 			TestExpr ("5>6", PSqlType.Bool);
 			TestExpr ("5<=6", PSqlType.Bool);

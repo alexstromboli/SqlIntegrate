@@ -186,232 +186,6 @@
     },
     {
       "Schema": "USER",
-      "Name": "get_literals",
-      "Arguments": [
-        {
-          "Name": "result",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
-          "IsOut": true
-        },
-        {
-          "Name": "nulls",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
-          "IsOut": true
-        },
-        {
-          "Name": "nulled_arrays",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
-          "IsOut": true
-        }
-      ],
-      "ResultSets": [
-        {
-          "Name": "result",
-          "Comments": [],
-          "Columns": [
-            {
-              "Name": "int",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
-            },
-            {
-              "Name": "numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
-            },
-            {
-              "Name": "numeric_e_neg",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
-            },
-            {
-              "Name": "numeric_e_pos",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
-            },
-            {
-              "Name": "numeric_e_def",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
-            },
-            {
-              "Name": "real",
-              "SqlType": {
-                "SqlBaseType": "real"
-              }
-            },
-            {
-              "Name": "float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
-            },
-            {
-              "Name": "money",
-              "SqlType": {
-                "SqlBaseType": "money"
-              }
-            },
-            {
-              "Name": "varchar",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
-            },
-            {
-              "Name": "bool",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
-            }
-          ]
-        },
-        {
-          "Name": "nulls",
-          "Comments": [],
-          "Columns": [
-            {
-              "Name": "int",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
-            },
-            {
-              "Name": "numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
-            },
-            {
-              "Name": "float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
-            },
-            {
-              "Name": "real",
-              "SqlType": {
-                "SqlBaseType": "real"
-              }
-            },
-            {
-              "Name": "bigint",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
-            },
-            {
-              "Name": "smallint",
-              "SqlType": {
-                "SqlBaseType": "smallint"
-              }
-            },
-            {
-              "Name": "money",
-              "SqlType": {
-                "SqlBaseType": "money"
-              }
-            },
-            {
-              "Name": "varchar",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
-            },
-            {
-              "Name": "uuid",
-              "SqlType": {
-                "SqlBaseType": "uuid"
-              }
-            },
-            {
-              "Name": "timestamp",
-              "SqlType": {
-                "SqlBaseType": "timestamp"
-              }
-            },
-            {
-              "Name": "date",
-              "SqlType": {
-                "SqlBaseType": "date"
-              }
-            },
-            {
-              "Name": "bool",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
-            },
-            {
-              "Name": "coalesce_first",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
-            },
-            {
-              "Name": "coalesce_second",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
-            }
-          ]
-        },
-        {
-          "Name": "nulled_arrays",
-          "Comments": [],
-          "Columns": [
-            {
-              "Name": "int",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
-            },
-            {
-              "Name": "numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal",
-                "IsArray": true
-              }
-            },
-            {
-              "Name": "float",
-              "SqlType": {
-                "SqlBaseType": "float",
-                "IsArray": true
-              }
-            },
-            {
-              "Name": "uuid",
-              "SqlType": {
-                "SqlBaseType": "uuid",
-                "IsArray": true
-              }
-            },
-            {
-              "Name": "bool",
-              "SqlType": {
-                "SqlBaseType": "bool",
-                "IsArray": true
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "Schema": "USER",
       "Name": "get_numeric_types_math",
       "Arguments": [
         {
@@ -1052,6 +826,293 @@
               "Name": "effect",
               "SqlType": {
                 "SqlBaseType": "int"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "get_value_types",
+      "Arguments": [
+        {
+          "Name": "result",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "expressions 2",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "nulls",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "nulled_arrays",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "result",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "int",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "numeric_e_neg",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "numeric_e_pos",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "numeric_e_def",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "real",
+              "SqlType": {
+                "SqlBaseType": "real"
+              }
+            },
+            {
+              "Name": "float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "money",
+              "SqlType": {
+                "SqlBaseType": "money"
+              }
+            },
+            {
+              "Name": "varchar",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "bool",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            }
+          ]
+        },
+        {
+          "Name": "expressions 2",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "timestamptz",
+              "SqlType": {
+                "SqlBaseType": "timestamp with time zone"
+              }
+            },
+            {
+              "Name": "money",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "timestamp 2",
+              "SqlType": {
+                "SqlBaseType": "timestamp"
+              }
+            },
+            {
+              "Name": "timestamp 3",
+              "SqlType": {
+                "SqlBaseType": "timestamp"
+              }
+            },
+            {
+              "Name": "interval",
+              "SqlType": {
+                "SqlBaseType": "interval"
+              }
+            },
+            {
+              "Name": "bool",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "bool 2",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "bigint",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            }
+          ]
+        },
+        {
+          "Name": "nulls",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "int",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            },
+            {
+              "Name": "float",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "real",
+              "SqlType": {
+                "SqlBaseType": "real"
+              }
+            },
+            {
+              "Name": "bigint",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "smallint",
+              "SqlType": {
+                "SqlBaseType": "smallint"
+              }
+            },
+            {
+              "Name": "money",
+              "SqlType": {
+                "SqlBaseType": "money"
+              }
+            },
+            {
+              "Name": "varchar",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "uuid",
+              "SqlType": {
+                "SqlBaseType": "uuid"
+              }
+            },
+            {
+              "Name": "timestamp",
+              "SqlType": {
+                "SqlBaseType": "timestamp"
+              }
+            },
+            {
+              "Name": "date",
+              "SqlType": {
+                "SqlBaseType": "date"
+              }
+            },
+            {
+              "Name": "bool",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "coalesce_first",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "coalesce_second",
+              "SqlType": {
+                "SqlBaseType": "decimal"
+              }
+            }
+          ]
+        },
+        {
+          "Name": "nulled_arrays",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "int",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "numeric",
+              "SqlType": {
+                "SqlBaseType": "decimal",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "float",
+              "SqlType": {
+                "SqlBaseType": "float",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "uuid",
+              "SqlType": {
+                "SqlBaseType": "uuid",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "bool",
+              "SqlType": {
+                "SqlBaseType": "bool",
+                "IsArray": true
               }
             }
           ]

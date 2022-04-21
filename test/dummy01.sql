@@ -352,8 +352,14 @@ BEGIN
 END;
 $$;
 
--- DROP PROCEDURE get_literals;
-CREATE PROCEDURE get_literals (INOUT result refcursor, INOUT nulls refcursor, INOUT nulled_arrays refcursor)
+-- DROP PROCEDURE get_value_types;
+CREATE PROCEDURE get_value_types
+(
+    INOUT result refcursor,
+    INOUT "expressions 2" refcursor,
+    INOUT nulls refcursor,
+    INOUT nulled_arrays refcursor
+)
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
@@ -368,6 +374,17 @@ BEGIN
             .238::money as money,
             'n'::varchar(5) as varchar,
             false as bool
+        ;
+
+    OPEN "expressions 2" FOR
+    SELECT  noW() as timestamptz,
+            ext.SUM(3, 2) as money,
+            '2020-03-01'::date + '14:50'::interval AS "timestamp 2",
+            '2020-03-01'::date + '14:50'::time AS "timestamp 3",
+            now() - '2020-03-01'::date AS interval,
+            5 > 4 AS bool,
+            5 <= 2*3 AnD NOT 4.5 isnull AS "bool 2",
+            800 - (select 50::money * 6.1)::numeric::bigint AS bigint
         ;
 
     OPEN nulls FOR
