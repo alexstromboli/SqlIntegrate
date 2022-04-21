@@ -929,6 +929,12 @@
               "SqlType": {
                 "SqlBaseType": "bool"
               }
+            },
+            {
+              "Name": "owner_sum",
+              "SqlType": {
+                "SqlBaseType": "bigint"
+              }
             }
           ]
         },
@@ -982,6 +988,18 @@
               "Name": "bigint",
               "SqlType": {
                 "SqlBaseType": "bigint"
+              }
+            },
+            {
+              "Name": "between 2",
+              "SqlType": {
+                "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "money 2",
+              "SqlType": {
+                "SqlBaseType": "money"
               }
             },
             {

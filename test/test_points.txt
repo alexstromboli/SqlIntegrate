@@ -3,31 +3,31 @@
 - - arguments
 - - - including 'inout'
 - - variables
-- - type casts
-- - value literals
++ - type casts
++ - value literals
 
 - types include
-- - arrays
-- - lengths
++ - arrays
++ - lengths
 
 - 'from' source types
-- - table
-- - cte
++ - table
++ - cte
 - - select
 - - function
 - - values
 - - unnest
 
-- comment under 'open'
++ comment under 'open'
 - combinations of select (union, etc)
 - joins (inner, cross, etc)
 - conflicts between names
 - - table names
 - - aliases
-- - cte names
++ - cte names
 
-- arrays
-- - literal
++ arrays
++ - literal
 - - unnest
 - - - in select
 - - - in from
@@ -38,12 +38,12 @@
 - - take item by index
 
 - aggregates
-- expression types
-- - precedence
++ expression types
++ - precedence
 - open insert returning
 
-- aliases
-- - 'as' or direct
++ aliases
++ - 'as' or direct
 - - keywords
 - - items' default names
 
@@ -51,17 +51,17 @@
 - - expression
 - - instruction
 
-- null, not null, is true, etc
++ null, not null, is true, etc
 - rowtype
-- functions, builtin or custom
++ functions, builtin or custom
 - distinct, distinct on
-- select as expression
++ select as expression
 - row_number
-- coalesce
-- all, any
++ coalesce
++ all, any
 - exists
-- unary minus
-- between
++ unary minus
++ between
 - select asterisk
 - - with qualifier
 - select into

@@ -362,7 +362,11 @@ CREATE PROCEDURE get_value_types
 )
 LANGUAGE 'plpgsql'
 AS $$
+DECLARE
+    owner_sum bigint;
 BEGIN
+    owner_sum := Sum (100, 200);
+
     OPEN result FOR
     SELECT  2 as int,
             1.5 as numeric,
@@ -373,7 +377,8 @@ BEGIN
             4.::float as float,
             .238::money as money,
             'n'::varchar(5) as varchar,
-            false as bool
+            false as bool,
+            owner_sum
         ;
 
     OPEN "expressions 2" FOR
@@ -385,6 +390,8 @@ BEGIN
             5 > 4 AS bool,
             5 <= 2*3 AnD NOT 4.5 isnull AS "bool 2",
             800 - (select 50::money * 6.1)::numeric::bigint AS bigint,
+            5 * 1 betWEEN 1 and 6 + 2 AS "betWEEN 2",
+            50::money * 6.1 AS "money 2",
             (with rooms as (select id::bigint as name from rooms order by id) select array_agg(name) from rooms)[2],     -- array_agg bigint
             (select array_agg(name) from rooms)[2] array_agg_2     -- array_agg_2 varchar
         ;
