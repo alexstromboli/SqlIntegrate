@@ -1058,6 +1058,27 @@ namespace ParseProcs
 						: null
 				;
 
+			var PDeleteFullST =
+					// delete
+					from cte in PCteTopOptionalST
+					from _1 in SpracheUtils.AnyTokenST ("delete from")
+					from table_name in PQualifiedIdentifierLST
+					from al in PTableAliasClauseOptionalST (null)
+					from _3 in PFromClauseOptionalST
+					from _4 in PWhereClauseOptionalST
+					from returning in
+					(
+						from _1 in SpracheUtils.SqlToken ("returning")
+						from _sel in PSelectListST
+						select _sel
+					).Optional ()
+					select returning.IsDefined
+						? new FullSelectStatement (null,
+							new SelectStatement (returning.Get (),
+								new FromTableExpression (new NamedTableRetriever (table_name), null).ToTrivialArray ()))
+						: null
+				;
+
 			var POpenDatasetST =
 					from kw_open in SpracheUtils.SqlToken ("open")
 					from name in PColumnNameLST
@@ -1071,6 +1092,7 @@ namespace ParseProcs
 					from open in POpenDatasetST
 					from p_select in PSelectFullST
 						.Or (PInsertFullST)
+						.Or (PDeleteFullST)
 					select new DataReturnStatement (open, p_select)
 				;
 
@@ -1179,6 +1201,7 @@ namespace ParseProcs
 										.Or (PSelectFullST.Return (0))
 										.Or (SpracheUtils.SqlToken ("null").Return (0))
 										.Or (PInsertFullST.Return (0))
+										.Or (PDeleteFullST.Return (0))
 										.Or
 										(
 											// update
@@ -1196,17 +1219,6 @@ namespace ParseProcs
 											).CommaDelimitedST ().AtLeastOnce ()
 											from _5 in PFromClauseOptionalST
 											from _6 in PWhereClauseOptionalST
-											select 0
-										)
-										.Or
-										(
-											// delete
-											from cte in PCteTopOptionalST
-											from _1 in SpracheUtils.AnyTokenST ("delete from")
-											from _2 in PQualifiedIdentifierLST
-											from al in PTableAliasClauseOptionalST (null)
-											from _3 in PFromClauseOptionalST
-											from _4 in PWhereClauseOptionalST
 											select 0
 										)
 										.Or

@@ -623,6 +623,12 @@ BEGIN
     FROM ext.Persons
     WHERE not dob is null;
 
+    DELETE FROM Own
+    WHERE id_person = '4ef2fcf9-8f5b-41c3-8127-1a1c464bb10a';
+
+    -- here: add 'delete using'
+    -- use https://stackoverflow.com/questions/5170546/how-do-i-delete-a-fixed-number-of-rows-with-sorting-in-postgresql
+
     /*
     SELECT 'guest' AS cat, DATE_PART('month',dob) * 2 + 1 AS height
     INTO TEMP VoidThings_3
@@ -636,7 +642,8 @@ $$;
 CREATE PROCEDURE get_returning
 (
     INOUT insert_result_1 refcursor,
-    INOUT insert_result_2 refcursor
+    INOUT insert_result_2 refcursor,
+    INOUT delete_result_1 refcursor
 )
 LANGUAGE 'plpgsql'
 AS $$
@@ -645,7 +652,7 @@ BEGIN
     OPEN insert_result_1 FOR
     INSERT INTO VoidThings (category, height)
     VALUES ('guest', 16), ('need', 22), ('empty', 36)
-    RETURNING height, category
+    RETURNING height AS notch, category
     ;
 
     -- insert select
@@ -654,6 +661,12 @@ BEGIN
     SELECT 'need', DATE_PART('month',dob)
     FROM ext.Persons
     WHERE not dob is null
+    RETURNING *
+    ;
+
+    OPEN delete_result_1 FOR
+    DELETE FROM Own
+    WHERE id_person = '4ef2fcf9-8f5b-41c3-8127-1a1c464bb10a'
     RETURNING *
     ;
 END;
