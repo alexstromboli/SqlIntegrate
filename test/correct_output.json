@@ -686,6 +686,70 @@
     },
     {
       "Schema": "USER",
+      "Name": "get_returning",
+      "Arguments": [
+        {
+          "Name": "insert_result_1",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "insert_result_2",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "insert_result_1",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "height",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "category",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            }
+          ]
+        },
+        {
+          "Name": "insert_result_2",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "category",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "height",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "get_scalar",
       "Arguments": [
         {
@@ -1519,6 +1583,12 @@
           ]
         }
       ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "test_loops",
+      "Arguments": [],
+      "ResultSets": []
     },
     {
       "Schema": "ext",

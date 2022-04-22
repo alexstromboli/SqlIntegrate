@@ -40,7 +40,7 @@
 - aggregates
 + expression types
 + - precedence
-- open insert returning
++ open insert returning
 
 + aliases
 + - 'as' or direct
@@ -64,9 +64,9 @@
 + between
 + select asterisk
 + - with qualifier
-- select into
++ select into
 
-- insert
++ insert
 - update
 - delete
 - loops

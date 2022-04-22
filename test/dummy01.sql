@@ -31,6 +31,13 @@ CREATE TABLE Depts
     name varchar(20)
 );
 
+CREATE TABLE VoidThings
+(
+    id serial PRIMARY KEY,
+    category varchar(30),
+    height int
+);
+
 INSERT INTO Depts VALUES (1, null, 'Administration');
 INSERT INTO Depts VALUES (2, 1, 'Operation');
 INSERT INTO Depts VALUES (3, 1, 'Strategy');
@@ -587,6 +594,67 @@ BEGIN
             10 > some(select id from rooms) as t2,
             2 IN (select id from rooms) as t3,
             - 5 - - - - 11 sum  -- no 'as', and unary minuses
+    ;
+END;
+$$;
+
+-- DROP PROCEDURE test_loops;
+CREATE PROCEDURE test_loops ()  -- no parameters
+LANGUAGE 'plpgsql'
+AS $$
+DECLARE
+    VoidThings_2 varchar(20);
+    fake int;
+BEGIN
+    INSERT INTO VoidThings (category, height)
+    VALUES ('empty', 2);
+
+    INSERT INTO VoidThings (category, height)
+    VALUES ('guest', 11), ('need', 10), ('empty', 21);
+
+    INSERT INTO VoidThings (category, height)
+    SELECT 'need', DATE_PART('month',dob)
+    FROM ext.Persons
+    WHERE not dob is null;
+
+    VoidThings_2 := 'dreams';
+    SELECT 'guest' AS cat, DATE_PART('month',dob) * 2 + 1 AS height
+    INTO VoidThings_2       -- here: what var goes here?
+    FROM ext.Persons
+    WHERE not dob is null;
+
+    /*
+    SELECT 'guest' AS cat, DATE_PART('month',dob) * 2 + 1 AS height
+    INTO TEMP VoidThings_3
+    FROM ext.Persons
+    WHERE not dob is null;
+    */
+END;
+$$;
+
+-- DROP PROCEDURE get_returning;
+CREATE PROCEDURE get_returning
+(
+    INOUT insert_result_1 refcursor,
+    INOUT insert_result_2 refcursor
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    -- insert values
+    OPEN insert_result_1 FOR
+    INSERT INTO VoidThings (category, height)
+    VALUES ('guest', 16), ('need', 22), ('empty', 36)
+    RETURNING height, category
+    ;
+
+    -- insert select
+    OPEN insert_result_2 FOR
+    INSERT INTO VoidThings (category, height)
+    SELECT 'need', DATE_PART('month',dob)
+    FROM ext.Persons
+    WHERE not dob is null
+    RETURNING *
     ;
 END;
 $$;
