@@ -1300,6 +1300,12 @@
     },
     {
       "Schema": "USER",
+      "Name": "insert_conflict",
+      "Arguments": [],
+      "ResultSets": []
+    },
+    {
+      "Schema": "USER",
       "Name": "persons_getall",
       "Arguments": [
         {

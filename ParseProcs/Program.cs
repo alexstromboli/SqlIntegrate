@@ -1029,7 +1029,7 @@ namespace ParseProcs
 					from conflict in
 					(
 						from _on in SpracheUtils.AnyTokenST ("on conflict")
-						from trg in PExpressionRefST.Get.InParentsST ()
+						from trg in PExpressionRefST.Get.InParentsST ().Optional ()
 						from _1 in SpracheUtils.SqlToken ("do")
 						from act in SpracheUtils.SqlToken ("nothing").Return (0)
 							.Or (

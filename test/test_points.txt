@@ -70,7 +70,7 @@
 + select into
 
 + insert
-- - insert on conflict
++ - insert on conflict
 - update
 + delete
 + loops

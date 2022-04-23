@@ -3,7 +3,7 @@ CREATE SCHEMA :owner;     -- for test, needs to match the username
 
 CREATE TABLE ext.Persons
 (
-    id uuid,
+    id uuid PRIMARY KEY,
     lastname varchar(50),
     firstname varchar(50),
     dob date,
@@ -715,6 +715,24 @@ BEGIN
     DELETE FROM Own
     WHERE id_person = '4ef2fcf9-8f5b-41c3-8127-1a1c464bb10a'
     RETURNING *
+    ;
+END;
+$$;
+
+-- DROP PROCEDURE insert_conflict;
+CREATE PROCEDURE insert_conflict ()
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Rooms
+    VALUES (15, 'Yukon')
+    ON CONFLICT DO NOTHING
+    ;
+
+    INSERT INTO ext.Persons (id, lastname, firstname, dob, tab_num)
+    VALUES ('8261e6b17b5f07c3bf1925ee434ebcd9', 'Bodoia', 'Mario', '1978-01-09', 1091)
+    ON CONFLICT (id) DO UPDATE
+    SET effect = ext.Persons.effect + 1
     ;
 END;
 $$;
