@@ -422,7 +422,8 @@ namespace ParseProcs
 					from i in Parse.Number.Optional ()
 					from frac in
 					(
-						from p in Parse.Char ('.')
+						from p in Parse.Char ('.').AtLeastOnce ()
+						where p.Count () == 1
 						from f in Parse.Number.Optional ()
 						select p + f.GetOrElse ("")
 					).Optional ()

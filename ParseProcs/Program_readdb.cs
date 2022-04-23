@@ -141,7 +141,7 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 									string Type = ArgTypes[arg.Index];
 									PSqlType SqlType;
 
-									if (Type.StartsWith ("_"))
+									if (Type.StartsWith ("_"))		// here: user pg_catalog.pg_type.typelem for proper item type reference
 									{
 										SqlType = PSqlType.GetForSqlTypeName (Type[1..])?.ArrayType;
 									}

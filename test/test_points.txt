@@ -1,8 +1,8 @@
 - various types
 - - tables
-- - arguments
++ - arguments
 - - - including 'inout'
-- - variables
++ - variables
 + - type casts
 + - value literals
 
@@ -14,7 +14,7 @@
 + - table
 + - cte
 - - select
-- - function
++ - function
 - - values
 + - unnest
 
@@ -31,16 +31,19 @@
 + - unnest
 + - - in select
 + - - in from
-- - array(select)
++ - array(select)
 + - type cast
-- - 'inout' arguments
++ - 'inout' arguments
 + - array_agg
 + - take item by index
+
+- json operators
 
 - aggregates
 + expression types
 + - precedence
 + open insert returning
++ open delete returning
 
 + aliases
 + - 'as' or direct
@@ -49,7 +52,7 @@
 
 - case
 + - expression
-- - instruction
++ - instruction
 
 + null, not null, is true, etc
 - rowtype
@@ -67,7 +70,12 @@
 + select into
 
 + insert
+- - insert on conflict
 - update
-- delete
-- loops
-- if
++ delete
++ loops
++ - for in select
++ - for in x..y
++ - foreach
++ - while
++ if

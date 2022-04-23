@@ -605,6 +605,8 @@ AS $$
 DECLARE
     VoidThings_2 varchar(20);
     fake int;
+    t varchar(20);
+    i int;
 BEGIN
     INSERT INTO VoidThings (category, height)
     VALUES ('empty', 2);
@@ -635,6 +637,51 @@ BEGIN
     FROM ext.Persons
     WHERE not dob is null;
     */
+
+    FOR t IN SELECT * FROM json_array_elements_text('["barber", "plumber"]')
+    LOOP
+        FOR i IN 45..54 BY 3
+        LOOP
+            INSERT INTO VoidThings (category, height)
+            VALUES (t, i);
+        END LOOP;
+
+        FOR i IN REVERSE 81..78
+        LOOP
+            INSERT INTO VoidThings (category, height)
+            VALUES (t || '_rev', i);
+        END LOOP;
+    END LOOP;
+
+    FOREACH i IN ARRAY array[21, 22, 23, 24]
+    LOOP
+        CASE WHEN i <= 23 THEN
+                INSERT INTO VoidThings (category, height)
+                VALUES ('foreach-case', i);
+            WHEN i BETWEEN 23 AND 24 THEN
+                INSERT INTO VoidThings (category, height)
+                VALUES ('foreach-case-bw', i);
+        END CASE;
+
+        IF i <= 23 THEN
+            INSERT INTO VoidThings (category, height)
+            VALUES ('foreach-if', i);
+        ELSIF i = 24 THEN
+            INSERT INTO VoidThings (category, height)
+            VALUES ('foreach-elsif', i);
+        ELSE
+            INSERT INTO VoidThings (category, height)
+            VALUES ('foreach-else', i);
+        END IF;
+    END LOOP;
+
+    i := 1;
+    WHILE i < 3
+    LOOP
+        i := i + 1;
+        INSERT INTO VoidThings (category, height)
+        VALUES ('trust', i * 11 + 6);
+    END LOOP;
 END;
 $$;
 
