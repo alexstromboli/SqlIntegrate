@@ -96,7 +96,7 @@ namespace ParseProcs
 		public static readonly PSqlType BigInt = Add (typeof (long), "bigint", "bigserial", "int8").SetNumericLevel (NumericOrderLevel.BigInt);
 		public static readonly PSqlType Money = Add (typeof (decimal), "money").SetNumericLevel (NumericOrderLevel.Money);
 		public static readonly PSqlType Decimal = Add (typeof (decimal), "decimal", "numeric").SetNumericLevel (NumericOrderLevel.Decimal);
-		public static readonly PSqlType Real = Add (typeof (float), "real").SetNumericLevel (NumericOrderLevel.Real);
+		public static readonly PSqlType Real = Add (typeof (float), "real", "float4").SetNumericLevel (NumericOrderLevel.Real);
 		public static readonly PSqlType Float = Add (typeof (double), "float", "double precision").SetNumericLevel (NumericOrderLevel.Float);
 
 		public static readonly PSqlType Json = Add (typeof (string), "json");

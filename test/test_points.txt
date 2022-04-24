@@ -15,11 +15,11 @@
 + - cte
 - - select
 + - function
-- - values
++ - values
 + - unnest
 
 + comment under 'open'
-- combinations of select (union, etc)
++ combinations of select (union, etc)
 + joins (inner, cross, etc)
 - conflicts between names
 - - table names
@@ -39,7 +39,7 @@
 
 - json operators
 
-- aggregates
++ aggregates
 + expression types
 + - precedence
 + open insert returning
@@ -50,7 +50,7 @@
 + - keywords
 + - items' default names
 
-- case
++ case
 + - expression
 + - instruction
 
@@ -71,7 +71,7 @@
 
 + insert
 + - insert on conflict
-- update
++ update
 + delete
 + loops
 + - for in select

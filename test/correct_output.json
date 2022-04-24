@@ -2,6 +2,57 @@
   "Procedures": [
     {
       "Schema": "USER",
+      "Name": "get_aggregates",
+      "Arguments": [
+        {
+          "Name": "coef",
+          "SqlType": {
+            "SqlBaseType": "real"
+          }
+        },
+        {
+          "Name": "insert_result_1",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "insert_result_1",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "filtered.id_agent",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "ext.persons.lastname",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "input",
+              "SqlType": {
+                "SqlBaseType": "float"
+              }
+            },
+            {
+              "Name": "count",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "get_array",
       "Arguments": [
         {

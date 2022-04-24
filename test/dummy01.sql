@@ -638,6 +638,11 @@ BEGIN
     WHERE not dob is null;
     */
 
+    UPDATE ext.Persons
+    SET effect = effect + 1
+    WHERE id = '731B7BD8-AEEA-4A67-80C7-3A9E666F1FDA'
+    ;
+
     FOR t IN SELECT * FROM json_array_elements_text('["barber", "plumber"]')
     LOOP
         FOR i IN 45..54 BY 3
@@ -733,6 +738,58 @@ BEGIN
     VALUES ('8261e6b17b5f07c3bf1925ee434ebcd9', 'Bodoia', 'Mario', '1978-01-09', 1091)
     ON CONFLICT (id) DO UPDATE
     SET effect = ext.Persons.effect + 1
+    ;
+END;
+$$;
+
+-- DROP PROCEDURE get_aggregates;
+CREATE PROCEDURE get_aggregates
+(
+    coef real,
+    INOUT insert_result_1 refcursor
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    -- insert values
+    OPEN insert_result_1 FOR
+    WITH C AS
+    (
+        SELECT  id_person AS id_agent,
+                input
+        FROM
+        ( VALUES
+            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 59),
+            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 40),
+            ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 20),
+            ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 54),
+            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 36)
+        ) transactions (id_person, input)
+
+        UNION ALL
+
+        SELECT  *
+        FROM
+        ( VALUES
+            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 61),
+            ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 28)
+        ) t2
+
+        UNION
+
+        SELECT '731B7BD8-AEEA-4A67-80C7-3A9E666F1FDA', 32
+    ), FILTERED AS
+    (
+        SELECT *
+        FROM C
+    )
+    SELECT  FILTERED.id_agent,
+            ext.Persons.lastname,
+            SUM(FILTERED.input * coef) AS input,
+            COUNT(FILTERED.input)
+    FROM ext.Persons
+        LEFT JOIN FILTERED ON FILTERED.id_agent::uuid = ext.Persons.id
+    GROUP BY ext.Persons.lastname, FILTERED.id_agent
     ;
 END;
 $$;
