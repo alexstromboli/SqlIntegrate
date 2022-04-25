@@ -57,7 +57,7 @@
 + null, not null, is true, etc
 - rowtype
 + functions, builtin or custom
-- distinct, distinct on
++ distinct, distinct on
 + select as expression
 + row_number
 + coalesce

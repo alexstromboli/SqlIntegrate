@@ -756,40 +756,45 @@ BEGIN
     WITH C AS
     (
         SELECT  id_person AS id_agent,
-                input
+                input,
+                date::date
         FROM
         ( VALUES
-            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 59),
-            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 40),
-            ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 20),
-            ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 54),
-            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 36)
-        ) transactions (id_person, input)
+            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 59, '2020-09-03'),
+            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 40, '2021-07-06'),
+            ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 20, '2022-05-09'),
+            ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 54, '2020-03-12'),
+            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 36, '2021-01-15')
+        ) transactions (id_person, input, date)
 
         UNION ALL
 
         SELECT  *
         FROM
         ( VALUES
-            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 61),
-            ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 28)
+            ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 61, '2022-02-18'::date),
+            ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 28, '2020-04-21'::date)
         ) t2
 
         UNION
 
-        SELECT '731B7BD8-AEEA-4A67-80C7-3A9E666F1FDA', 32
+        SELECT '731B7BD8-AEEA-4A67-80C7-3A9E666F1FDA', 32, '2021-10-24'::date
     ), FILTERED AS
     (
         SELECT *
         FROM C
     )
-    SELECT  FILTERED.id_agent,
+    SELECT DISTINCT ON (ext.Persons.id)
+            FILTERED.id_agent,
             ext.Persons.lastname,
             SUM(FILTERED.input * coef) AS input,
-            COUNT(FILTERED.input)
+            COUNT(FILTERED.input),
+            FIRST.date "first"
     FROM ext.Persons
         LEFT JOIN FILTERED ON FILTERED.id_agent::uuid = ext.Persons.id
-    GROUP BY ext.Persons.lastname, FILTERED.id_agent
+        LEFT JOIN FILTERED FIRST ON FIRST.id_agent::uuid = ext.Persons.id
+    GROUP BY ext.Persons.id, "first", ext.Persons.lastname, FILTERED.id_agent
+    ORDER BY ext.Persons.id
     ;
 END;
 $$;
