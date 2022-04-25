@@ -10,14 +10,20 @@ namespace ParseProcs
 
 		class ColumnReferences
 		{
-			// column name
-			// (table name or alias).(column name)
-			// (schema name).(table name).(column name)
-			public NamedTyped[] Columns;
+			/*
+			keys:
+			- column name
+			- (table name or alias).(column name)
+			- (schema name).(table name).(column name)
+			*/
+			public Dictionary<string, NamedTyped> Columns;
 
-			// column name
-			// (table name or alias).*
-			// (schema name).(table name).*
+			/*
+			keys:
+			- *
+			- (table name or alias).*
+			- (schema name).(table name).*
+			*/
 			public Dictionary<string, NamedTyped[]> Asterisks;
 		}
 
@@ -44,7 +50,7 @@ namespace ParseProcs
 
 		public virtual ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
 		{
-			List<NamedTyped> Result = new List<NamedTyped> (Columns);
+			Dictionary<string, NamedTyped> AvailableColumns = new Dictionary<string, NamedTyped> (ColumnsDict);
 			Dictionary<string, NamedTyped[]> Asterisks = new Dictionary<string, NamedTyped[]> ();
 
 			var ColumnsArray = Columns.ToArray ();
@@ -52,13 +58,16 @@ namespace ParseProcs
 
 			if (Alias != null)
 			{
-				Result.AddRange (Columns.Select (c => new NamedTyped (Alias + "." + c.Name, c.Type)));
+				foreach (var c in Columns)
+				{
+					AvailableColumns[Alias + "." + c.Name] = c;
+				}
 				Asterisks[Alias + ".*"] = ColumnsArray;
 			}
 
 			return new ITable.ColumnReferences
 			{
-				Columns = Result.ToArray (),
+				Columns = AvailableColumns,
 				Asterisks = Asterisks
 			};
 		}
@@ -122,23 +131,29 @@ namespace ParseProcs
 				return BaseResult;
 			}
 
-			List<NamedTyped> AllColumns = new List<NamedTyped> (BaseResult.Columns);
+			var AvailableColumns = BaseResult.Columns;
 			Dictionary<string, NamedTyped[]> Asterisks = BaseResult.Asterisks;
 
 			bool CanMissSchema = !ModuleContext.SchemaOrder.TakeWhile (s => s != Schema).Any (s => ModuleContext.TablesDict.ContainsKey (s + "." + Name));
 
 			if (CanMissSchema)
 			{
-				AllColumns.AddRange (Columns.Select (c => new NamedTyped (Name + "." + c.Name, c.Type)));
+				foreach (var c in Columns)
+				{
+					AvailableColumns[Name + "." + c.Name] = c;
+				}
 				Asterisks[Name + ".*"] = Asterisks["*"];
 			}
 
-			AllColumns.AddRange (Columns.Select (c => new NamedTyped (Schema + "." + Name + "." + c.Name, c.Type)));
+			foreach (var c in Columns)
+			{
+				AvailableColumns[Schema + "." + Name + "." + c.Name] = c;
+			}
 			Asterisks[Schema + "." + Name + ".*"] = Asterisks["*"];
 
 			return new ITable.ColumnReferences
 			{
-				Columns = AllColumns.ToArray (),
+				Columns = AvailableColumns,
 				Asterisks = Asterisks
 			};
 		}

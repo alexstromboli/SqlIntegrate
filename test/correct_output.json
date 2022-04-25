@@ -24,13 +24,13 @@
           "Comments": [],
           "Columns": [
             {
-              "Name": "filtered.id_agent",
+              "Name": "id_agent",
               "SqlType": {
                 "SqlBaseType": "varchar"
               }
             },
             {
-              "Name": "ext.persons.lastname",
+              "Name": "lastname",
               "SqlType": {
                 "SqlBaseType": "varchar"
               }
@@ -1428,7 +1428,7 @@
           "Comments": [],
           "Columns": [
             {
-              "Name": "p.lastname",
+              "Name": "lastname",
               "SqlType": {
                 "SqlBaseType": "varchar"
               }
@@ -1660,6 +1660,45 @@
               "Name": "json",
               "SqlType": {
                 "SqlBaseType": "json"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "test_from_select",
+      "Arguments": [
+        {
+          "Name": "insert_result_1",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "insert_result_1",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "lastname",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "room",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "own",
+              "SqlType": {
+                "SqlBaseType": "varchar"
               }
             }
           ]

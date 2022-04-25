@@ -47,14 +47,19 @@ namespace ParseProcs
 				string Name = Alias ?? Columns[0].Name;
 				PSqlType Type = Columns[0].Type;
 				NamedTyped Column = new NamedTyped (Name, Type);
-				NamedTyped[] ColumnsArray = { Column, new NamedTyped (Name + "." + Name, Type) };
+				var ColumnsArray = Column.ToTrivialArray ();
+
 				return new ITable.ColumnReferences
 				{
-					Columns = ColumnsArray,
+					Columns = new Dictionary<string, NamedTyped>
+					{
+						[Name] = Column,
+						[Name + "." + Name] = Column
+					},
 					Asterisks = new Dictionary<string, NamedTyped[]>
 					{
-						["*"] = Column.ToTrivialArray (),
-						[Name + ".*"] = Column.ToTrivialArray ()
+						["*"] = ColumnsArray,
+						[Name + ".*"] = ColumnsArray
 					}
 				};
 			}

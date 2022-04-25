@@ -189,7 +189,9 @@ namespace ParseProcs
 
 		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
 		{
-			List<NamedTyped> AllColumns = new List<NamedTyped> ();
+			// name (simple or qualified) to NamedTyped
+			List<Tuple<string, NamedTyped>> AllColumns = new List<Tuple<string, NamedTyped>> ();
+
 			Dictionary<string, IReadOnlyList<NamedTyped>> Asterisks =
 				new Dictionary<string, IReadOnlyList<NamedTyped>> ();
 			List<NamedTyped> AllAsteriskedEntries = new List<NamedTyped> ();
@@ -200,7 +202,7 @@ namespace ParseProcs
 				{
 					ITable Table = f.TableRetriever.GetTable (Context);
 					var Refs = Table.GetAllColumnReferences (Context.ModuleContext, f.Alias);
-					AllColumns.AddRange (Refs.Columns);
+					AllColumns.AddRange (Refs.Columns.Select (p => new Tuple<string, NamedTyped> (p.Key, p.Value)));
 
 					foreach (var ast in Refs.Asterisks)
 					{
@@ -220,10 +222,10 @@ namespace ParseProcs
 			// found immediate columns
 			// + variables
 			var AllNamedDict = AllColumns
-				.Concat (Context.ModuleContext.VariablesDict.Values)
-				.ToLookup (c => c.Name)
+				.Concat (Context.ModuleContext.VariablesDict.Select (p => new Tuple<string, NamedTyped> (p.Key, p.Value)))
+				.ToLookup (c => c.Item1)
 				.Where (g => g.Count () == 1)
-				.ToDictionary (g => g.Key, g => g.First ())
+				.ToDictionary (g => g.Key, g => g.First ().Item2)
 				;
 
 			Asterisks["*"] = AllAsteriskedEntries
