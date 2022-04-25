@@ -793,3 +793,30 @@ BEGIN
     ;
 END;
 $$;
+
+-- DROP PROCEDURE test_from_select;
+CREATE PROCEDURE test_from_select
+(
+    INOUT insert_result_1 refcursor
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN insert_result_1 FOR
+    SELECT  C.lastname,
+            C.room,
+            CASE WHEN OWN.id_person NOTNULL THEN 'x' END own
+    FROM Own
+        RIGHT JOIN
+        (
+            SELECT  P.id id_person,
+                    P.lastname,
+                    R.id id_room,
+                    R.name room
+            FROM ext.Persons AS P
+                CROSS JOIN Rooms R
+        ) C ON C.id_person = Own.id_person
+                    AND C.id_room = Own.id_room
+    ;
+END;
+$$;

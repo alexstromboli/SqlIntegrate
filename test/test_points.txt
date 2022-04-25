@@ -10,10 +10,10 @@
 + - arrays
 + - lengths
 
-- 'from' source types
++ 'from' source types
 + - table
 + - cte
-- - select
++ - select
 + - function
 + - values
 + - unnest
@@ -21,8 +21,8 @@
 + comment under 'open'
 + combinations of select (union, etc)
 + joins (inner, cross, etc)
-- conflicts between names
-- - table names
++ conflicts between names
++ - table names
 + - aliases
 + - cte names
 
