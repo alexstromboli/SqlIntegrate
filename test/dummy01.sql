@@ -416,6 +416,7 @@ BEGIN
             false||'_y' "varchar 3",
             800 - (select 50::money * 6.1)::numeric::bigint AS bigint,
             5 * 1 betWEEN 1 and 6 + 2 AS "betWEEN 2",
+            'ABC'::bytea loop,
             50::money * 6.1 AS "money 2",
             (with rooms as (select id::bigint as name from rooms order by id) select array_agg(name) from rooms)[2],     -- array_agg bigint
             (select array_agg(name) from rooms)[2] array_agg_2,     -- array_agg_2 varchar
@@ -845,6 +846,7 @@ CREATE PROCEDURE test_out
     INOUT p_timestamp_arr timestamp[],
     INOUT p_varchar varchar(3),
     INOUT p_varchar_arr varchar(3)[],
+    INOUT p_bytea bytea,
     INOUT result_1 refcursor
 )
 LANGUAGE 'plpgsql'
@@ -864,5 +866,6 @@ BEGIN
     p_timestamp_arr := p_timestamp_arr || array[null, p_timestamp];
     p_varchar := 'TRY';
     p_varchar_arr := p_varchar_arr || array[null, p_varchar];
+    p_bytea := p_bytea || '123'::bytea;
 END;
 $$;

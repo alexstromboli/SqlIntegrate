@@ -1188,6 +1188,12 @@
               }
             },
             {
+              "Name": "loop",
+              "SqlType": {
+                "SqlBaseType": "bytea"
+              }
+            },
+            {
               "Name": "money 2",
               "SqlType": {
                 "SqlBaseType": "money"
@@ -1832,6 +1838,13 @@
           "SqlType": {
             "SqlBaseType": "varchar",
             "IsArray": true
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_bytea",
+          "SqlType": {
+            "SqlBaseType": "bytea"
           },
           "IsOut": true
         },
