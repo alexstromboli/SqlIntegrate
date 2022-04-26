@@ -780,10 +780,11 @@ namespace ParseProcs
 				;
 
 			var PBinaryOperatorsST =
-						PBinaryJsonOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General,
+					PBinaryJsonOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b)))
-						.Or (PBinaryMultiplicationOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.MulDiv,
+						.Or (PBinaryMultiplicationOperatorsST.Select (b => new OperatorProcessor (
+							PSqlOperatorPriority.MulDiv,
 							true,
 							OperatorProcessor.GetForBinaryOperator (b))))
 						.Or (PBinaryAdditionOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.AddSub,
@@ -794,22 +795,25 @@ namespace ParseProcs
 							OperatorProcessor.GetForBinaryOperator (b))))
 						.Or (PBinaryComparisonOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.Comparison, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
+							OperatorProcessor.ProduceType (PSqlType.Bool))))
 						.Or (PBinaryIncludeOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.In, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
-						.Or (PBinaryRangeOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Like, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
-						.Or (PBinaryMatchingOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Is, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
+							OperatorProcessor.ProduceType (PSqlType.Bool))))
+						.Or (PBinaryRangeOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Like,
+							true,
+							OperatorProcessor.ProduceType (PSqlType.Bool))))
+						.Or (PBinaryMatchingOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Is,
+							true,
+							OperatorProcessor.ProduceType (PSqlType.Bool))))
 						.Or (PBinaryConjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.And, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Bool), IsAnd: true)))
+							OperatorProcessor.ProduceType (PSqlType.Bool), IsAnd: true)))
 						.Or (PBinaryDisjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
-						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General, true,
-							(l, r) => rc => new NamedTyped (PSqlType.VarChar))))
+							OperatorProcessor.ProduceType (PSqlType.Bool))))
+						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (
+							PSqlOperatorPriority.General, true,
+							OperatorProcessor.GetForBinaryOperator (b))))
 						.Or (PBetweenOperatorST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Between, true,
-							(l, r) => rc => new NamedTyped (PSqlType.Bool), true)))
+							OperatorProcessor.ProduceType (PSqlType.Bool), true)))
 				;
 
 			var PPolynomST =

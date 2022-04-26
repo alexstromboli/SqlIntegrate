@@ -297,7 +297,10 @@ BEGIN
     SELECT  extents,
             array[null, null, true, false],
             array(with r as (select name from Depts) select distinct * from r) as names,
-            '{5, 8, 2}'::int[] "order"
+            '{5, 8, 2}'::int[] "order",
+            array[7, 3, 1]||12 array_plus_item,
+            array[7, 3, 1] || array[4, 0] array_plus_array,
+            12||array[7, 3, 1] item_plus_array
     FROM Rooms;
 
     OPEN by_person FOR
@@ -408,6 +411,9 @@ BEGIN
             5 > 4 AS bool,
             5 <= 2*3 AnD NOT 4.5 isnull AS "bool 2",
             EXISTS (SELECT 1 FROM Rooms WHERE id = 12) "bool 3",
+            'x' || 'y' "varchar 1",
+            'x_'||true "varchar 2",
+            false||'_y' "varchar 3",
             800 - (select 50::money * 6.1)::numeric::bigint AS bigint,
             5 * 1 betWEEN 1 and 6 + 2 AS "betWEEN 2",
             50::money * 6.1 AS "money 2",

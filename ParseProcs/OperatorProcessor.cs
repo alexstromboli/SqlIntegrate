@@ -46,5 +46,14 @@ namespace ParseProcs
 				return new NamedTyped (PSqlUtils.GetBinaryOperationResultType (Left, Right, Operator));
 			};
 		}
+
+		public static Func<
+			Func<RequestContext, NamedTyped>, // left
+			Func<RequestContext, NamedTyped>, // right (null for unary)
+			Func<RequestContext, NamedTyped> // result
+		> ProduceType (PSqlType Type)
+		{
+			return (l, r) => rc => new NamedTyped (Type);
+		}
 	}
 }

@@ -74,12 +74,27 @@ namespace ParseProcs
 				return Left;
 			}
 
-			if (Left.IsNumber && Right.IsText
-			    || Left.IsText && Right.IsNumber)
+			if (Operator == "||")
 			{
-				return Operator == "||"
-					? PSqlType.VarChar
-					: PSqlType.Int;
+				if (Left.IsArray)
+				{
+					return Left;
+				}
+
+				if (Right.IsArray)
+				{
+					return Right;
+				}
+
+				if (Left.IsText)
+				{
+					return Left;
+				}
+
+				if (Right.IsText)
+				{
+					return Right;
+				}
 			}
 
 			if (Left.IsDate && Right.IsTimeSpan

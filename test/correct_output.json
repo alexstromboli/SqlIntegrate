@@ -115,6 +115,27 @@
                 "SqlBaseType": "int",
                 "IsArray": true
               }
+            },
+            {
+              "Name": "array_plus_item",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "array_plus_array",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
+            },
+            {
+              "Name": "item_plus_array",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
             }
           ]
         },
@@ -1134,6 +1155,24 @@
               "Name": "bool 3",
               "SqlType": {
                 "SqlBaseType": "bool"
+              }
+            },
+            {
+              "Name": "varchar 1",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "varchar 2",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "varchar 3",
+              "SqlType": {
+                "SqlBaseType": "varchar"
               }
             },
             {
