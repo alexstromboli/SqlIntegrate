@@ -11,7 +11,7 @@
           }
         },
         {
-          "Name": "insert_result_1",
+          "Name": "result",
           "SqlType": {
             "SqlBaseType": "refcursor"
           },
@@ -20,7 +20,7 @@
       ],
       "ResultSets": [
         {
-          "Name": "insert_result_1",
+          "Name": "result",
           "Comments": [],
           "Columns": [
             {
@@ -1716,7 +1716,7 @@
       "Name": "test_from_select",
       "Arguments": [
         {
-          "Name": "insert_result_1",
+          "Name": "result",
           "SqlType": {
             "SqlBaseType": "refcursor"
           },
@@ -1725,7 +1725,7 @@
       ],
       "ResultSets": [
         {
-          "Name": "insert_result_1",
+          "Name": "result",
           "Comments": [],
           "Columns": [
             {
@@ -1755,6 +1755,108 @@
       "Name": "test_loops",
       "Arguments": [],
       "ResultSets": []
+    },
+    {
+      "Schema": "USER",
+      "Name": "test_out",
+      "Arguments": [
+        {
+          "Name": "p_int",
+          "SqlType": {
+            "SqlBaseType": "int"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_int_arr",
+          "SqlType": {
+            "SqlBaseType": "int",
+            "IsArray": true
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_bool",
+          "SqlType": {
+            "SqlBaseType": "bool"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_bool_arr",
+          "SqlType": {
+            "SqlBaseType": "bool",
+            "IsArray": true
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_date",
+          "SqlType": {
+            "SqlBaseType": "date"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_date_arr",
+          "SqlType": {
+            "SqlBaseType": "date",
+            "IsArray": true
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_timestamp",
+          "SqlType": {
+            "SqlBaseType": "timestamp"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_timestamp_arr",
+          "SqlType": {
+            "SqlBaseType": "timestamp",
+            "IsArray": true
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_varchar",
+          "SqlType": {
+            "SqlBaseType": "varchar"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_varchar_arr",
+          "SqlType": {
+            "SqlBaseType": "varchar",
+            "IsArray": true
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "result_1",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "result_1",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "in",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "Schema": "ext",

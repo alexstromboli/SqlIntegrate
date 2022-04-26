@@ -752,13 +752,13 @@ $$;
 CREATE PROCEDURE get_aggregates
 (
     coef real,
-    INOUT insert_result_1 refcursor
+    INOUT result refcursor
 )
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
     -- insert values
-    OPEN insert_result_1 FOR
+    OPEN result FOR
     WITH C AS
     (
         SELECT  id_person AS id_agent,
@@ -808,12 +808,12 @@ $$;
 -- DROP PROCEDURE test_from_select;
 CREATE PROCEDURE test_from_select
 (
-    INOUT insert_result_1 refcursor
+    INOUT result refcursor
 )
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
-    OPEN insert_result_1 FOR
+    OPEN result FOR
     SELECT  C.lastname,
             C.room,
             CASE WHEN OWN.id_person NOTNULL THEN 'x' END own
@@ -829,5 +829,40 @@ BEGIN
         ) C ON C.id_person = Own.id_person
                     AND C.id_room = Own.id_room
     ;
+END;
+$$;
+
+-- DROP PROCEDURE test_out;
+CREATE PROCEDURE test_out
+(
+    INOUT p_int int,
+    INOUT p_int_arr int[],
+    INOUT p_bool bool,
+    INOUT p_bool_arr bool[],
+    INOUT p_date date,
+    INOUT p_date_arr date[],
+    INOUT p_timestamp timestamp,
+    INOUT p_timestamp_arr timestamp[],
+    INOUT p_varchar varchar(3),
+    INOUT p_varchar_arr varchar(3)[],
+    INOUT result_1 refcursor
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    p_int := p_int + 1;
+    p_int_arr := p_int_arr || array[null, -4];
+    p_bool := not p_bool;
+    p_bool_arr := p_bool_arr || array[null, false];
+    p_date := '2022-04-01'::date;
+    p_date_arr := p_date_arr || array[null, p_date];
+
+    OPEN result_1 FOR
+    SELECT 5 "in";
+
+    p_timestamp := '2020-06-19'::timestamp;
+    p_timestamp_arr := p_timestamp_arr || array[null, p_timestamp];
+    p_varchar := 'TRY';
+    p_varchar_arr := p_varchar_arr || array[null, p_varchar];
 END;
 $$;

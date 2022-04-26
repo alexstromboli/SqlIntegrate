@@ -1,7 +1,7 @@
-- various types
-- - tables
++ various types
++ - tables
 + - arguments
-- - - including 'inout'
++ - - including 'inout'
 + - variables
 + - type casts
 + - value literals
