@@ -51,7 +51,7 @@ namespace MakeWrapper
 
 		public override void OnHaveWrapper (Wrapper Wrapper)
 		{
-			Wrapper.Usings.Add ("using Npgsql.NodaTime;");
+			Wrapper.Usings.Add ("using NodaTime;");
 		}
 	}
 }

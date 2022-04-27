@@ -50,7 +50,14 @@ namespace MakeWrapper
 			{
 				Origin = Module,
 				TitleComment = CodeGenerationUtils.AutomaticWarning,
-				Usings = new List<string> { "using System.Collections.Generic;", "using Npgsql;" },
+				Usings = new List<string>
+				{
+					"using System;",
+					"using System.Data;",
+					"using System.Collections.Generic;",
+					"using Npgsql;",
+					"using NpgsqlTypes;"
+				},
 				ClrNamespace = "Generated",
 				TypeMap = TypeMap,
 				Schemata = Module.Procedures
@@ -289,6 +296,14 @@ namespace MakeWrapper
 							{
 								bool UseTransaction = pi.Value.ResultSets.Count > 0;
 
+								if (p.HasResults)
+								{
+									sb.AppendLine (
+											$"{p.ResultClassName} Result = {(p.IsSingleSet ? "null" : "new " + p.ResultClassName + " ()")};"
+										)
+										.AppendLine ();
+								}
+
 								using (UseTransaction
 									       ? sb.UseCurlyBraces ("using (var Tran = Conn.BeginTransaction ())")
 									       : null)
@@ -331,14 +346,6 @@ namespace MakeWrapper
 											}
 
 											sb.AppendLine ($"{oa.Value.CsName} = Cmd.Parameters[{oa.Value.CallParamName}].Value as {oa.Value.ClrType};");
-										}
-
-										if (p.HasResults)
-										{
-											sb.AppendLine ()
-												.AppendLine (
-													$"{p.ResultClassName} Result = {(p.IsSingleSet ? "null" : "new " + p.ResultClassName + " ()")};"
-												);
 										}
 
 										foreach (var Set in p.ResultSets)

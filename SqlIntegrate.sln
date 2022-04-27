@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParseProcs", "ParseProcs\Pa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakeWrapper", "MakeWrapper\MakeWrapper.csproj", "{C51A29A1-777A-4B7A-975B-FDF8F8FCCEEE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TryWrapper", "TryWrapper\TryWrapper.csproj", "{B1877256-F0B9-4B45-9E3E-A9A3B79CDBB9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{C51A29A1-777A-4B7A-975B-FDF8F8FCCEEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C51A29A1-777A-4B7A-975B-FDF8F8FCCEEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C51A29A1-777A-4B7A-975B-FDF8F8FCCEEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1877256-F0B9-4B45-9E3E-A9A3B79CDBB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1877256-F0B9-4B45-9E3E-A9A3B79CDBB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1877256-F0B9-4B45-9E3E-A9A3B79CDBB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1877256-F0B9-4B45-9E3E-A9A3B79CDBB9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
