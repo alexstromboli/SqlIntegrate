@@ -53,14 +53,6 @@ namespace Utils.CodeGeneration
 
 	class IndentedTextBuilder
 	{
-		class VoidBlock : IDisposable
-		{
-			public static VoidBlock Single = new VoidBlock ();
-			public void Dispose ()
-			{
-			}
-		}
-
 		class Block : IDisposable
 		{
 			IndentedTextBuilder Builder;
@@ -217,11 +209,6 @@ namespace Utils.CodeGeneration
 		public IDisposable UseSquareBrackets (bool IncludeOpen = true, int AddedDepth = 1)
 		{
 			return new Block (this, AddedDepth, IncludeOpen ? "[" : null, "]");
-		}
-
-		public IDisposable UseVoidBlock ()
-		{
-			return VoidBlock.Single;
 		}
 	}
 }

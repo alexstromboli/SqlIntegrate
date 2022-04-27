@@ -48,7 +48,7 @@ namespace MakeWrapper
 		}
 	}
 
-	class WrapperProcedureArgument
+	public class WrapperProcedureArgument
 	{
 		public Argument Origin;
 		public string NativeName;
@@ -59,61 +59,72 @@ namespace MakeWrapper
 		public bool IsOut;
 	}
 
-	class Schema
+	public class Wrapper
 	{
-		public class Procedure
+		public class Schema
 		{
-			public class Set
+			public class Procedure
 			{
-				public class Property
+				public class Set
 				{
-					public Column Origin;
-					public string NativeName;
-					public string CsName;
-					public string ClrType;
-					public Func<string, string> ReaderExpression;
+					public class Property
+					{
+						public Column Origin;
+						public string NativeName;
+						public string CsName;
+						public string ClrType;
+						public Func<string, string> ReaderExpression;
+
+						public override string ToString ()
+						{
+							return (CsName ?? NativeName) + " " + ClrType;
+						}
+					}
+
+					public ResultSet Origin;
+					public string CursorName;
+					public string RowCsClassName;
+					public string SetCsTypeName;
+					public string PropertyName;
+					public bool IsSingleRow;
+					public bool IsSingleColumn => Properties.Count == 1;
+					public bool IsScalar => IsSingleRow && IsSingleColumn;
+					public List<Property> Properties;
 
 					public override string ToString ()
 					{
-						return (CsName ?? NativeName) + " " + ClrType;
+						return RowCsClassName;
 					}
 				}
 
-				public ResultSet Origin;
-				public string CursorName;
-				public string RowCsClassName;
-				public string SetCsTypeName;
-				public string PropertyName;
-				public bool IsSingleRow;
-				public bool IsSingleColumn => Properties.Count == 1;
-				public bool IsScalar => IsSingleRow && IsSingleColumn;
-				public List<Property> Properties;
+				public ParseProcs.Datasets.Procedure Origin;
+				public string NativeName;
+				public string CsName;
+				public WrapperProcedureArgument[] Arguments;
+				public string ResultClassName;
+				public List<Set> ResultSets;
+				public bool HasResults => ResultSets.Count > 0;
+				public bool IsSingleSet => ResultSets.Count == 1;
 
 				public override string ToString ()
 				{
-					return RowCsClassName;
+					return ResultClassName;
 				}
 			}
 
-			public ParseProcs.Datasets.Procedure Origin;
 			public string NativeName;
-			public string CsName;
-			public WrapperProcedureArgument[] Arguments;
-			public string ResultClassName;
-			public List<Set> ResultSets;
-			public bool HasResults => ResultSets.Count > 0;
-			public bool IsSingleSet => ResultSets.Count == 1;
-
-			public override string ToString ()
-			{
-				return ResultClassName;
-			}
+			public string CsClassName;
+			public string NameHolderVar;
+			public Procedure[] Procedures;
 		}
 
-		public string NativeName;
-		public string CsClassName;
-		public string NameHolderVar;
-		public Procedure[] Procedures;
+		public Module Origin;
+		public Schema[] Schemata;
+
+		public string TitleComment;
+		public List<string> Usings;
+		public string ClrNamespace;
+		public Dictionary<string, string> TypeMap;
 	}
 
 	partial class Program
@@ -127,13 +138,13 @@ namespace MakeWrapper
 			//
 			foreach (var run in new[]
 			         {
-				         new { UseNodaTime = false, UseSchemaSettings = false, target = "dbproc.cs" },
-				         new { UseNodaTime = false, UseSchemaSettings = true, target = "dbproc_sch.cs" },
-				         new { UseNodaTime = true, UseSchemaSettings = true, target = "dbproc_sch_noda.cs" }
+				         new { UseSchemaSettings = false, target = "dbproc.cs", processors = new CodeProcessor[0] },
+				         new { UseSchemaSettings = true, target = "dbproc_sch.cs", processors = new CodeProcessor[0] },
+				         new { UseSchemaSettings = true, target = "dbproc_sch_noda.cs", processors = new[] { (CodeProcessor)new NodaTimeCodeProcessor () } }
 			         }
 			        )
 			{
-				string Code = GenerateCode (Module, run.UseNodaTime, run.UseSchemaSettings);
+				string Code = GenerateCode (Module, run.UseSchemaSettings, Processors: run.processors);
 				CodeGenerationUtils.EnsureFileContents (run.target, Code);
 			}
 		}

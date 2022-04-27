@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -9,64 +10,62 @@ using Utils.CodeGeneration;
 
 namespace MakeWrapper
 {
+	static class ProcessorUtils
+	{
+		public static CodeProcessor[] Act (this CodeProcessor[] Processors, Action<CodeProcessor> Action)
+		{
+			foreach (var p in Processors)
+			{
+				Action (p);
+			}
+
+			return Processors;
+		}
+	}
+
 	partial class Program
 	{
-		static string GenerateCode (Module Module, bool UseNodaTime, bool UseSchemaSettings)
+		static string GenerateCode (Module Module, bool UseSchemaSettings, params CodeProcessor[] Processors)
 		{
+			Processors.Act (p => p.OnHaveModule (Module));
+
 			// build type map
 			// Postgres type name to C# type name
 			// including arrays
-			Dictionary<string, string> CastToDict = new Dictionary<string, string> ();
+			Dictionary<string, string> TypeMap = new Dictionary<string, string> ();
 			foreach (var p in PSqlType.Map.Where (p => !p.Value.IsArray))
 			{
 				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
 				{
-					CastToDict[p.Key] = ct.CsNullableName;
-					CastToDict[p.Key + "[]"] = ct.CsNullableName + "[]";
+					TypeMap[p.Key] = ct.CsNullableName;
+					TypeMap[p.Key + "[]"] = ct.CsNullableName + "[]";
 				}
 			}
-			CastToDict["bytea"] = "byte[]";
+			TypeMap["bytea"] = "byte[]";
 
-			if (UseNodaTime)
-			{
-				foreach (var p in PSqlType.Map.Where (p => !p.Value.IsArray))
-				{
-					if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
-					{
-						if (p.Value.IsDate)
-						{
-							CastToDict[p.Key] = "Instant?";
-							CastToDict[p.Key + "[]"] = "Instant?[]";
-						}
-						else if (p.Value.IsTimeSpan)
-						{
-							CastToDict[p.Key] = "LocalTime?";
-							CastToDict[p.Key + "[]"] = "LocalTime?[]";
-						}
-					}
-				}
-
-				CastToDict["date"] = "LocalDate?";
-				CastToDict["date[]"] = "LocalDate?[]";
-
-				CastToDict["interval"] = "Duration?";
-				CastToDict["interval[]"] = "Duration?[]";
-			}
+			Processors.Act (p => p.OnHaveTypeMap (TypeMap));
 
 			//
-			Schema[] Schemas = Module.Procedures
+			Wrapper Wrapper = new Wrapper
+			{
+				Origin = Module,
+				TitleComment = CodeGenerationUtils.AutomaticWarning,
+				Usings = new List<string> { "using System.Collections.Generic;", "using Npgsql;" },
+				ClrNamespace = "Generated",
+				TypeMap = TypeMap,
+				Schemata = Module.Procedures
 					.GroupBy (p => p.Schema)
 					.OrderBy (g => g.Key)
 					.Select (s =>
 					{
-						return new Schema
+						return new Wrapper.Schema
 						{
 							NativeName = s.Key,
 							CsClassName = s.Key.ValidCsName (),
 							NameHolderVar = "Name_" + s.Key.ValidCsNamePart (),
 							Procedures = s
 								.OrderBy (p => p.Name)
-								.Select (p => new Schema.Procedure
+								.Select (p => new Wrapper.Schema.Procedure
 								{
 									Origin = p,
 									NativeName = p.Name,
@@ -78,7 +77,7 @@ namespace MakeWrapper
 											NativeName = a.Name,
 											CallParamName = ("@" + a.Name).ToDoubleQuotes (),
 											CsName = a.Name.ValidCsName (),
-											ClrType = CastToDict.TryGetValue (a.SqlType.ToString (), out var t)
+											ClrType = TypeMap.TryGetValue (a.SqlType.ToString (), out var t)
 												? t
 												: null,
 											IsOut = a.IsOut,
@@ -89,7 +88,7 @@ namespace MakeWrapper
 									ResultSets = p.ResultSets
 										.Select (s =>
 										{
-											var Set = new Schema.Procedure.Set
+											var Set = new Wrapper.Schema.Procedure.Set
 											{
 												Origin = s,
 												CursorName = s.Name,
@@ -102,11 +101,11 @@ namespace MakeWrapper
 												Properties = s.Columns
 													.Select (c =>
 													{
-														var Property = new Schema.Procedure.Set.Property
+														var Property = new Wrapper.Schema.Procedure.Set.Property
 														{
 															Origin = c,
 															NativeName = c.Name,
-															ClrType = CastToDict.TryGetValue (c.SqlType.ToString (),
+															ClrType = TypeMap.TryGetValue (c.SqlType.ToString (),
 																out var t)
 																? t
 																: null,
@@ -138,28 +137,38 @@ namespace MakeWrapper
 						};
 					})
 					.ToArray ()
-				;
+			};
+
+			Processors.Act (p => p.OnHaveWrapper (Wrapper));
 
 			//
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
-			sb.AppendLine (CodeGenerationUtils.AutomaticWarning)
-				.AppendLine ("using System.Collections.Generic;")
-				.AppendLine ()
-				.AppendLine ("using Npgsql;")
-				.AppendLine ()
-				;
 
-			using (sb.UseCurlyBraces ("namespace Gen"))
+			if (!string.IsNullOrWhiteSpace (Wrapper.TitleComment))
+			{
+				sb.AppendLine (CodeGenerationUtils.AutomaticWarning);
+			}
+
+			foreach (var u in Wrapper.Usings)
+			{
+				sb.AppendLine (u);
+			}
+
+			sb.AppendLine ();
+
+			using (!string.IsNullOrWhiteSpace (Wrapper.ClrNamespace)
+				       ? sb.UseCurlyBraces ($"namespace {Wrapper.ClrNamespace}")
+				       : null)
 			{
 				using (sb.UseCurlyBraces ("public class DbProc"))
 				{
-					sb.AppendLine ("public NpgsqlConnection Conn;")
-						.AppendLine ();
+					sb.AppendLine ("public NpgsqlConnection Conn;");
 
-					foreach (var ns in Schemas)
+					foreach (var ns in Wrapper.Schemata)
 					{
 						string ValueHolderName = "m_" + ns.CsClassName;
 
+						sb.AppendLine ();
 						sb.AppendLine ($"protected {ns.CsClassName} {ValueHolderName} = null;");
 						sb.AppendLine ($"protected string {ns.NameHolderVar} = null;");
 						using (sb.UseCurlyBraces ($"public {ns.CsClassName} {ns.CsClassName}"))
@@ -178,17 +187,17 @@ namespace MakeWrapper
 
 					sb.AppendLine ();
 
-					using (sb.UseCurlyBraces ($"public DbProc (NpgsqlConnection Conn{(UseSchemaSettings ? string.Join ("", Schemas.Select (s => ", string " + s.NameHolderVar)) : "")})"))
+					using (sb.UseCurlyBraces ($"public DbProc (NpgsqlConnection Conn{(UseSchemaSettings ? string.Join ("", Wrapper.Schemata.Select (s => ", string " + s.NameHolderVar)) : "")})"))
 					{
 						sb.AppendLine ("this.Conn = Conn;");
-						foreach (var ns in Schemas)
+						foreach (var ns in Wrapper.Schemata)
 						{
 							sb.AppendLine ($"this.{ns.NameHolderVar} = {(UseSchemaSettings ? ns.NameHolderVar : ns.NativeName.ToDoubleQuotes ())};");
 						}
 					}
 				}
 
-				foreach (var ns in Schemas)
+				foreach (var ns in Wrapper.Schemata)
 				{
 					sb.AppendLine ();
 
