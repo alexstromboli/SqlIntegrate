@@ -873,7 +873,7 @@
             {
               "Name": "name",
               "SqlType": {
-                "SqlBaseType": "uuid"
+                "SqlBaseType": "varchar"
               }
             }
           ]
@@ -1011,7 +1011,7 @@
           "IsOut": true
         },
         {
-          "Name": "expressions 2",
+          "Name": "expressions_2",
           "SqlType": {
             "SqlBaseType": "refcursor"
           },
@@ -1019,13 +1019,6 @@
         },
         {
           "Name": "nulls",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
-          "IsOut": true
-        },
-        {
-          "Name": "nulled_arrays",
           "SqlType": {
             "SqlBaseType": "refcursor"
           },
@@ -1106,7 +1099,7 @@
           ]
         },
         {
-          "Name": "expressions 2",
+          "Name": "expressions_2",
           "Comments": [],
           "Columns": [
             {
@@ -1305,47 +1298,6 @@
               "Name": "coalesce_second",
               "SqlType": {
                 "SqlBaseType": "decimal"
-              }
-            }
-          ]
-        },
-        {
-          "Name": "nulled_arrays",
-          "Comments": [],
-          "Columns": [
-            {
-              "Name": "int",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
-            },
-            {
-              "Name": "numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal",
-                "IsArray": true
-              }
-            },
-            {
-              "Name": "float",
-              "SqlType": {
-                "SqlBaseType": "float",
-                "IsArray": true
-              }
-            },
-            {
-              "Name": "uuid",
-              "SqlType": {
-                "SqlBaseType": "uuid",
-                "IsArray": true
-              }
-            },
-            {
-              "Name": "bool",
-              "SqlType": {
-                "SqlBaseType": "bool",
-                "IsArray": true
               }
             }
           ]

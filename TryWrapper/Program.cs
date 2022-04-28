@@ -85,6 +85,18 @@ $$;
 				//
 				var test_from_select = DbProc.alexey.test_from_select ();
 				var get_aggregates = DbProc.alexey.get_aggregates (1.7f);
+				var rsons_getall = DbProc.alexey.persons_getall ();
+				DbProc.ext.calc ();
+				var get_single_row = DbProc.alexey.get_single_row ();
+				var get_scalar = DbProc.alexey.get_scalar ();
+				var get_user_and_details = DbProc.alexey.get_user_and_details ();
+				var get_array = DbProc.alexey.get_array ();
+				var get_join_single = DbProc.alexey.get_join_single ();
+				var get_inserted = DbProc.alexey.get_inserted ();
+				var get_value_types = DbProc.alexey.get_value_types ();
+				var get_numeric_types_math = DbProc.alexey.get_numeric_types_math ();
+				var get_operators = DbProc.alexey.get_operators ();
+				var get_returning = DbProc.alexey.get_returning ();
 			}
 		}
 	}

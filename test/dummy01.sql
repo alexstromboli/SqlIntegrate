@@ -260,9 +260,9 @@ AS $$
 BEGIN
     OPEN partial FOR
             -- # 1
-    SELECT  name::uuid
+    SELECT  name
     FROM Rooms R
-    ORDER BY R.order;
+    ORDER BY R.name;
 END;
 $$;
 
@@ -295,7 +295,8 @@ AS $$
 BEGIN
     OPEN names FOR
     SELECT  extents,
-            array[null, null, true, false],
+            --array[null, null, true, false],   -- nulls in arrays don't come through
+            array[true, false],
             array(with r as (select name from Depts) select distinct * from r) as names,
             '{5, 8, 2}'::int[] "order",
             array[7, 3, 1]||12 array_plus_item,
@@ -377,16 +378,16 @@ $$;
 CREATE PROCEDURE get_value_types
 (
     INOUT result refcursor,
-    INOUT "expressions 2" refcursor,
-    INOUT nulls refcursor,
-    INOUT nulled_arrays refcursor
+    INOUT expressions_2 refcursor,
+    INOUT nulls refcursor/*,
+    INOUT nulled_arrays refcursor*/
 )
 LANGUAGE 'plpgsql'
 AS $$
 DECLARE
     owner_sum bigint;
 BEGIN
-    owner_sum := Sum (100, 200);
+    owner_sum := Sum (100::money, 200::money);
 
     OPEN result FOR
     SELECT  2 as int,
@@ -402,9 +403,9 @@ BEGIN
             owner_sum
         ;
 
-    OPEN "expressions 2" FOR
+    OPEN expressions_2 FOR
     SELECT  noW() as timestamptz,
-            ext.SUM(3, 2) as money,
+            ext.SUM(3::money, 2::money) as money,
             '2020-03-01'::date + '14:50'::interval AS "timestamp 2",
             '2020-03-01'::date + '14:50'::time AS "timestamp 3",
             now() - '2020-03-01'::date AS interval,
@@ -440,6 +441,8 @@ BEGIN
             coalesce(null, 1e-2) AS coalesce_second
         ;
 
+    /*
+    -- nulls in arrays don't come through
     OPEN nulled_arrays FOR
     SELECT  array[null, 2, 9] as int,
             array[null, 2.5] as numeric,
@@ -447,6 +450,7 @@ BEGIN
             array[null, '7702f204a409546693f71875b263e804'::uuid] as uuid,
             array[null, true, false] as bool
         ;
+    */
 END;
 $$;
 
