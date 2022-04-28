@@ -842,8 +842,10 @@ CREATE PROCEDURE test_out
     INOUT p_bool_arr bool[],
     INOUT p_date date,
     INOUT p_date_arr date[],
-    INOUT p_timestamp timestamp,
-    INOUT p_timestamp_arr timestamp[],
+    INOUT p_instant timestamptz,
+    INOUT p_instant_arr timestamptz[],
+    INOUT p_datetime timestamp,
+    INOUT p_datetime_arr timestamp[],
     INOUT p_varchar varchar(3),
     INOUT p_varchar_arr varchar(3)[],
     INOUT p_bytea bytea,
@@ -853,19 +855,29 @@ LANGUAGE 'plpgsql'
 AS $$
 BEGIN
     p_int := p_int + 1;
-    p_int_arr := p_int_arr || array[null, -4];
+    p_int_arr := p_int_arr || array[-4, 61];
     p_bool := not p_bool;
-    p_bool_arr := p_bool_arr || array[null, false];
+    p_bool_arr := p_bool_arr || false;
     p_date := '2022-04-01'::date;
-    p_date_arr := p_date_arr || array[null, p_date];
+    p_date_arr := p_date_arr || array[p_date];
 
     OPEN result_1 FOR
     SELECT 5 "in";
 
-    p_timestamp := '2020-06-19'::timestamp;
-    p_timestamp_arr := p_timestamp_arr || array[null, p_timestamp];
+    p_instant := '2020-06-19'::timestamptz;
+    p_instant_arr := p_instant_arr || array[p_instant, '2019-08-10 23:41'::timestamptz];
+    p_datetime := '2020-06-19'::timestamp;
+    p_datetime_arr := p_datetime_arr || array[p_datetime, '2019-08-10 23:41'::timestamp];
     p_varchar := 'TRY';
-    p_varchar_arr := p_varchar_arr || array[null, p_varchar];
+    p_varchar_arr := p_varchar_arr || array[null, p_varchar];       -- nulls are okay for string arrays
     p_bytea := p_bytea || '123'::bytea;
+
+    /*
+    -- for INOUT values, nulls in arrays don't come through
+    p_int_arr := p_int_arr || array[null, -4];
+    p_bool_arr := p_bool_arr || array[null, false];
+    p_date_arr := p_date_arr || array[null, p_date];
+    p_timestamp_arr := p_timestamp_arr || array[null, p_timestamp];
+    */
 END;
 $$;

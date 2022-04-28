@@ -44,7 +44,7 @@
             {
               "Name": "count",
               "SqlType": {
-                "SqlBaseType": "int"
+                "SqlBaseType": "bigint"
               }
             },
             {
@@ -1812,14 +1812,29 @@
           "IsOut": true
         },
         {
-          "Name": "p_timestamp",
+          "Name": "p_instant",
+          "SqlType": {
+            "SqlBaseType": "timestamp with time zone"
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_instant_arr",
+          "SqlType": {
+            "SqlBaseType": "timestamp with time zone",
+            "IsArray": true
+          },
+          "IsOut": true
+        },
+        {
+          "Name": "p_datetime",
           "SqlType": {
             "SqlBaseType": "timestamp"
           },
           "IsOut": true
         },
         {
-          "Name": "p_timestamp_arr",
+          "Name": "p_datetime_arr",
           "SqlType": {
             "SqlBaseType": "timestamp",
             "IsArray": true

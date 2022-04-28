@@ -62,20 +62,29 @@ $$;
 
 				//
 				int? t_int = 10;
-				int?[] t_int_arr = { 9, 7, 2 };
+				int[] t_int_arr = { 9, 7, 2 };
 				bool? t_bool = true;
-				bool?[] t_bool_arr = { false, true };
+				bool[] t_bool_arr = { false, true };
 				LocalDate? t_date = new LocalDate (1991, 08, 19);
-				LocalDate?[] t_date_arr = { new LocalDate (1991, 08, 19), new LocalDate (1991, 12, 08) };
+				LocalDate[] t_date_arr = { new LocalDate (1991, 08, 19), new LocalDate (1991, 12, 08) };
 				Instant? t_instant = Instant.FromDateTimeUtc (new DateTime (1993, 06, 08, 12, 42, 0, DateTimeKind.Utc));
-				Instant?[] t_instant_arr = { t_instant };
+				Instant[] t_instant_arr = { t_instant.Value };
+				LocalDateTime? t_datetime = LocalDateTime.FromDateTime (new DateTime (1993, 06, 08, 12, 42, 0));
+				LocalDateTime[] t_datetime_arr = { t_datetime.Value };
 				string t_string = "town";
 				string[] t_string_arr = { "town", "fly" };
 				byte[] t_bytea = { 4, 8, 1 };
 
 				var Result = DbProc.alexey.test_out (ref t_int, ref t_int_arr, ref t_bool, ref t_bool_arr,
-					ref t_date, ref t_date_arr, ref t_instant, ref t_instant_arr, ref t_string, ref t_string_arr,
+					ref t_date, ref t_date_arr,
+					ref t_instant, ref t_instant_arr,
+					ref t_datetime, ref t_datetime_arr,
+					ref t_string, ref t_string_arr,
 					ref t_bytea);
+
+				//
+				var test_from_select = DbProc.alexey.test_from_select ();
+				var get_aggregates = DbProc.alexey.get_aggregates (1.7f);
 			}
 		}
 	}

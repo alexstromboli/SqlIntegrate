@@ -38,7 +38,7 @@ namespace MakeWrapper
 				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
 				{
 					TypeMap[p.Key] = ct.CsNullableName;
-					TypeMap[p.Key + "[]"] = ct.CsNullableName + "[]";
+					TypeMap[p.Key + "[]"] = ct.CsName + "[]";
 				}
 			}
 			TypeMap["bytea"] = "byte[]";
@@ -82,7 +82,7 @@ namespace MakeWrapper
 										{
 											Origin = a,
 											NativeName = a.Name,
-											CallParamName = ("@" + a.Name).ToDoubleQuotes (),
+											CallParamName = "@" + a.Name,
 											CsName = a.Name.ValidCsName (),
 											ClrType = TypeMap.TryGetValue (a.SqlType.ToString (), out var t)
 												? t
@@ -269,7 +269,7 @@ namespace MakeWrapper
 								{
 									foreach (var Set in p.ResultSets)
 									{
-										sb.AppendLine ($"public {Set.SetCsTypeName} {Set.CursorName};");
+										sb.AppendLine ($"public {Set.SetCsTypeName} {Set.PropertyName};");
 									}
 								}
 
@@ -322,12 +322,12 @@ namespace MakeWrapper
 											{
 												if (a.IsOut)
 												{
-													sb.AppendLine ($"Cmd.Parameters.Add (new NpgsqlParameter ({a.CallParamName}, NpgsqlDbType.Refcursor) {{ Direction = ParameterDirection.InputOutput, Value = \"{a.CsName}\" }});");
+													sb.AppendLine ($"Cmd.Parameters.Add (new NpgsqlParameter ({a.CallParamName.ToDoubleQuotes ()}, NpgsqlDbType.Refcursor) {{ Direction = ParameterDirection.InputOutput, Value = \"{a.CsName}\" }});");
 												}
 											}
 											else
 											{
-												sb.AppendLine ($"Cmd.Parameters.AddWithValue ({a.CallParamName}, (object){a.CsName} ?? DBNull.Value)"
+												sb.AppendLine ($"Cmd.Parameters.AddWithValue ({a.CallParamName.ToDoubleQuotes ()}, (object){a.CsName} ?? DBNull.Value)"
 												               + (a.IsOut
 													               ? ".Direction = ParameterDirection.InputOutput"
 													               : "")
@@ -345,7 +345,7 @@ namespace MakeWrapper
 												sb.AppendLine ();
 											}
 
-											sb.AppendLine ($"{oa.Value.CsName} = Cmd.Parameters[{oa.Value.CallParamName}].Value as {oa.Value.ClrType};");
+											sb.AppendLine ($"{oa.Value.CsName} = Cmd.Parameters[{oa.Value.CallParamName.ToDoubleQuotes ()}].Value as {oa.Value.ClrType};");
 										}
 
 										foreach (var Set in p.ResultSets)

@@ -697,7 +697,7 @@ namespace ParseProcs
 						from _2 in SpracheUtils.SqlToken ("distinct").Optional ()
 						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SpracheUtils.SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.Int))
+						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.BigInt))
 					)
 					.Or (
 						from f in SpracheUtils.SqlToken ("array_agg")

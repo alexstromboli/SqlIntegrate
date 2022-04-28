@@ -32,21 +32,26 @@ namespace MakeWrapper
 					if (p.Value.IsDate)
 					{
 						TypeMap[p.Key] = "Instant?";
-						TypeMap[p.Key + "[]"] = "Instant?[]";
+						TypeMap[p.Key + "[]"] = "Instant[]";
 					}
 					else if (p.Value.IsTimeSpan)
 					{
 						TypeMap[p.Key] = "LocalTime?";
-						TypeMap[p.Key + "[]"] = "LocalTime?[]";
+						TypeMap[p.Key + "[]"] = "LocalTime[]";
 					}
 				}
 			}
 
+			TypeMap["timestamp"] = "LocalDateTime?";
+			TypeMap["timestamp[]"] = "LocalDateTime[]";
+			TypeMap["timestamp without time zone"] = "LocalDateTime?";
+			TypeMap["timestamp without time zone[]"] = "LocalDateTime[]";
+
 			TypeMap["date"] = "LocalDate?";
-			TypeMap["date[]"] = "LocalDate?[]";
+			TypeMap["date[]"] = "LocalDate[]";
 
 			TypeMap["interval"] = "Duration?";
-			TypeMap["interval[]"] = "Duration?[]";
+			TypeMap["interval[]"] = "Duration[]";
 		}
 
 		public override void OnHaveWrapper (Wrapper Wrapper)
