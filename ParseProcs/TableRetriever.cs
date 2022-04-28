@@ -22,12 +22,19 @@ namespace ParseProcs
 
 		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
 		{
-			return Context
-				.TableRefChain
-				.SelectMany (c => c)
-				.First (c => c.Key == FullName)
-				.Value
-				;
+			try
+			{
+				return Context
+						.TableRefChain
+						.SelectMany (c => c)
+						.First (c => c.Key == FullName)
+						.Value
+					;
+			}
+			catch (InvalidOperationException)
+			{
+				throw new InvalidOperationException ("Not found " + FullName);
+			}
 		}
 	}
 

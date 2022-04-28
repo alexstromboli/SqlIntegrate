@@ -664,8 +664,10 @@ namespace ParseProcs
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST
 							.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
-							rc.NamedDict[p.JoinDot ()]
-							))
+							{
+								string Key = p.JoinDot ();
+								return rc.NamedDict.TryGetValue (Key, out var V) ? V : throw new KeyNotFoundException ("Not found " + Key);
+							}))
 						.Or (PSelectFirstColumnST)
 				;
 
@@ -1395,7 +1397,7 @@ END
 					}
 
 					ModuleReport.Procedures.Add (ProcedureReport);
-					Console.WriteLine ($"{proc.Name} ok");
+					//Console.WriteLine ($"{proc.Name} ok");
 				}
 				catch (Exception ex)
 				{
