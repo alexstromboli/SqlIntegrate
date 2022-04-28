@@ -28,6 +28,7 @@ namespace MakeWrapper
 
 			Add (typeof (bool), "bool");
 			Add (typeof (int), "int");
+			Add (typeof (uint), "uint");
 			Add (typeof (Int16), "short");
 			Add (typeof (Int64), "long");
 			Add (typeof (decimal), "decimal");

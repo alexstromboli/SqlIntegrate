@@ -390,6 +390,7 @@ BEGIN
     owner_sum := Sum (100::money, 200::money);
 
     OPEN result FOR
+    -- # 1
     SELECT  2 as int,
             1.5 as numeric,
             1e-3 as numeric_e_neg,
@@ -400,10 +401,12 @@ BEGIN
             .238::money as money,
             'n'::varchar(5) as varchar,
             false as bool,
+            pg_typeof(5) regtype,
             owner_sum
         ;
 
     OPEN expressions_2 FOR
+    -- # 1
     SELECT  noW() as timestamptz,
             ext.SUM(3::money, 2::money) as money,
             '2020-03-01'::date + '14:50'::interval AS "timestamp 2",
@@ -425,6 +428,7 @@ BEGIN
         ;
 
     OPEN nulls FOR
+    -- # 1
     SELECT  null::int as int,
             null::numeric as numeric,
             null::float as float,
@@ -518,77 +522,77 @@ done
     )
         SELECT
           res_numeric_numeric,
-          pg_typeof(res_numeric_numeric) AS type_numeric_numeric,
+          pg_typeof(res_numeric_numeric)::varchar(30) AS type_numeric_numeric,
           res_numeric_real,
-          pg_typeof(res_numeric_real) AS type_numeric_real,
+          pg_typeof(res_numeric_real)::varchar(30) AS type_numeric_real,
           res_numeric_float,
-          pg_typeof(res_numeric_float) AS type_numeric_float,
+          pg_typeof(res_numeric_float)::varchar(30) AS type_numeric_float,
           res_numeric_int,
-          pg_typeof(res_numeric_int) AS type_numeric_int,
+          pg_typeof(res_numeric_int)::varchar(30) AS type_numeric_int,
           res_numeric_smallint,
-          pg_typeof(res_numeric_smallint) AS type_numeric_smallint,
+          pg_typeof(res_numeric_smallint)::varchar(30) AS type_numeric_smallint,
           res_numeric_bigint,
-          pg_typeof(res_numeric_bigint) AS type_numeric_bigint,
+          pg_typeof(res_numeric_bigint)::varchar(30) AS type_numeric_bigint,
           res_real_numeric,
-          pg_typeof(res_real_numeric) AS type_real_numeric,
+          pg_typeof(res_real_numeric)::varchar(30) AS type_real_numeric,
           res_real_real,
-          pg_typeof(res_real_real) AS type_real_real,
+          pg_typeof(res_real_real)::varchar(30) AS type_real_real,
           res_real_float,
-          pg_typeof(res_real_float) AS type_real_float,
+          pg_typeof(res_real_float)::varchar(30) AS type_real_float,
           res_real_int,
-          pg_typeof(res_real_int) AS type_real_int,
+          pg_typeof(res_real_int)::varchar(30) AS type_real_int,
           res_real_smallint,
-          pg_typeof(res_real_smallint) AS type_real_smallint,
+          pg_typeof(res_real_smallint)::varchar(30) AS type_real_smallint,
           res_real_bigint,
-          pg_typeof(res_real_bigint) AS type_real_bigint,
+          pg_typeof(res_real_bigint)::varchar(30) AS type_real_bigint,
           res_float_numeric,
-          pg_typeof(res_float_numeric) AS type_float_numeric,
+          pg_typeof(res_float_numeric)::varchar(30) AS type_float_numeric,
           res_float_real,
-          pg_typeof(res_float_real) AS type_float_real,
+          pg_typeof(res_float_real)::varchar(30) AS type_float_real,
           res_float_float,
-          pg_typeof(res_float_float) AS type_float_float,
+          pg_typeof(res_float_float)::varchar(30) AS type_float_float,
           res_float_int,
-          pg_typeof(res_float_int) AS type_float_int,
+          pg_typeof(res_float_int)::varchar(30) AS type_float_int,
           res_float_smallint,
-          pg_typeof(res_float_smallint) AS type_float_smallint,
+          pg_typeof(res_float_smallint)::varchar(30) AS type_float_smallint,
           res_float_bigint,
-          pg_typeof(res_float_bigint) AS type_float_bigint,
+          pg_typeof(res_float_bigint)::varchar(30) AS type_float_bigint,
           res_int_numeric,
-          pg_typeof(res_int_numeric) AS type_int_numeric,
+          pg_typeof(res_int_numeric)::varchar(30) AS type_int_numeric,
           res_int_real,
-          pg_typeof(res_int_real) AS type_int_real,
+          pg_typeof(res_int_real)::varchar(30) AS type_int_real,
           res_int_float,
-          pg_typeof(res_int_float) AS type_int_float,
+          pg_typeof(res_int_float)::varchar(30) AS type_int_float,
           res_int_int,
-          pg_typeof(res_int_int) AS type_int_int,
+          pg_typeof(res_int_int)::varchar(30) AS type_int_int,
           res_int_smallint,
-          pg_typeof(res_int_smallint) AS type_int_smallint,
+          pg_typeof(res_int_smallint)::varchar(30) AS type_int_smallint,
           res_int_bigint,
-          pg_typeof(res_int_bigint) AS type_int_bigint,
+          pg_typeof(res_int_bigint)::varchar(30) AS type_int_bigint,
           res_smallint_numeric,
-          pg_typeof(res_smallint_numeric) AS type_smallint_numeric,
+          pg_typeof(res_smallint_numeric)::varchar(30) AS type_smallint_numeric,
           res_smallint_real,
-          pg_typeof(res_smallint_real) AS type_smallint_real,
+          pg_typeof(res_smallint_real)::varchar(30) AS type_smallint_real,
           res_smallint_float,
-          pg_typeof(res_smallint_float) AS type_smallint_float,
+          pg_typeof(res_smallint_float)::varchar(30) AS type_smallint_float,
           res_smallint_int,
-          pg_typeof(res_smallint_int) AS type_smallint_int,
+          pg_typeof(res_smallint_int)::varchar(30) AS type_smallint_int,
           res_smallint_smallint,
-          pg_typeof(res_smallint_smallint) AS type_smallint_smallint,
+          pg_typeof(res_smallint_smallint)::varchar(30) AS type_smallint_smallint,
           res_smallint_bigint,
-          pg_typeof(res_smallint_bigint) AS type_smallint_bigint,
+          pg_typeof(res_smallint_bigint)::varchar(30) AS type_smallint_bigint,
           res_bigint_numeric,
-          pg_typeof(res_bigint_numeric) AS type_bigint_numeric,
+          pg_typeof(res_bigint_numeric)::varchar(30) AS type_bigint_numeric,
           res_bigint_real,
-          pg_typeof(res_bigint_real) AS type_bigint_real,
+          pg_typeof(res_bigint_real)::varchar(30) AS type_bigint_real,
           res_bigint_float,
-          pg_typeof(res_bigint_float) AS type_bigint_float,
+          pg_typeof(res_bigint_float)::varchar(30) AS type_bigint_float,
           res_bigint_int,
-          pg_typeof(res_bigint_int) AS type_bigint_int,
+          pg_typeof(res_bigint_int)::varchar(30) AS type_bigint_int,
           res_bigint_smallint,
-          pg_typeof(res_bigint_smallint) AS type_bigint_smallint,
+          pg_typeof(res_bigint_smallint)::varchar(30) AS type_bigint_smallint,
           res_bigint_bigint,
-          pg_typeof(res_bigint_bigint) AS type_bigint_bigint
+          pg_typeof(res_bigint_bigint)::varchar(30) AS type_bigint_bigint
         FROM R
     ;
 END;
@@ -600,6 +604,7 @@ LANGUAGE 'plpgsql'
 AS $$
 BEGIN
     OPEN result FOR
+    -- # 1
     SELECT  5 > all(array[2, 1, 4]) AS t1,
             10 > any(select id from rooms) as t2,
             10 > some(select id from rooms) as t2,
@@ -866,6 +871,7 @@ BEGIN
     p_date_arr := p_date_arr || array[p_date];
 
     OPEN result_1 FOR
+    -- # 1
     SELECT 5 "in";
 
     p_instant := '2020-06-19'::timestamptz;

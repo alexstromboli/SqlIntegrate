@@ -50,8 +50,8 @@ namespace MakeWrapper
 			TypeMap["date"] = "LocalDate?";
 			TypeMap["date[]"] = "LocalDate[]";
 
-			TypeMap["interval"] = "Duration?";
-			TypeMap["interval[]"] = "Duration[]";
+			TypeMap["interval"] = "Period";
+			TypeMap["interval[]"] = "Period[]";
 		}
 
 		public override void OnHaveWrapper (Wrapper Wrapper)

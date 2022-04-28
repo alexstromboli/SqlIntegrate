@@ -732,7 +732,9 @@
       "ResultSets": [
         {
           "Name": "result",
-          "Comments": [],
+          "Comments": [
+            " # 1"
+          ],
           "Columns": [
             {
               "Name": "t1",
@@ -1028,7 +1030,9 @@
       "ResultSets": [
         {
           "Name": "result",
-          "Comments": [],
+          "Comments": [
+            " # 1"
+          ],
           "Columns": [
             {
               "Name": "int",
@@ -1091,6 +1095,12 @@
               }
             },
             {
+              "Name": "regtype",
+              "SqlType": {
+                "SqlBaseType": "regtype"
+              }
+            },
+            {
               "Name": "owner_sum",
               "SqlType": {
                 "SqlBaseType": "bigint"
@@ -1100,7 +1110,9 @@
         },
         {
           "Name": "expressions_2",
-          "Comments": [],
+          "Comments": [
+            " # 1"
+          ],
           "Columns": [
             {
               "Name": "timestamptz",
@@ -1214,7 +1226,9 @@
         },
         {
           "Name": "nulls",
-          "Comments": [],
+          "Comments": [
+            " # 1"
+          ],
           "Columns": [
             {
               "Name": "int",
@@ -1826,7 +1840,9 @@
       "ResultSets": [
         {
           "Name": "result_1",
-          "Comments": [],
+          "Comments": [
+            " # 1"
+          ],
           "Columns": [
             {
               "Name": "in",

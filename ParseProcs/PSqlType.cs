@@ -92,7 +92,7 @@ namespace ParseProcs
 		public static readonly PSqlType Guid = Add (typeof (Guid), "uuid");
 
 		public static readonly PSqlType Int = Add (typeof (int), "int", "integer", "serial", "int4").SetNumericLevel (NumericOrderLevel.Int);
-		public static readonly PSqlType SmallInt = Add (typeof (int), "smallint", "smallserial", "int2").SetNumericLevel (NumericOrderLevel.SmallInt);
+		public static readonly PSqlType SmallInt = Add (typeof (short), "smallint", "smallserial", "int2").SetNumericLevel (NumericOrderLevel.SmallInt);
 		public static readonly PSqlType BigInt = Add (typeof (long), "bigint", "bigserial", "int8").SetNumericLevel (NumericOrderLevel.BigInt);
 		public static readonly PSqlType Money = Add (typeof (decimal), "money").SetNumericLevel (NumericOrderLevel.Money);
 		public static readonly PSqlType Decimal = Add (typeof (decimal), "decimal", "numeric").SetNumericLevel (NumericOrderLevel.Decimal);
@@ -112,5 +112,6 @@ namespace ParseProcs
 		public static readonly PSqlType Text = Add (typeof (string), "text").SetIsText ();
 		public static readonly PSqlType Char = Add (typeof (string), "char", "character", "bpchar").SetIsText ();
 		public static readonly PSqlType VarChar = Add (typeof (string), "varchar", "character varying", "name", "cstring", "regtype").SetIsText ();
+		public static readonly PSqlType RegType = Add (typeof (uint), "regtype");
 	}
 }
