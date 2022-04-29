@@ -10,14 +10,18 @@ https://stackoverflow.com/questions/49547761/create-procedure-to-execute-query-i
 
 namespace TryPsql
 {
-	class Program
+	partial class Program
 	{
 		static void Main (string[] args)
 		{
-			using (var conn = new NpgsqlConnection ("server=127.0.0.1;port=5432;database=dummy01;uid=postgres;pwd=Yakunichev"))
+			using (var conn = new NpgsqlConnection ("host=/var/run/postgresql;database=dummy01;Integrated Security=true"))
 			{
 				conn.Open ();
 
+				//
+				TestComposite (conn);
+
+				//
 				using (var cmd = conn.CreateCommand ())
 				{
 					cmd.CommandText = "SELECT *, now()::time as span FROM ext.Persons";

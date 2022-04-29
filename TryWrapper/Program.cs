@@ -97,6 +97,7 @@ $$;
 				var get_numeric_types_math = DbProc.alexey.get_numeric_types_math ();
 				var get_operators = DbProc.alexey.get_operators ();
 				var get_returning = DbProc.alexey.get_returning ();
+				var get_db_qualified = DbProc.alexey.get_db_qualified ();
 			}
 		}
 	}
