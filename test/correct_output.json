@@ -192,6 +192,58 @@
     },
     {
       "Schema": "USER",
+      "Name": "get_db_qualified",
+      "Arguments": [
+        {
+          "Name": "own",
+          "SqlType": {
+            "SqlBaseType": "refcursor"
+          },
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "own",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id_person",
+              "SqlType": {
+                "SqlBaseType": "uuid"
+              }
+            },
+            {
+              "Name": "id_room",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "id",
+              "SqlType": {
+                "SqlBaseType": "int"
+              }
+            },
+            {
+              "Name": "name",
+              "SqlType": {
+                "SqlBaseType": "varchar"
+              }
+            },
+            {
+              "Name": "extents",
+              "SqlType": {
+                "SqlBaseType": "int",
+                "IsArray": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "get_inserted",
       "Arguments": [
         {

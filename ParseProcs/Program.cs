@@ -11,126 +11,6 @@ using ParseProcs.Datasets;
 
 namespace ParseProcs
 {
-	public class ModuleContext
-	{
-		public string ModuleName { get; }
-
-		protected Dictionary<string, DbTable> _TablesDict;
-		public IReadOnlyDictionary<string, DbTable> TablesDict => _TablesDict;
-
-		protected Dictionary<string, NamedTyped> _VariablesDict;
-		public IReadOnlyDictionary<string, NamedTyped> VariablesDict => _VariablesDict;
-
-		protected Dictionary<string, PSqlType> _FunctionsDict;
-		public IReadOnlyDictionary<string, PSqlType> FunctionsDict => _FunctionsDict;
-
-		protected List<string> _SchemaOrder;
-		public IReadOnlyList<string> SchemaOrder => _SchemaOrder;
-
-		public ModuleContext (
-			string ModuleName,
-			IEnumerable<string> SchemaOrder,
-			IReadOnlyDictionary<string, DbTable> TablesDict,
-			IReadOnlyDictionary<string, PSqlType> FunctionsDict,
-			IReadOnlyDictionary<string, NamedTyped> VariablesDict
-			)
-		{
-			this.ModuleName = ModuleName.ToLower ();
-			_SchemaOrder = new List<string> (SchemaOrder);
-			_TablesDict = new Dictionary<string, DbTable> (TablesDict);
-			_FunctionsDict = new Dictionary<string, PSqlType> (FunctionsDict);
-			_VariablesDict = new Dictionary<string, NamedTyped> (VariablesDict);
-		}
-
-		protected T GetSchemaEntity<T> (IReadOnlyDictionary<string, T> Dict, string[] NameSegments)
-		{
-			string Key = NameSegments.PSqlQualifiedName ();
-
-			T Result;
-			if (!Dict.TryGetValue (Key, out Result))
-			{
-				if (NameSegments.Length == 1)
-				{
-					foreach (string sch in SchemaOrder)
-					{
-						string SchKey = sch.ToTrivialArray ().Concat (NameSegments).PSqlQualifiedName ();
-						if (Dict.TryGetValue (SchKey, out Result))
-						{
-							break;
-						}
-					}
-				}
-			}
-
-			return Result;
-		}
-
-		public NamedTyped GetFunction (string[] NameSegments)
-		{
-			string Name = NameSegments[^1].ToLower ();
-			PSqlType Type = GetSchemaEntity (FunctionsDict, NameSegments) ?? PSqlType.Null;
-
-			return new NamedTyped (Name, Type);
-		}
-
-		public DbTable GetTable (string[] NameSegments)
-		{
-			return GetSchemaEntity (TablesDict, NameSegments);
-		}
-	}
-
-	public class RequestContext
-	{
-		public ModuleContext ModuleContext { get; }
-		public IReadOnlyDictionary<string, ITable>[] TableRefChain { get; }
-		public IReadOnlyDictionary<string, NamedTyped> NamedDict { get; }
-		public IReadOnlyDictionary<string, IReadOnlyList<NamedTyped>> Asterisks { get; }
-
-		public RequestContext (ModuleContext ModuleContext)
-		{
-			this.ModuleContext = ModuleContext;
-
-			// table, as accessible in ModuleContext, considering schema order
-			this.TableRefChain = (ModuleContext
-					.TablesDict.Select (t => new { name = t.Key, table = t.Value })
-					.Concat (ModuleContext.TablesDict.Values.Where (t =>
-							!ModuleContext.SchemaOrder.TakeWhile (s => s != t.Schema).Any (s => ModuleContext.TablesDict.ContainsKey (s + "." + t.Name)))
-						.Select (t => new { name = t.Name, table = t })
-					)
-					.ToDictionary (t => t.name, t => (ITable)t.table))
-					.ToTrivialArray ()
-				;
-
-			this.NamedDict = ModuleContext.VariablesDict;
-			// asterisks only appear in in-select contexts
-			this.Asterisks = new Dictionary<string, IReadOnlyList<NamedTyped>> ();
-		}
-
-		public RequestContext (RequestContext ParentContext,
-			IReadOnlyDictionary<string, ITable> TableRefsToPrepend = null,
-			IReadOnlyDictionary<string, NamedTyped> NamedDictToOverride = null,
-			IReadOnlyDictionary<string, IReadOnlyList<NamedTyped>> Asterisks = null
-		)
-		{
-			this.ModuleContext = ParentContext.ModuleContext;
-
-			this.TableRefChain = TableRefsToPrepend == null
-				? ParentContext.TableRefChain
-				: TableRefsToPrepend.ToTrivialArray ()
-					.Concat (ParentContext.TableRefChain)
-					.ToArray ()
-				;
-
-			this.NamedDict = NamedDictToOverride ?? ModuleContext.VariablesDict;
-			this.Asterisks = Asterisks ?? ParentContext.Asterisks;
-		}
-
-		public IReadOnlyList<NamedTyped> GetAsterisk (string AsteriskEntry)
-		{
-			return Asterisks[AsteriskEntry];
-		}
-	}
-
 	public class OpenDataset
 	{
 		public string Name { get; }
@@ -1327,17 +1207,12 @@ END
 */
 
 			//
-			Dictionary<string, DbTable> TablesDict = new Dictionary<string, DbTable> ();
-			Dictionary<string, Procedure> ProceduresDict = new Dictionary<string, Procedure> ();
-			Dictionary<string, PSqlType> FunctionsDict = new Dictionary<string, PSqlType> ();
-			List<string> SchemaOrder = new List<string> ();
-
-			ReadDatabase (ConnectionString, TablesDict, ProceduresDict, FunctionsDict, SchemaOrder);
+			var DatabaseContext = ReadDatabase (ConnectionString);
 
 			// parse all procedures
 			Module ModuleReport = new Module { Procedures = new List<Datasets.Procedure> () };
 
-			foreach (var proc in ProceduresDict.Values)
+			foreach (var proc in DatabaseContext.ProceduresDict.Values)
 			{
 				if (proc.Arguments.Any (a => a.Type == null))
 				{
@@ -1366,9 +1241,7 @@ END
 
 					ModuleContext mcProc = new ModuleContext (
 						proc.Name,
-						SchemaOrder,
-						TablesDict,
-						FunctionsDict,
+						DatabaseContext,
 						Parse.vars
 							.Concat (proc.Arguments)
 							.ToDictionary (v => v.Name)

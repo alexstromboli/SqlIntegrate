@@ -148,8 +148,10 @@ namespace ParseProcs
 			foreach (var c in Columns)
 			{
 				AvailableColumns[Schema + "." + Name + "." + c.Name] = c;
+				AvailableColumns[ModuleContext.DatabaseContext.DatabaseName + "." + Schema + "." + Name + "." + c.Name] = c;
 			}
 			Asterisks[Schema + "." + Name + ".*"] = Asterisks["*"];
+			Asterisks[ModuleContext.DatabaseContext.DatabaseName + "." + Schema + "." + Name + ".*"] = Asterisks["*"];
 
 			return new ITable.ColumnReferences
 			{

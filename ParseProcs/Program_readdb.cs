@@ -7,18 +7,32 @@ using Utils;
 
 namespace ParseProcs
 {
+	public class DatabaseContext
+	{
+		public string DatabaseName;
+		public Dictionary<string, DbTable> TablesDict;
+		public Dictionary<string, Procedure> ProceduresDict;
+		public Dictionary<string, PSqlType> FunctionsDict;
+		public List<string> SchemaOrder;
+	}
+
 	partial class Program
 	{
-		private static void ReadDatabase (string ConnectionString,
-			Dictionary<string, DbTable> TablesDict,
-			Dictionary<string, Procedure> ProceduresDict,
-			Dictionary<string, PSqlType> FunctionsDict,
-			List<string> SchemaOrder
-			)
+		private static DatabaseContext ReadDatabase (string ConnectionString)
 		{
+			DatabaseContext Result = new DatabaseContext
+			{
+				TablesDict = new Dictionary<string, DbTable> (),
+				ProceduresDict = new Dictionary<string, Procedure> (),
+				FunctionsDict = new Dictionary<string, PSqlType> (),
+				SchemaOrder = new List<string> ()
+			};
+
 			using (var conn = new NpgsqlConnection (ConnectionString))
 			{
 				conn.Open ();
+
+				Result.DatabaseName = (string)conn.ExecuteScalar ("SELECT current_database();");
 
 				// types
 				Dictionary<uint, string> TypesDict = new Dictionary<uint, string> ();
@@ -60,7 +74,7 @@ WHERE table_schema NOT IN ('pg_catalog', 'information_schema');
 							string Name = (string) rdr["table_name"];
 
 							DbTable t = new DbTable (Schema, Name);
-							TablesDict[t.Display] = t;
+							Result.TablesDict[t.Display] = t;
 						}
 					}
 				}
@@ -86,7 +100,7 @@ ORDER BY table_schema, table_name, ordinal_position;
 							string ColumnName = (string) rdr["column_name"];
 							string Type = (string) rdr["data_type"];
 
-							if (!TablesDict.TryGetValue (SchemaEntity.GetDisplay (Schema, TableName), out DbTable t))
+							if (!Result.TablesDict.TryGetValue (SchemaEntity.GetDisplay (Schema, TableName), out DbTable t))
 							{
 								continue;
 							}
@@ -156,7 +170,7 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 							}
 
 							//
-							ProceduresDict[Oid.ToString ()] = p;
+							Result.ProceduresDict[Oid.ToString ()] = p;
 						}
 					}
 				}
@@ -164,20 +178,20 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 				//
 				string SchemaPath = (string)conn.ExecuteScalar ("SHOW search_path;");
 
-				SchemaOrder.AddRange (
+				Result.SchemaOrder.AddRange (
 					SchemaPath.Split (',')
 						.Select (s => s.Trim (' ', '"'))
 						.Where (s => !string.IsNullOrWhiteSpace (s))
 				);
-				SchemaOrder.Add ("pg_catalog");
+				Result.SchemaOrder.Add ("pg_catalog");
 
-				for (int i = 0; i < SchemaOrder.Count; ++i)
+				for (int i = 0; i < Result.SchemaOrder.Count; ++i)
 				{
-					string s = SchemaOrder[i];
+					string s = Result.SchemaOrder[i];
 					if (s.StartsWith ('$'))
 					{
 						s = (string)conn.ExecuteScalar ("SELECT " + s.Substring (1) + ";");
-						SchemaOrder[i] = s;
+						Result.SchemaOrder[i] = s;
 					}
 				}
 
@@ -208,11 +222,13 @@ ORDER BY routines.routine_schema, routines.routine_name;
 							}
 
 							string QualName = PSqlUtils.PSqlQualifiedName (Schema, RoutineName);
-							FunctionsDict[QualName] = Type;
+							Result.FunctionsDict[QualName] = Type;
 						}
 					}
 				}
 			}
+
+			return Result;
 		}
 	}
 }
