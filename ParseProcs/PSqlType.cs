@@ -18,16 +18,16 @@ namespace ParseProcs
 			Money
 		}
 
-		public bool IsArray { get; protected set; } = false;
-		public PSqlType BaseType { get; protected set; }		// can be self
-		public PSqlType ArrayType { get; protected set; }			// can be self
+		public bool IsArray { get; set; } = false;
+		public PSqlType BaseType { get; set; }		// can be self
+		public PSqlType ArrayType { get; set; }			// can be self
 
-		public string Display { get; protected set; }
-		public Type ClrType { get; protected set; }
+		public string Display { get; set; }
+		public Type ClrType { get; set; }
 		public NumericOrderLevel NumericLevel = NumericOrderLevel.None;
 
-		public bool IsNumber { get; protected set; } = false;
-		protected PSqlType SetNumericLevel (NumericOrderLevel Level)
+		public bool IsNumber { get; set; } = false;
+		public PSqlType SetNumericLevel (NumericOrderLevel Level)
 		{
 			NumericLevel = Level;
 			IsNumber = true;
@@ -35,13 +35,13 @@ namespace ParseProcs
 		}
 
 		public bool IsDate { get; protected set; } = false;
-		protected PSqlType SetIsDate (bool Value = true) { IsDate = Value; return this; }
+		public PSqlType SetIsDate (bool Value = true) { IsDate = Value; return this; }
 		public bool IsTimeSpan { get; protected set; } = false;
-		protected PSqlType SetIsTimeSpan (bool Value = true) { IsTimeSpan = Value; return this; }
+		public PSqlType SetIsTimeSpan (bool Value = true) { IsTimeSpan = Value; return this; }
 		public bool IsText { get; protected set; } = false;
-		protected PSqlType SetIsText (bool Value = true) { IsText = Value; return this; }
+		public PSqlType SetIsText (bool Value = true) { IsText = Value; return this; }
 
-		protected PSqlType ()
+		public PSqlType ()
 		{
 		}
 
@@ -49,22 +49,25 @@ namespace ParseProcs
 		{
 			return Display;
 		}
+	}
 
-		protected static Dictionary<string, PSqlType> _Map;
-		public static IReadOnlyDictionary<string, PSqlType> Map => _Map;
+	public class SqlTypeMap
+	{
+		protected Dictionary<string, PSqlType> _Map;
+		public IReadOnlyDictionary<string, PSqlType> Map => _Map;
 
-		public static PSqlType GetForSqlTypeName (string PSqlTypeNameL)
+		public PSqlType GetForSqlTypeName (string PSqlTypeNameL)
 		{
 			return _Map.TryGetValue (PSqlTypeNameL, out PSqlType Result) ? Result : null;
 		}
 
-		public static string[] GetAllKeys ()
+		public string[] GetAllKeys ()
 		{
 			return _Map.Keys.OrderByDescending (k => k.Length).ToArray ();
 		}
 
 		// https://dba.stackexchange.com/questions/90230/postgresql-determine-column-type-when-data-type-is-set-to-array
-		protected static PSqlType Add (Type ClrType, params string[] Keys)
+		protected PSqlType Add (Type ClrType, params string[] Keys)
 		{
 			_Map ??= new Dictionary<string, PSqlType> ();
 
@@ -84,34 +87,67 @@ namespace ParseProcs
 			return BaseType;
 		}
 
-		public static readonly PSqlType Null = Add (typeof (object), "unknown");
-		public static readonly PSqlType Record = Add (typeof (object), "record");
-		public static readonly PSqlType RefCursor = Add (typeof (object), "refcursor");
-		public static readonly PSqlType Bool = Add (typeof (bool), "bool", "boolean");
-		public static readonly PSqlType Binary = Add (typeof (byte[]), "bytea");
-		public static readonly PSqlType Guid = Add (typeof (Guid), "uuid");
+		public readonly PSqlType Null;
+		public readonly PSqlType Record;
+		public readonly PSqlType RefCursor;
+		public readonly PSqlType Bool;
+		public readonly PSqlType Binary;
+		public readonly PSqlType Guid;
 
-		public static readonly PSqlType Int = Add (typeof (int), "int", "integer", "serial", "int4").SetNumericLevel (NumericOrderLevel.Int);
-		public static readonly PSqlType SmallInt = Add (typeof (short), "smallint", "smallserial", "int2").SetNumericLevel (NumericOrderLevel.SmallInt);
-		public static readonly PSqlType BigInt = Add (typeof (long), "bigint", "bigserial", "int8").SetNumericLevel (NumericOrderLevel.BigInt);
-		public static readonly PSqlType Money = Add (typeof (decimal), "money").SetNumericLevel (NumericOrderLevel.Money);
-		public static readonly PSqlType Decimal = Add (typeof (decimal), "decimal", "numeric").SetNumericLevel (NumericOrderLevel.Decimal);
-		public static readonly PSqlType Real = Add (typeof (float), "real", "float4").SetNumericLevel (NumericOrderLevel.Real);
-		public static readonly PSqlType Float = Add (typeof (double), "float", "double precision").SetNumericLevel (NumericOrderLevel.Float);
+		public readonly PSqlType Int;
+		public readonly PSqlType SmallInt;
+		public readonly PSqlType BigInt;
+		public readonly PSqlType Money;
+		public readonly PSqlType Decimal;
+		public readonly PSqlType Real;
+		public readonly PSqlType Float;
 
-		public static readonly PSqlType Json = Add (typeof (string), "json");
-		public static readonly PSqlType Jsonb = Add (typeof (string), "jsonb");
+		public readonly PSqlType Json;
+		public readonly PSqlType Jsonb;
 
-		public static readonly PSqlType Date = Add (typeof (DateTime), "date").SetIsDate ();
-		public static readonly PSqlType Timestamp = Add (typeof (DateTime), "timestamp", "timestamp without time zone").SetIsDate ();
-		public static readonly PSqlType TimestampTz = Add (typeof (DateTime), "timestamp with time zone", "timestamptz").SetIsDate ();
-		public static readonly PSqlType Interval = Add (typeof (TimeSpan), "interval").SetIsTimeSpan ();
-		public static readonly PSqlType Time = Add (typeof (TimeSpan), "time", "time without time zone").SetIsTimeSpan ();
-		public static readonly PSqlType TimeTz = Add (typeof (TimeSpan), "time with time zone").SetIsTimeSpan ();
+		public readonly PSqlType Date;
+		public readonly PSqlType Timestamp;
+		public readonly PSqlType TimestampTz;
+		public readonly PSqlType Interval;
+		public readonly PSqlType Time;
+		public readonly PSqlType TimeTz;
 
-		public static readonly PSqlType Text = Add (typeof (string), "text").SetIsText ();
-		public static readonly PSqlType Char = Add (typeof (string), "char", "character", "bpchar").SetIsText ();
-		public static readonly PSqlType VarChar = Add (typeof (string), "varchar", "character varying", "name", "cstring", "regtype").SetIsText ();
-		public static readonly PSqlType RegType = Add (typeof (uint), "regtype");
+		public readonly PSqlType Text;
+		public readonly PSqlType Char;
+		public readonly PSqlType VarChar;
+		public readonly PSqlType RegType;
+
+		public SqlTypeMap ()
+		{
+			this.Null = Add (typeof (object), "unknown");
+			this.Record = Add (typeof (object), "record");
+			this.RefCursor = Add (typeof (object), "refcursor");
+			this.Bool = Add (typeof (bool), "bool", "boolean");
+			this.Binary = Add (typeof (byte[]), "bytea");
+			this.Guid = Add (typeof (Guid), "uuid");
+
+			this.Int = Add (typeof (int), "int", "integer", "serial", "int4").SetNumericLevel (PSqlType.NumericOrderLevel.Int);
+			this.SmallInt = Add (typeof (short), "smallint", "smallserial", "int2").SetNumericLevel (PSqlType.NumericOrderLevel.SmallInt);
+			this.BigInt = Add (typeof (long), "bigint", "bigserial", "int8").SetNumericLevel (PSqlType.NumericOrderLevel.BigInt);
+			this.Money = Add (typeof (decimal), "money").SetNumericLevel (PSqlType.NumericOrderLevel.Money);
+			this.Decimal = Add (typeof (decimal), "decimal", "numeric").SetNumericLevel (PSqlType.NumericOrderLevel.Decimal);
+			this.Real = Add (typeof (float), "real", "float4").SetNumericLevel (PSqlType.NumericOrderLevel.Real);
+			this.Float = Add (typeof (double), "float", "double precision").SetNumericLevel (PSqlType.NumericOrderLevel.Float);
+
+			this.Json = Add (typeof (string), "json");
+			this.Jsonb = Add (typeof (string), "jsonb");
+
+			this.Date = Add (typeof (DateTime), "date").SetIsDate ();
+			this.Timestamp = Add (typeof (DateTime), "timestamp", "timestamp without time zone").SetIsDate ();
+			this.TimestampTz = Add (typeof (DateTime), "timestamp with time zone", "timestamptz").SetIsDate ();
+			this.Interval = Add (typeof (TimeSpan), "interval").SetIsTimeSpan ();
+			this.Time = Add (typeof (TimeSpan), "time", "time without time zone").SetIsTimeSpan ();
+			this.TimeTz = Add (typeof (TimeSpan), "time with time zone").SetIsTimeSpan ();
+
+			this.Text = Add (typeof (string), "text").SetIsText ();
+			this.Char = Add (typeof (string), "char", "character", "bpchar").SetIsText ();
+			this.VarChar = Add (typeof (string), "varchar", "character varying", "name", "cstring", "regtype").SetIsText ();
+			this.RegType = Add (typeof (uint), "regtype");
+		}
 	}
 }

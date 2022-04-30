@@ -10,6 +10,7 @@ namespace ParseProcs
 	public class DatabaseContext
 	{
 		public string DatabaseName;
+		public SqlTypeMap TypeMap;
 		public Dictionary<string, DbTable> TablesDict;
 		public Dictionary<string, Procedure> ProceduresDict;
 		public Dictionary<string, PSqlType> FunctionsDict;
@@ -22,6 +23,7 @@ namespace ParseProcs
 		{
 			DatabaseContext Result = new DatabaseContext
 			{
+				TypeMap = new SqlTypeMap (),
 				TablesDict = new Dictionary<string, DbTable> (),
 				ProceduresDict = new Dictionary<string, Procedure> (),
 				FunctionsDict = new Dictionary<string, PSqlType> (),
@@ -105,7 +107,7 @@ ORDER BY table_schema, table_name, ordinal_position;
 								continue;
 							}
 
-							NamedTyped c = new NamedTyped (ColumnName, PSqlType.GetForSqlTypeName(Type));
+							NamedTyped c = new NamedTyped (ColumnName, Result.TypeMap.GetForSqlTypeName(Type));
 							t.AddColumn (c);
 						}
 					}
@@ -157,11 +159,11 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 
 									if (Type.StartsWith ("_"))		// here: user pg_catalog.pg_type.typelem for proper item type reference
 									{
-										SqlType = PSqlType.GetForSqlTypeName (Type[1..])?.ArrayType;
+										SqlType = Result.TypeMap.GetForSqlTypeName (Type[1..])?.ArrayType;
 									}
 									else
 									{
-										SqlType = PSqlType.GetForSqlTypeName (Type);
+										SqlType = Result.TypeMap.GetForSqlTypeName (Type);
 									}
 
 									Argument c = new Argument (arg.Value, SqlType, ArgDirections[arg.Index]);
@@ -215,7 +217,7 @@ ORDER BY routines.routine_schema, routines.routine_name;
 							string RoutineName = (string)rdr["routine_name"];
 							string TypeName = (string)rdr["data_type"];
 
-							PSqlType Type = PSqlType.GetForSqlTypeName (TypeName);
+							PSqlType Type = Result.TypeMap.GetForSqlTypeName (TypeName);
 							if (Type == null)
 							{
 								continue;

@@ -280,6 +280,9 @@ namespace ParseProcs
 			string ConnectionString = args[0];
 			string OutputFileName = args[1];
 
+			//
+			var DatabaseContext = ReadDatabase (ConnectionString);
+
 			// postfix ST means that the result is 'SQL token',
 			// i.e. duly processes comments and whitespaces
 
@@ -419,7 +422,7 @@ namespace ParseProcs
 			var PBinaryDisjunctionST = SpracheUtils.AnyTokenST ("or");
 
 			var PBaseTypeST =
-					from t in SpracheUtils.AnyTokenST (PSqlType.GetAllKeys ())
+					from t in SpracheUtils.AnyTokenST (DatabaseContext.TypeMap.GetAllKeys ())
 					from p in Parse.Number.SqlToken ()
 						.CommaDelimitedST ()
 						.InParentsST ()
@@ -466,8 +469,8 @@ namespace ParseProcs
 						.Select<IEnumerable<SPolynom>, Func<RequestContext, NamedTyped>> (arr =>
 							rc =>
 								arr.Select (it => it.GetResult (rc))
-									.FirstOrDefault (nt => nt.Type != PSqlType.Null) ??
-								new NamedTyped (PSqlType.Null))
+									.FirstOrDefault (nt => nt.Type != DatabaseContext.TypeMap.Null) ??
+								new NamedTyped (DatabaseContext.TypeMap.Null))
 						.Or (PSelectFirstColumnST)
 					select (Func<RequestContext, NamedTyped>)(rc =>
 						body (rc).ToArray ().WithName ("array"))
@@ -531,12 +534,12 @@ namespace ParseProcs
 				;
 
 			var PBaseAtomicST =
-					PNull.SqlToken ().ProduceType (PSqlType.Null)
-						.Or (PDecimal.SqlToken ().ProduceType (PSqlType.Decimal))
+					PNull.SqlToken ().ProduceType (DatabaseContext.TypeMap.Null)
+						.Or (PDecimal.SqlToken ().ProduceType (DatabaseContext.TypeMap.Decimal))
 						// PInteger must be or-ed after PDecimal
-						.Or (PInteger.SqlToken ().ProduceType (PSqlType.Int))
-						.Or (PBooleanLiteral.SqlToken ().ProduceType (PSqlType.Bool))
-						.Or (PSingleQuotedString.SqlToken ().ProduceType (PSqlType.VarChar))
+						.Or (PInteger.SqlToken ().ProduceType (DatabaseContext.TypeMap.Int))
+						.Or (PBooleanLiteral.SqlToken ().ProduceType (DatabaseContext.TypeMap.Bool))
+						.Or (PSingleQuotedString.SqlToken ().ProduceType (DatabaseContext.TypeMap.VarChar))
 						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
 						.Or (PFunctionCallST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
@@ -564,7 +567,7 @@ namespace ParseProcs
 						).Optional ()
 						from _5 in POrderByClauseOptionalST
 						from _6 in SpracheUtils.SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (rn, PSqlType.Int))
+						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int))
 					)
 					.Or (
 						from f in SpracheUtils.AnyTokenST ("sum", "min", "max")
@@ -580,7 +583,7 @@ namespace ParseProcs
 						from _2 in SpracheUtils.SqlToken ("distinct").Optional ()
 						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SpracheUtils.SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, PSqlType.BigInt))
+						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, DatabaseContext.TypeMap.BigInt))
 					)
 					.Or (
 						from f in SpracheUtils.SqlToken ("array_agg")
@@ -601,7 +604,7 @@ namespace ParseProcs
 						select (Func<RequestContext, NamedTyped>)(rc =>
 						{
 							var ExpRes = exp.GetResult (rc);
-							return (ExpRes.Type == PSqlType.Null ? subst.GetResult (rc) : ExpRes).WithName (f);
+							return (ExpRes.Type == DatabaseContext.TypeMap.Null ? subst.GetResult (rc) : ExpRes).WithName (f);
 						})
 					)
 					.Or (
@@ -609,7 +612,7 @@ namespace ParseProcs
 						let type = kw.GetExpressionType ()
 						where type != null
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (kw, PSqlType.GetForSqlTypeName (kw.GetExpressionType ())))
+							new NamedTyped (kw, DatabaseContext.TypeMap.GetForSqlTypeName (kw.GetExpressionType ())))
 					)
 					.Or (
 						(
@@ -618,7 +621,7 @@ namespace ParseProcs
 								.Or (PFullSelectStatementRefST.Get.Return (0))
 								.InParentsST ()
 							select 0
-						).ProduceType (PSqlType.Null)
+						).ProduceType (DatabaseContext.TypeMap.Null)
 					)
 					.Or (
 						(
@@ -627,7 +630,7 @@ namespace ParseProcs
 								.Or (PFullSelectStatementRefST.Get.Return (0))
 								.InParentsST ()
 							select 0
-						).ProduceType (PSqlType.Bool)
+						).ProduceType (DatabaseContext.TypeMap.Bool)
 					)
 					.Or (
 						from case_c in GetCase (PExpressionRefST.Get, PExpressionRefST.Get)
@@ -655,9 +658,9 @@ namespace ParseProcs
 								return NamedTyped.WithType (NamedTyped.Type.BaseType);
 							}))
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
-							(l, r) => rc => l (rc).WithType (PSqlType.GetForSqlTypeName(tc.key)))))
+							(l, r) => rc => l (rc).WithType (DatabaseContext.TypeMap.GetForSqlTypeName(tc.key)))))
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
-							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
+							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool))))
 						.Many ()
 						.Optional ()
 				;
@@ -665,38 +668,38 @@ namespace ParseProcs
 			var PBinaryOperatorsST =
 					PBinaryJsonOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General,
 							true,
-							OperatorProcessor.GetForBinaryOperator (b)))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b)))
 						.Or (PBinaryMultiplicationOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.MulDiv,
 							true,
-							OperatorProcessor.GetForBinaryOperator (b))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBinaryAdditionOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.AddSub,
 							true,
-							OperatorProcessor.GetForBinaryOperator (b))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBinaryExponentialOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Exp,
 							true,
-							OperatorProcessor.GetForBinaryOperator (b))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBinaryComparisonOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.Comparison, true,
-							OperatorProcessor.ProduceType (PSqlType.Bool))))
+							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryIncludeOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.In, true,
-							OperatorProcessor.ProduceType (PSqlType.Bool))))
+							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryRangeOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Like,
 							true,
-							OperatorProcessor.ProduceType (PSqlType.Bool))))
+							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryMatchingOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Is,
 							true,
-							OperatorProcessor.ProduceType (PSqlType.Bool))))
+							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryConjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.And, true,
-							OperatorProcessor.ProduceType (PSqlType.Bool), IsAnd: true)))
+							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool), IsAnd: true)))
 						.Or (PBinaryDisjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
-							OperatorProcessor.ProduceType (PSqlType.Bool))))
+							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.General, true,
-							OperatorProcessor.GetForBinaryOperator (b))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBetweenOperatorST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Between, true,
-							OperatorProcessor.ProduceType (PSqlType.Bool), true)))
+							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool), true)))
 				;
 
 			var PPolynomST =
@@ -1187,7 +1190,7 @@ namespace ParseProcs
 							).Optional ()
 							from _2 in SpracheUtils.SqlToken (";")
 							select type.key != null
-								? new NamedTyped (name, PSqlType.GetForSqlTypeName (type.key))
+								? new NamedTyped (name, DatabaseContext.TypeMap.GetForSqlTypeName (type.key))
 								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.given_as + ") is not supported")
 						).AtLeastOnce ()
 						select vars.ToArray ()
@@ -1208,9 +1211,6 @@ END
 ~
 ");
 */
-
-			//
-			var DatabaseContext = ReadDatabase (ConnectionString);
 
 			// parse all procedures
 			Module ModuleReport = new Module { Procedures = new List<Datasets.Procedure> () };

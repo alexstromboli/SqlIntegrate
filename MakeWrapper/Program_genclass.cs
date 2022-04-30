@@ -25,7 +25,7 @@ namespace MakeWrapper
 
 	partial class Program
 	{
-		static string GenerateCode (Module Module, bool UseSchemaSettings, params CodeProcessor[] Processors)
+		static string GenerateCode (Module Module, SqlTypeMap DbTypeMap, bool UseSchemaSettings, params CodeProcessor[] Processors)
 		{
 			Processors.Act (p => p.OnHaveModule (Module));
 
@@ -33,7 +33,7 @@ namespace MakeWrapper
 			// Postgres type name to C# type name
 			// including arrays
 			Dictionary<string, string> TypeMap = new Dictionary<string, string> ();
-			foreach (var p in PSqlType.Map.Where (p => !p.Value.IsArray))
+			foreach (var p in DbTypeMap.Map.Where (p => !p.Value.IsArray))
 			{
 				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
 				{
@@ -43,7 +43,7 @@ namespace MakeWrapper
 			}
 			TypeMap["bytea"] = "byte[]";
 
-			Processors.Act (p => p.OnHaveTypeMap (TypeMap));
+			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
 			//
 			Wrapper Wrapper = new Wrapper

@@ -12,7 +12,7 @@ namespace MakeWrapper
 		{
 		}
 
-		public virtual void OnHaveTypeMap (Dictionary<string, string> TypeMap)
+		public virtual void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, string> TypeMap)
 		{
 		}
 
@@ -23,9 +23,9 @@ namespace MakeWrapper
 
 	public class NodaTimeCodeProcessor : CodeProcessor
 	{
-		public override void OnHaveTypeMap (Dictionary<string, string> TypeMap)
+		public override void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, string> TypeMap)
 		{
-			foreach (var p in PSqlType.Map.Where (p => !p.Value.IsArray))
+			foreach (var p in DbTypeMap.Map.Where (p => !p.Value.IsArray))
 			{
 				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
 				{

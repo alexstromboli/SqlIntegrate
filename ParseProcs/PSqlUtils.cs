@@ -40,23 +40,23 @@ namespace ParseProcs
 			}
 		}
 
-		public static PSqlType GetBinaryOperationResultType (PSqlType Left, PSqlType Right, string Operator)
+		public static PSqlType GetBinaryOperationResultType (SqlTypeMap Typemap, PSqlType Left, PSqlType Right, string Operator)
 		{
 			if (Left.IsNumber && Right.IsNumber)
 			{
-				if (Left.BaseType == PSqlType.Money || Right.BaseType == PSqlType.Money)
+				if (Left.BaseType == Typemap.Money || Right.BaseType == Typemap.Money)
 				{
-					return PSqlType.Money;
+					return Typemap.Money;
 				}
 
-				if (Left.BaseType == PSqlType.Real || Right.BaseType == PSqlType.Real)
+				if (Left.BaseType == Typemap.Real || Right.BaseType == Typemap.Real)
 				{
-					if (Left.BaseType == PSqlType.Real && Right.BaseType == PSqlType.Real)
+					if (Left.BaseType == Typemap.Real && Right.BaseType == Typemap.Real)
 					{
-						return PSqlType.Real;
+						return Typemap.Real;
 					}
 
-					return PSqlType.Float;
+					return Typemap.Float;
 				}
 
 				return Left.NumericLevel > Right.NumericLevel
@@ -66,7 +66,7 @@ namespace ParseProcs
 
 			if (Operator == "->>" || Operator == "#>>")
 			{
-				return PSqlType.VarChar;
+				return Typemap.VarChar;
 			}
 
 			if (Operator == "->" || Operator == "#>")
@@ -97,23 +97,29 @@ namespace ParseProcs
 				}
 			}
 
+			if (Left == Typemap.TimestampTz && Right.IsTimeSpan
+			    || Left.IsTimeSpan && Right == Typemap.TimestampTz)
+			{
+				return Typemap.TimestampTz;
+			}
+
 			if (Left.IsDate && Right.IsTimeSpan
 			    || Left.IsTimeSpan && Right.IsDate)
 			{
-				return PSqlType.Timestamp;
+				return Typemap.Timestamp;
 			}
 
 			if (Left.IsTimeSpan && Right.IsTimeSpan)
 			{
-				return PSqlType.Interval;
+				return Typemap.Interval;
 			}
 
 			if (Left.IsDate && Right.IsDate && Operator == "-")
 			{
-				return PSqlType.Interval;
+				return Typemap.Interval;
 			}
 
-			return PSqlType.Null;
+			return Typemap.Null;
 		}
 	}
 }

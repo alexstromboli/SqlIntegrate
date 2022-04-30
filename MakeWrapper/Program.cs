@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 using Newtonsoft.Json;
 
+using ParseProcs;
 using ParseProcs.Datasets;
 using Utils.CodeGeneration;
 
@@ -145,7 +146,7 @@ namespace MakeWrapper
 			         }
 			        )
 			{
-				string Code = GenerateCode (Module, run.UseSchemaSettings, Processors: run.processors);
+				string Code = GenerateCode (Module, new SqlTypeMap (), run.UseSchemaSettings, Processors: run.processors);
 				CodeGenerationUtils.EnsureFileContents (run.target, Code);
 			}
 		}

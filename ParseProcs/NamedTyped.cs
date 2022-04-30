@@ -35,34 +35,4 @@ namespace ParseProcs
 			return new NamedTyped (Name, Type.ArrayType);
 		}
 	}
-
-	public class NamedLazyTyped : NamedTyped
-	{
-		protected Func<PSqlType> TypeGetter;
-
-		protected PSqlType _Type = null;
-		public override PSqlType Type
-		{
-			get
-			{
-				if (_Type == null)
-				{
-					_Type = TypeGetter ();
-				}
-
-				return _Type;
-			}
-
-			protected set
-			{
-				_Type = value;
-			}
-		}
-
-		public NamedLazyTyped (string Name, Func<PSqlType> TypeGetter)
-			: base (Name, PSqlType.Null)
-		{
-			this.TypeGetter = TypeGetter;
-		}
-	}
 }

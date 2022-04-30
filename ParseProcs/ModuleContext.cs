@@ -54,7 +54,7 @@ namespace ParseProcs
 		public NamedTyped GetFunction (string[] NameSegments)
 		{
 			string Name = NameSegments[^1].ToLower ();
-			PSqlType Type = GetSchemaEntity (FunctionsDict, NameSegments) ?? PSqlType.Null;
+			PSqlType Type = GetSchemaEntity (FunctionsDict, NameSegments) ?? DatabaseContext.TypeMap.Null;
 
 			return new NamedTyped (Name, Type);
 		}

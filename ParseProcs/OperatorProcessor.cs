@@ -37,13 +37,13 @@ namespace ParseProcs
 			Func<RequestContext, NamedTyped>, // left
 			Func<RequestContext, NamedTyped>, // right (null for unary)
 			Func<RequestContext, NamedTyped> // result
-		> GetForBinaryOperator (string Operator)
+		> GetForBinaryOperator (SqlTypeMap Typemap, string Operator)
 		{
 			return (l, r) => rc =>
 			{
 				PSqlType Left = l (rc).Type;
 				PSqlType Right = r (rc).Type;
-				return new NamedTyped (PSqlUtils.GetBinaryOperationResultType (Left, Right, Operator));
+				return new NamedTyped (PSqlUtils.GetBinaryOperationResultType (Typemap, Left, Right, Operator));
 			};
 		}
 
