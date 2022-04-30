@@ -432,7 +432,7 @@ namespace ParseProcs
 						from _tn in PQualifiedIdentifierLST
 						from _ps in SpracheUtils.SqlToken ("%")
 						from _rt in SpracheUtils.SqlToken ("rowtype")
-						select (string)null
+						select new { given_as = _tn.JoinDot () + _ps + _rt, key = (string)null }
 					)
 					.Or (
 						from t in PBaseTypeST
@@ -444,7 +444,8 @@ namespace ParseProcs
 							)
 							.AtLeastOnce ()
 							.Optional ()
-						select t + (array.IsDefined ? "[]" : "")
+						let given_as = t + (array.IsDefined ? "[]" : "")
+						select new { given_as = given_as, key = given_as }
 					)
 				;
 
@@ -654,7 +655,7 @@ namespace ParseProcs
 								return NamedTyped.WithType (NamedTyped.Type.BaseType);
 							}))
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
-							(l, r) => rc => l (rc).WithType (PSqlType.GetForSqlTypeName(tc)))))
+							(l, r) => rc => l (rc).WithType (PSqlType.GetForSqlTypeName(tc.key)))))
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
 							(l, r) => rc => new NamedTyped (PSqlType.Bool))))
 						.Many ()
@@ -1185,7 +1186,9 @@ namespace ParseProcs
 								select 0
 							).Optional ()
 							from _2 in SpracheUtils.SqlToken (";")
-							select new NamedTyped (name, PSqlType.GetForSqlTypeName (type))
+							select type.key != null
+								? new NamedTyped (name, PSqlType.GetForSqlTypeName (type.key))
+								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.given_as + ") is not supported")
 						).AtLeastOnce ()
 						select vars.ToArray ()
 					).Optional ()

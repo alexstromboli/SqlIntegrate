@@ -38,6 +38,26 @@ CREATE TABLE VoidThings
     height int
 );
 
+CREATE TYPE monetary AS
+(
+    amount numeric,
+    id_currency int
+);
+
+CREATE TYPE payment AS
+(
+    paid monetary,
+    date date
+);
+
+CREATE TABLE financial_history
+(
+    id int,
+    diff payment
+);
+
+INSERT INTO financial_history VALUES (76, ((562.30, 2), '2019-08-21'));
+
 INSERT INTO Depts VALUES (1, null, 'Administration');
 INSERT INTO Depts VALUES (2, 1, 'Operation');
 INSERT INTO Depts VALUES (3, 1, 'Strategy');
@@ -889,5 +909,33 @@ BEGIN
     p_date_arr := p_date_arr || array[null, p_date];
     p_timestamp_arr := p_timestamp_arr || array[null, p_timestamp];
     */
+END;
+$$;
+
+-- DROP PROCEDURE get_composite;
+CREATE PROCEDURE get_composite
+(
+    INOUT result refcursor
+)
+LANGUAGE 'plpgsql'
+AS $$
+DECLARE
+    arrow Depts%rowtype;
+BEGIN
+    SELECT
+        5 as id,
+        11 as id_parent,
+        'Hall (East)' as name
+    INTO arrow;     -- here: use in test
+
+    OPEN result FOR
+    SELECT  id,
+            diff as_block,
+            (diff).date,
+            (diff).paid,
+            (diff).paid.amount
+    FROM financial_history
+    ORDER BY (diff).date DESC
+    ;
 END;
 $$;
