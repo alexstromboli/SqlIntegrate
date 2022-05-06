@@ -67,7 +67,7 @@ namespace ParseProcs
 		}
 
 		// https://dba.stackexchange.com/questions/90230/postgresql-determine-column-type-when-data-type-is-set-to-array
-		protected PSqlType Add (Type ClrType, params string[] Keys)
+		protected PSqlType AddPgCatalogType (Type ClrType, params string[] Keys)
 		{
 			_Map ??= new Dictionary<string, PSqlType> ();
 
@@ -115,39 +115,43 @@ namespace ParseProcs
 		public readonly PSqlType Text;
 		public readonly PSqlType Char;
 		public readonly PSqlType VarChar;
+		public readonly PSqlType Name;
+		public readonly PSqlType CString;
 		public readonly PSqlType RegType;
 
 		public SqlTypeMap ()
 		{
-			this.Null = Add (typeof (object), "unknown");
-			this.Record = Add (typeof (object), "record");
-			this.RefCursor = Add (typeof (object), "refcursor");
-			this.Bool = Add (typeof (bool), "bool", "boolean");
-			this.Binary = Add (typeof (byte[]), "bytea");
-			this.Guid = Add (typeof (Guid), "uuid");
+			this.Null = AddPgCatalogType (typeof (object), "unknown");
+			this.Record = AddPgCatalogType (typeof (object), "record");
+			this.RefCursor = AddPgCatalogType (typeof (object), "refcursor");
+			this.Bool = AddPgCatalogType (typeof (bool), "bool", "boolean");
+			this.Binary = AddPgCatalogType (typeof (byte[]), "bytea");
+			this.Guid = AddPgCatalogType (typeof (Guid), "uuid");
 
-			this.Int = Add (typeof (int), "int", "integer", "serial", "int4").SetNumericLevel (PSqlType.NumericOrderLevel.Int);
-			this.SmallInt = Add (typeof (short), "smallint", "smallserial", "int2").SetNumericLevel (PSqlType.NumericOrderLevel.SmallInt);
-			this.BigInt = Add (typeof (long), "bigint", "bigserial", "int8").SetNumericLevel (PSqlType.NumericOrderLevel.BigInt);
-			this.Money = Add (typeof (decimal), "money").SetNumericLevel (PSqlType.NumericOrderLevel.Money);
-			this.Decimal = Add (typeof (decimal), "decimal", "numeric").SetNumericLevel (PSqlType.NumericOrderLevel.Decimal);
-			this.Real = Add (typeof (float), "real", "float4").SetNumericLevel (PSqlType.NumericOrderLevel.Real);
-			this.Float = Add (typeof (double), "float", "double precision").SetNumericLevel (PSqlType.NumericOrderLevel.Float);
+			this.Int = AddPgCatalogType (typeof (int), "int", "integer", "serial", "int4").SetNumericLevel (PSqlType.NumericOrderLevel.Int);
+			this.SmallInt = AddPgCatalogType (typeof (short), "smallint", "smallserial", "int2").SetNumericLevel (PSqlType.NumericOrderLevel.SmallInt);
+			this.BigInt = AddPgCatalogType (typeof (long), "bigint", "bigserial", "int8").SetNumericLevel (PSqlType.NumericOrderLevel.BigInt);
+			this.Money = AddPgCatalogType (typeof (decimal), "money").SetNumericLevel (PSqlType.NumericOrderLevel.Money);
+			this.Decimal = AddPgCatalogType (typeof (decimal), "decimal", "numeric").SetNumericLevel (PSqlType.NumericOrderLevel.Decimal);
+			this.Real = AddPgCatalogType (typeof (float), "real", "float4").SetNumericLevel (PSqlType.NumericOrderLevel.Real);
+			this.Float = AddPgCatalogType (typeof (double), "float", "double precision").SetNumericLevel (PSqlType.NumericOrderLevel.Float);
 
-			this.Json = Add (typeof (string), "json");
-			this.Jsonb = Add (typeof (string), "jsonb");
+			this.Json = AddPgCatalogType (typeof (string), "json");
+			this.Jsonb = AddPgCatalogType (typeof (string), "jsonb");
 
-			this.Date = Add (typeof (DateTime), "date").SetIsDate ();
-			this.Timestamp = Add (typeof (DateTime), "timestamp", "timestamp without time zone").SetIsDate ();
-			this.TimestampTz = Add (typeof (DateTime), "timestamp with time zone", "timestamptz").SetIsDate ();
-			this.Interval = Add (typeof (TimeSpan), "interval").SetIsTimeSpan ();
-			this.Time = Add (typeof (TimeSpan), "time", "time without time zone").SetIsTimeSpan ();
-			this.TimeTz = Add (typeof (TimeSpan), "time with time zone").SetIsTimeSpan ();
+			this.Date = AddPgCatalogType (typeof (DateTime), "date").SetIsDate ();
+			this.Timestamp = AddPgCatalogType (typeof (DateTime), "timestamp", "timestamp without time zone").SetIsDate ();
+			this.TimestampTz = AddPgCatalogType (typeof (DateTime), "timestamptz", "timestamp with time zone").SetIsDate ();
+			this.Interval = AddPgCatalogType (typeof (TimeSpan), "interval").SetIsTimeSpan ();
+			this.Time = AddPgCatalogType (typeof (TimeSpan), "time", "time without time zone").SetIsTimeSpan ();
+			this.TimeTz = AddPgCatalogType (typeof (TimeSpan), "timetz", "time with time zone").SetIsTimeSpan ();
 
-			this.Text = Add (typeof (string), "text").SetIsText ();
-			this.Char = Add (typeof (string), "char", "character", "bpchar").SetIsText ();
-			this.VarChar = Add (typeof (string), "varchar", "character varying", "name", "cstring", "regtype").SetIsText ();
-			this.RegType = Add (typeof (uint), "regtype");
+			this.Text = AddPgCatalogType (typeof (string), "text").SetIsText ();
+			this.Char = AddPgCatalogType (typeof (string), "char", "character", "bpchar").SetIsText ();
+			this.VarChar = AddPgCatalogType (typeof (string), "varchar", "character varying").SetIsText ();
+			this.Name = AddPgCatalogType (typeof (string), "name").SetIsText ();
+			this.CString = AddPgCatalogType (typeof (string), "cstring").SetIsText ();
+			this.RegType = AddPgCatalogType (typeof (uint), "regtype");
 		}
 	}
 }

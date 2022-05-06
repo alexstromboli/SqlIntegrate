@@ -21,9 +21,10 @@ namespace ParseProcs
 	{
 		private static DatabaseContext ReadDatabase (string ConnectionString)
 		{
+			var TypeMap = new SqlTypeMap ();
 			DatabaseContext Result = new DatabaseContext
 			{
-				TypeMap = new SqlTypeMap (),
+				TypeMap = TypeMap,
 				TablesDict = new Dictionary<string, DbTable> (),
 				ProceduresDict = new Dictionary<string, Procedure> (),
 				FunctionsDict = new Dictionary<string, PSqlType> (),

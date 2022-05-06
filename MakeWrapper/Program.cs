@@ -50,23 +50,23 @@ namespace MakeWrapper
 		}
 	}
 
-	public class WrapperProcedureArgument
-	{
-		public Argument Origin;
-		public string NativeName;
-		public string CsName;
-		public string CallParamName;
-		public string ClrType;
-		public bool IsCursor;
-		public bool IsOut;
-	}
-
 	public class Wrapper
 	{
 		public class Schema
 		{
 			public class Procedure
 			{
+				public class Argument
+				{
+					public ParseProcs.Datasets.Argument Origin;
+					public string NativeName;
+					public string CsName;
+					public string CallParamName;
+					public string ClrType;
+					public bool IsCursor;
+					public bool IsOut;
+				}
+
 				public class Set
 				{
 					public class Property
@@ -102,7 +102,7 @@ namespace MakeWrapper
 				public ParseProcs.Datasets.Procedure Origin;
 				public string NativeName;
 				public string CsName;
-				public WrapperProcedureArgument[] Arguments;
+				public Wrapper.Schema.Procedure.Argument[] Arguments;
 				public string ResultClassName;
 				public List<Set> ResultSets;
 				public bool HasResults => ResultSets.Count > 0;

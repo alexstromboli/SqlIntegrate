@@ -78,7 +78,7 @@ namespace MakeWrapper
 									NativeName = p.Name,
 									CsName = p.Name.ValidCsName (),
 									Arguments = p.Arguments
-										.Select (a => new WrapperProcedureArgument
+										.Select (a => new Wrapper.Schema.Procedure.Argument
 										{
 											Origin = a,
 											NativeName = a.Name,
