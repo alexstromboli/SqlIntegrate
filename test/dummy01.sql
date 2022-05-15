@@ -1,6 +1,28 @@
 CREATE SCHEMA ext;
 CREATE SCHEMA :owner;     -- for test, needs to match the username
 
+CREATE TYPE app_status AS ENUM
+(
+    'pending',
+    'active',
+    'hold'
+);
+
+-- not used (directly or indirectly) in any procedure
+CREATE TYPE useless_enum AS ENUM
+(
+    'okay',
+    'taken',
+    'rigged'
+);
+
+-- not used (directly or indirectly) in any procedure
+CREATE TYPE useless_struct AS
+(
+    status useless_enum,
+    name varchar(50)
+);
+
 CREATE TABLE ext.Persons
 (
     id uuid PRIMARY KEY,
@@ -8,6 +30,7 @@ CREATE TABLE ext.Persons
     firstname varchar(50),
     dob date,
     tab_num bigint,
+    status app_status,
     effect int DEFAULT 0
 );
 
@@ -69,11 +92,11 @@ INSERT INTO Depts VALUES (8, 3, 'Marketing');
 INSERT INTO Depts VALUES (9, 3, 'Sales');
 INSERT INTO Depts VALUES (10, 3, 'SMM');
 
-INSERT INTO ext.Persons VALUES ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 'Borduk', 'Petro', '1946-07-07', 1005);
-INSERT INTO ext.Persons VALUES ('4EF2FCF9-8F5B-41C3-8127-1A1C464BB10A', 'Stasuk', 'Pablo', '1952-10-05', null);
-INSERT INTO ext.Persons VALUES ('BBF7C3E7-408D-485A-B21C-78BA300B0EF1', 'Porosuk', 'Sergio', null, 1015);
-INSERT INTO ext.Persons VALUES ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 'Krasuk', 'Stan', '1984-06-09', 1034);
-INSERT INTO ext.Persons VALUES ('731B7BD8-AEEA-4A67-80C7-3A9E666F1FDA', 'Pevshitz', null, '1988-12-05', 1089);
+INSERT INTO ext.Persons VALUES ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 'Borduk',   'Petro', '1946-07-07', 1005, 'active');
+INSERT INTO ext.Persons VALUES ('4EF2FCF9-8F5B-41C3-8127-1A1C464BB10A', 'Stasuk',   'Pablo', '1952-10-05', null, null);
+INSERT INTO ext.Persons VALUES ('BBF7C3E7-408D-485A-B21C-78BA300B0EF1', 'Porosuk',  'Sergio',        null, 1015, 'pending');
+INSERT INTO ext.Persons VALUES ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 'Krasuk',   'Stan',  '1984-06-09', 1034, 'active');
+INSERT INTO ext.Persons VALUES ('731B7BD8-AEEA-4A67-80C7-3A9E666F1FDA', 'Pevshitz', null,    '1988-12-05', 1089, 'hold');
 
 INSERT INTO Rooms VALUES (2, 'Ontario');
 INSERT INTO Rooms VALUES (9, 'Board');
@@ -222,7 +245,8 @@ AS $$
                 ('{5, 8, 2, 0, 1}'::int [/* inside */ ] )[3] AS piece,
                 sample,
                 sample::reAL,
-                sample + 45 AS "had it"
+                sample + 45 AS "had it",
+                P.status
         FROM ext.Persons
         WHERE id = id_person
         ;
@@ -422,6 +446,7 @@ BEGIN
             'n'::varchar(5) as varchar,
             false as bool,
             pg_typeof(5) regtype,
+            'hold'::app_status as last_status,
             owner_sum
         ;
 
@@ -933,7 +958,10 @@ BEGIN
             diff as_block,
             (diff).date,
             (diff).paid,
-            (diff).paid.amount
+            (diff).paid.amount,
+            'hold'::app_status,
+            'hold'::app_status as last_status,
+            null::app_status as aux_status
     FROM financial_history
     ORDER BY (diff).date DESC
     ;

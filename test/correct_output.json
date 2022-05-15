@@ -1169,7 +1169,7 @@
             {
               "Name": "timestamptz",
               "SqlType": {
-                "SqlBaseType": "timestamp with time zone"
+                "SqlBaseType": "timestamptz"
               }
             },
             {
@@ -1832,14 +1832,14 @@
         {
           "Name": "p_instant",
           "SqlType": {
-            "SqlBaseType": "timestamp with time zone"
+            "SqlBaseType": "timestamptz"
           },
           "IsOut": true
         },
         {
           "Name": "p_instant_arr",
           "SqlType": {
-            "SqlBaseType": "timestamp with time zone",
+            "SqlBaseType": "timestamptz",
             "IsArray": true
           },
           "IsOut": true

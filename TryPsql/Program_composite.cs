@@ -64,6 +64,13 @@ namespace TryPsql
 		public string Name;
 	}
 
+	enum AppStatus
+	{
+		pending,
+		active,
+		hold
+	}
+
 	partial class Program
 	{
 		static void TestComposite (NpgsqlConnection conn)
@@ -91,9 +98,14 @@ namespace TryPsql
 					{
 						while (rdr.Read ())
 						{
+							string LastStatusS = (string)rdr["last_status"];
+							AppStatus? LastStatus = rdr.GetFieldValue<AppStatus?> ("last_status");
+							AppStatus? AuxStatus = rdr.GetFieldValue<AppStatus?> ("aux_status");
+
 							//var m = rdr["m"];
 							//var arrow = rdr["arrow"];
-							object[] vs = new object[6];
+							object[] vs = new object[7];
+							var sch = rdr.GetColumnSchema ();
 							var arrow = rdr.GetValues (vs);
 						}
 					}
