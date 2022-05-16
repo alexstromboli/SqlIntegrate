@@ -18,6 +18,7 @@ namespace ParseProcs
 			Money
 		}
 
+		public string Schema { get; set; }
 		public bool IsArray { get; set; } = false;
 		public PSqlType BaseType { get; set; }		// can be self
 		public PSqlType ArrayType { get; set; }			// can be self
@@ -67,24 +68,58 @@ namespace ParseProcs
 		}
 
 		// https://dba.stackexchange.com/questions/90230/postgresql-determine-column-type-when-data-type-is-set-to-array
-		protected PSqlType AddPgCatalogType (Type ClrType, params string[] Keys)
+		protected PSqlType AddType (Type ClrType, string Schema, params string[] Keys)
 		{
-			_Map ??= new Dictionary<string, PSqlType> ();
+			string[] BaseKeys = Keys;
+			string[] ArrayKeys = Keys.Select (k => k + "[]").ToArray ();
 
-			PSqlType BaseType = new PSqlType { Display = Keys[0], ClrType = ClrType };
-			PSqlType ArrayType = new PSqlType { Display = Keys[0] + "[]", ClrType = ClrType, IsArray = true };
-			BaseType.BaseType = BaseType;
-			BaseType.ArrayType = ArrayType;
-			ArrayType.BaseType = BaseType;
-			ArrayType.ArrayType = ArrayType;
+			PSqlType BaseType = BaseKeys
+					.Select (n => _Map.TryGetValue (n, out var t) ? t : null)
+					.FirstOrDefault (t => t != null)
+				;
+			PSqlType ArrayType = ArrayKeys
+					.Select (n => _Map.TryGetValue (n, out var t) ? t : null)
+					.FirstOrDefault (t => t != null)
+				;
 
-			foreach (string Key in Keys)
+			if (BaseType == null && ArrayType == null)
 			{
-				_Map[Key] = BaseType;
-				_Map[Key + "[]"] = ArrayType;
+				BaseType = new PSqlType { Schema = Schema, Display = BaseKeys[0], ClrType = ClrType };
+				ArrayType = new PSqlType { Schema = Schema, Display = ArrayKeys[0], ClrType = ClrType, IsArray = true };
+
+				BaseType.BaseType = BaseType;
+				BaseType.ArrayType = ArrayType;
+				ArrayType.BaseType = BaseType;
+				ArrayType.ArrayType = ArrayType;
+			}
+
+			if (ArrayType == null && BaseType != null)
+			{
+				ArrayType = BaseType.ArrayType;
+			}
+
+			if (BaseType == null && ArrayType != null)
+			{
+				BaseType = ArrayType.BaseType;
+			}
+
+			foreach (var p in new[] { new { type = BaseType, keys = BaseKeys }, new { type = ArrayType, keys = ArrayKeys } })
+			{
+				if (p.type != null)
+				{
+					foreach (string Key in p.keys)
+					{
+						_Map.TryAdd (Key, p.type);
+					}
+				}
 			}
 
 			return BaseType;
+		}
+
+		protected PSqlType AddPgCatalogType (Type ClrType, params string[] Keys)
+		{
+			return AddType (ClrType, "pg_catalog", Keys);
 		}
 
 		public readonly PSqlType Null;
@@ -121,6 +156,8 @@ namespace ParseProcs
 
 		public SqlTypeMap ()
 		{
+			_Map = new Dictionary<string, PSqlType> ();
+
 			this.Null = AddPgCatalogType (typeof (object), "unknown");
 			this.Record = AddPgCatalogType (typeof (object), "record");
 			this.RefCursor = AddPgCatalogType (typeof (object), "refcursor");
