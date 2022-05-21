@@ -17,6 +17,17 @@ namespace ParseProcs
 		public List<string> SchemaOrder;
 	}
 
+	class PgTypeEntry
+	{
+		public uint Oid;
+		public string Name;
+		public string Schema;
+		public char Category;
+		public uint RelId;
+		public uint ElemId;
+		public uint ArrayId;
+	}
+
 	partial class Program
 	{
 		private static DatabaseContext ReadDatabase (string ConnectionString)
@@ -38,13 +49,20 @@ namespace ParseProcs
 				Result.DatabaseName = (string)conn.ExecuteScalar ("SELECT current_database();");
 
 				// types
-				Dictionary<uint, string> TypesDict = new Dictionary<uint, string> ();
+				List<PgTypeEntry> PgTypeEntries = new List<PgTypeEntry> ();
+				Dictionary<uint, PgTypeEntry> PgTypeEntriesDict;
 				using (var cmd = conn.CreateCommand ())
 				{
 					cmd.CommandText = @"
-SELECT  oid,
-        typname
-FROM pg_catalog.pg_type
+SELECT  T.oid,
+        T.typname,
+        NS.nspname,
+        T.typtype,
+        T.typrelid,
+        T.typelem,
+        T.typarray
+FROM pg_catalog.pg_type AS T
+    INNER JOIN pg_catalog.pg_namespace AS NS ON NS.oid = T.typnamespace
 ;
 ";
 
@@ -52,14 +70,23 @@ FROM pg_catalog.pg_type
 					{
 						while (rdr.Read ())
 						{
-							uint Oid = (uint) rdr["oid"];
-							string Name = (string) rdr["typname"];
-
-							TypesDict[Oid] = Name;
+							PgTypeEntries.Add (new PgTypeEntry
+							{
+								Oid = (uint) rdr["oid"],
+								Name = (string) rdr["typname"],
+								Schema = (string) rdr["nspname"],
+								Category = (char) rdr["typtype"],
+								RelId = (uint) rdr["typrelid"],
+								ElemId = (uint) rdr["typelem"],
+								ArrayId = (uint) rdr["typarray"]
+							});
 						}
 					}
 				}
 
+				PgTypeEntriesDict = PgTypeEntries.ToDictionary (e => e.Oid);
+
+				//
 				using (var cmd = conn.CreateCommand ())
 				{
 					cmd.CommandText = @"
@@ -151,7 +178,7 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 
 								Argument.DirectionType[] ArgDirections = ArgModes.Select (c =>
 									c == 'b' ? Argument.DirectionType.InOut : Argument.DirectionType.In).ToArray ();
-								string[] ArgTypes = ArgTypeCodes.Select (n => TypesDict[n]).ToArray ();
+								string[] ArgTypes = ArgTypeCodes.Select (n => PgTypeEntriesDict[n].Name).ToArray ();
 
 								foreach (var arg in ArgNames.Indexed ())
 								{

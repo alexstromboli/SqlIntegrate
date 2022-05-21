@@ -107,6 +107,8 @@ namespace ParseProcs
 			{
 				if (p.type != null)
 				{
+					p.type.ClrType ??= ClrType;
+
 					foreach (string Key in p.keys)
 					{
 						_Map.TryAdd (Key, p.type);

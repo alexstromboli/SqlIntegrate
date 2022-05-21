@@ -959,7 +959,6 @@ BEGIN
             (diff).date,
             (diff).paid,
             (diff).paid.amount,
-            'hold'::app_status,
             'hold'::app_status as last_status,
             null::app_status as aux_status
     FROM financial_history
