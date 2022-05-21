@@ -39,6 +39,7 @@ namespace ParseProcs
 		}
 
 		public List<Attribute> Attributes;
+		public List<string> EnumValues;
 
 		public override string ToString ()
 		{
@@ -107,6 +108,33 @@ FROM pg_catalog.pg_type AS T
 				PgTypeEntriesRelidDict = PgTypeEntries
 					.Where (t => t.RelId != 0)
 					.ToDictionary (e => e.RelId);
+
+				// enum values
+				using (var cmd = conn.CreateCommand ())
+				{
+					cmd.CommandText = @"
+SELECT  enumtypid,
+		enumlabel
+FROM pg_catalog.pg_enum
+ORDER BY enumtypid, enumsortorder
+;
+";
+
+					using (var rdr = cmd.ExecuteReader ())
+					{
+						while (rdr.Read ())
+						{
+							uint TypeId = (uint)rdr["enumtypid"];
+							string Value = (string)rdr["enumlabel"];
+
+							if (PgTypeEntriesDict.TryGetValue (TypeId, out PgTypeEntry Parent))
+							{
+								Parent.EnumValues ??= new List<string> ();
+								Parent.EnumValues.Add (Value);
+							}
+						}
+					}
+				}
 
 				// attributes, properties
 				using (var cmd = conn.CreateCommand ())
