@@ -26,6 +26,24 @@ namespace ParseProcs
 		public uint RelId;
 		public uint ElemId;
 		public uint ArrayId;
+
+		public class Attribute
+		{
+			public string Name;
+			public PgTypeEntry Type;
+
+			public override string ToString ()
+			{
+				return $"{Name ?? "???"}.{Type?.ToString () ?? "???"}";
+			}
+		}
+
+		public List<Attribute> Attributes;
+
+		public override string ToString ()
+		{
+			return $"{Schema ?? "???"}.{Name ?? "???"}";
+		}
 	}
 
 	partial class Program
@@ -51,6 +69,7 @@ namespace ParseProcs
 				// types
 				List<PgTypeEntry> PgTypeEntries = new List<PgTypeEntry> ();
 				Dictionary<uint, PgTypeEntry> PgTypeEntriesDict;
+				Dictionary<uint, PgTypeEntry> PgTypeEntriesRelidDict;
 				using (var cmd = conn.CreateCommand ())
 				{
 					cmd.CommandText = @"
@@ -85,6 +104,40 @@ FROM pg_catalog.pg_type AS T
 				}
 
 				PgTypeEntriesDict = PgTypeEntries.ToDictionary (e => e.Oid);
+				PgTypeEntriesRelidDict = PgTypeEntries
+					.Where (t => t.RelId != 0)
+					.ToDictionary (e => e.RelId);
+
+				// attributes, properties
+				using (var cmd = conn.CreateCommand ())
+				{
+					cmd.CommandText = @"
+SELECT  attrelid,
+        attname,
+        atttypid
+FROM pg_catalog.pg_attribute
+ORDER BY attrelid, attnum
+;
+";
+
+					using (var rdr = cmd.ExecuteReader ())
+					{
+						while (rdr.Read ())
+						{
+							uint RelId = (uint)rdr["attrelid"];
+							string Name = (string)rdr["attname"];
+							uint TypeId = (uint)rdr["atttypid"];
+
+							if (PgTypeEntriesRelidDict.TryGetValue (RelId, out PgTypeEntry Parent)
+							    && PgTypeEntriesDict.TryGetValue (TypeId, out PgTypeEntry AttType)
+							    )
+							{
+								Parent.Attributes ??= new List<PgTypeEntry.Attribute> ();
+								Parent.Attributes.Add (new PgTypeEntry.Attribute { Name = Name, Type = AttType });
+							}
+						}
+					}
+				}
 
 				//
 				using (var cmd = conn.CreateCommand ())
