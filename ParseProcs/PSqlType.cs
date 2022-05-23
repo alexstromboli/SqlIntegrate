@@ -91,11 +91,6 @@ namespace ParseProcs
 		public IReadOnlyDictionary<string, PSqlType> Map => _Map;
 		public IReadOnlyDictionary<uint, PSqlType> MapByOid { get; }	// null if not initialized from DB
 
-		public PSqlType GetForSqlTypeName (string PSqlTypeNameL)
-		{
-			return _Map.TryGetValue (PSqlTypeNameL, out PSqlType Result) ? Result : null;
-		}
-
 		public string[] GetAllKeys ()
 		{
 			return _Map.Keys.OrderByDescending (k => k.Length).ToArray ();
@@ -215,6 +210,11 @@ namespace ParseProcs
 					PSqlType SqlType = new PSqlType { Schema = Schema, Display = QualTypeName, IsArray = IsArray };
 					_Map[QualTypeName] = SqlType;
 					OidToSqlTypeDict[t.Oid] = SqlType;
+
+					if (t.EnumValues != null && t.EnumValues.Count > 0)
+					{
+						SqlType.ClrType = typeof(string);
+					}
 				}
 
 				// connect base types to arrays

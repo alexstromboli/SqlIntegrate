@@ -246,7 +246,7 @@ AS $$
                 sample,
                 sample::reAL,
                 sample + 45 AS "had it",
-                P.status
+                Persons.status
         FROM ext.Persons
         WHERE id = id_person
         ;

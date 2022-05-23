@@ -436,11 +436,7 @@ namespace ParseProcs
 						)
 						.AtLeastOnce ()
 						.Optional ()
-					let tp = t.Count () > 1
-						? (DatabaseContext.TypeMap.Map.TryGetValue (t.JoinDot (), out var f) ? f : null)
-						: DatabaseContext.SchemaOrder.Select (s =>
-								DatabaseContext.TypeMap.Map.TryGetValue (s + "." + t.JoinDot (), out var f) ? f : null)
-							.FirstOrDefault (f => f != null)
+					let tp = DatabaseContext.GetTypeForName (t.ToArray ())
 					where tp != null
 					let given_as = t + (array.IsDefined ? "[]" : "")
 					select new { given_as = given_as, key = tp }
@@ -606,7 +602,7 @@ namespace ParseProcs
 						let type = kw.GetExpressionType ()
 						where type != null
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (kw, DatabaseContext.TypeMap.GetForSqlTypeName (kw.GetExpressionType ())))
+							new NamedTyped (kw, DatabaseContext.GetTypeForName ("pg_catalog", type)))
 					)
 					.Or (
 						(

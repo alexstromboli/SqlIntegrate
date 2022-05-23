@@ -15,6 +15,15 @@ namespace ParseProcs
 		public Dictionary<string, Procedure> ProceduresDict;
 		public Dictionary<string, PSqlType> FunctionsDict;
 		public List<string> SchemaOrder;
+
+		public PSqlType GetTypeForName (params string[] TypeName)
+		{
+			return TypeName.Count () > 1
+				? (TypeMap.Map.TryGetValue (TypeName.JoinDot (), out var f) ? f : null)
+				: SchemaOrder.Select (s =>
+						TypeMap.Map.TryGetValue (s + "." + TypeName.JoinDot (), out var f) ? f : null)
+					.FirstOrDefault (f => f != null);
+		}
 	}
 
 	partial class Program
@@ -190,8 +199,7 @@ ORDER BY table_schema, table_name, ordinal_position;
 								continue;
 							}
 
-							NamedTyped c = new NamedTyped (ColumnName,
-								Result.TypeMap.GetForSqlTypeName (TypeSchema + "." + Type));
+							NamedTyped c = new NamedTyped (ColumnName, Result.GetTypeForName (TypeSchema, Type));
 							t.AddColumn (c);
 						}
 					}
@@ -273,7 +281,11 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 				using (var cmd = conn.CreateCommand ())
 				{
 					cmd.CommandText = @"
-SELECT routines.routine_schema, routines.routine_name, type_udt_name::regtype::varchar AS data_type
+SELECT
+	routines.routine_schema,
+    routines.routine_name,
+    type_udt_schema AS result_schema,
+    type_udt_name::regtype::varchar AS result_type
 FROM information_schema.routines
 WHERE routines.routine_type='FUNCTION'
     AND type_udt_name NOT IN ('any')
@@ -287,9 +299,10 @@ ORDER BY routines.routine_schema, routines.routine_name;
 							// presumed to be lowercase
 							string Schema = (string)rdr["routine_schema"];
 							string RoutineName = (string)rdr["routine_name"];
-							string TypeName = (string)rdr["data_type"];
+							string ResultSchema = (string)rdr["result_schema"];
+							string ResultType = (string)rdr["result_type"];
 
-							PSqlType Type = Result.TypeMap.GetForSqlTypeName (TypeName);
+							PSqlType Type = Result.GetTypeForName (ResultSchema, ResultType);
 							if (Type == null)
 							{
 								continue;
