@@ -48,6 +48,17 @@ namespace ParseProcs
 			Money
 		}
 
+		public class Property
+		{
+			public string Name;
+			public PSqlType Type;
+
+			public override string ToString ()
+			{
+				return $"{Name ?? "???"} {Type?.ToString () ?? "???"}";
+			}
+		}
+
 		public string Schema { get; set; }
 		public bool IsArray { get; set; } = false;
 		// doesn't work for types
@@ -59,6 +70,10 @@ namespace ParseProcs
 		public string Display { get; set; }
 		public Type ClrType { get; set; }
 		public NumericOrderLevel NumericLevel = NumericOrderLevel.None;
+
+		public string[] EnumValues;
+		public Property[] Properties;
+		public Dictionary<string, Property> PropertiesDict;
 
 		public bool IsNumber { get; set; } = false;
 		public PSqlType SetNumericLevel (NumericOrderLevel Level)
@@ -229,6 +244,27 @@ namespace ParseProcs
 						ArrayType.BaseType = BaseType;
 						BaseType.ArrayType = ArrayType;
 						ArrayType.ArrayType = ArrayType;
+					}
+				}
+
+				// populate enum values
+				// and properties
+				foreach (var t in PgTypeEntriesDict.Values)
+				{
+					PSqlType Type = OidToSqlTypeDict[t.Oid];
+
+					if (t.EnumValues != null && t.EnumValues.Count > 0)
+					{
+						Type.EnumValues = t.EnumValues.ToArray ();
+					}
+
+					if (t.Attributes != null)
+					{
+						Type.Properties = t.Attributes
+								.Select (a => new PSqlType.Property { Name = a.Name, Type = MapByOid[a.Type.Oid] })
+								.ToArray ()
+							;
+						Type.PropertiesDict = Type.Properties.ToDictionary (p => p.Name);
 					}
 				}
 			}
