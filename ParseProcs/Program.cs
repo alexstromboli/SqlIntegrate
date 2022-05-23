@@ -422,34 +422,28 @@ namespace ParseProcs
 			var PBinaryDisjunctionST = SpracheUtils.AnyTokenST ("or");
 
 			var PTypeST =
-					(
-						from _tn in PQualifiedIdentifierLST
-						from _ps in SpracheUtils.SqlToken ("%")
-						from _rt in SpracheUtils.SqlToken ("rowtype")
-						select new { given_as = _tn.JoinDot () + _ps + _rt, key = (PSqlType)null }
-					)
-					.Or (
-						from t in PQualifiedIdentifierLST
-						from p in Parse.Number.SqlToken ()
-							.CommaDelimitedST ()
-							.InParentsST ()
-							.Optional ()
-						from array in
-							(
-								from _1 in Parse.String ("[").SqlToken ()
-								from _2 in Parse.String ("]").SqlToken ()
-								select 1
-							)
-							.AtLeastOnce ()
-							.Optional ()
-						let tp = t.Length > 1
-							? (DatabaseContext.TypeMap.Map.TryGetValue (t.JoinDot (), out var f) ? f : null)
-							: DatabaseContext.SchemaOrder.Select (s => DatabaseContext.TypeMap.Map.TryGetValue (t.JoinDot (), out var f) ? f : null)
-								.FirstOrDefault (f => f != null)
-						where tp != null
-						let given_as = t + (array.IsDefined ? "[]" : "")
-						select new { given_as = given_as, key = tp }
-					)
+					from t in PAlphaNumericL.SqlToken ().DelimitedBy (Parse.Char ('.').SqlToken ())
+					from p in Parse.Number.SqlToken ()
+						.CommaDelimitedST ()
+						.InParentsST ()
+						.Optional ()
+					from _ps in SpracheUtils.AnyTokenST ("% rowtype").Optional ()
+					from array in
+						(
+							from _1 in Parse.String ("[").SqlToken ()
+							from _2 in Parse.String ("]").SqlToken ()
+							select 1
+						)
+						.AtLeastOnce ()
+						.Optional ()
+					let tp = t.Count () > 1
+						? (DatabaseContext.TypeMap.Map.TryGetValue (t.JoinDot (), out var f) ? f : null)
+						: DatabaseContext.SchemaOrder.Select (s =>
+								DatabaseContext.TypeMap.Map.TryGetValue (s + "." + t.JoinDot (), out var f) ? f : null)
+							.FirstOrDefault (f => f != null)
+					where tp != null
+					let given_as = t + (array.IsDefined ? "[]" : "")
+					select new { given_as = given_as, key = tp }
 				;
 
 			var PSimpleTypeCastST =
