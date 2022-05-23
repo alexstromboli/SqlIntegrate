@@ -4,6 +4,36 @@ using System.Collections.Generic;
 
 namespace ParseProcs
 {
+	public class PgTypeEntry
+	{
+		public uint Oid;
+		public string Name;
+		public string Schema;
+		public char Category;
+		public uint RelId;
+		public uint ElemId;
+		public uint ArrayId;
+
+		public class Attribute
+		{
+			public string Name;
+			public PgTypeEntry Type;
+
+			public override string ToString ()
+			{
+				return $"{Name ?? "???"}.{Type?.ToString () ?? "???"}";
+			}
+		}
+
+		public List<Attribute> Attributes;
+		public List<string> EnumValues;
+
+		public override string ToString ()
+		{
+			return $"{Schema ?? "???"}.{Name ?? "???"}";
+		}
+	}
+
 	public class PSqlType
 	{
 		public enum NumericOrderLevel
@@ -20,6 +50,9 @@ namespace ParseProcs
 
 		public string Schema { get; set; }
 		public bool IsArray { get; set; } = false;
+		// doesn't work for types
+		// name, int2vector, oidvector, point, lseg, box, line
+		// which are both arrays and items
 		public PSqlType BaseType { get; set; }		// can be self
 		public PSqlType ArrayType { get; set; }			// can be self
 
@@ -56,6 +89,7 @@ namespace ParseProcs
 	{
 		protected Dictionary<string, PSqlType> _Map;
 		public IReadOnlyDictionary<string, PSqlType> Map => _Map;
+		public IReadOnlyDictionary<uint, PSqlType> MapByOid { get; }	// null if not initialized from DB
 
 		public PSqlType GetForSqlTypeName (string PSqlTypeNameL)
 		{
@@ -70,8 +104,8 @@ namespace ParseProcs
 		// https://dba.stackexchange.com/questions/90230/postgresql-determine-column-type-when-data-type-is-set-to-array
 		protected PSqlType AddType (Type ClrType, string Schema, params string[] Keys)
 		{
-			string[] BaseKeys = Keys;
-			string[] ArrayKeys = Keys.Select (k => k + "[]").ToArray ();
+			string[] BaseKeys = Keys.Select (k => Schema + "." + k).ToArray ();
+			string[] ArrayKeys = Keys.Select (k => Schema + "." + k + "[]").ToArray ();
 
 			PSqlType BaseType = BaseKeys
 					.Select (n => _Map.TryGetValue (n, out var t) ? t : null)
@@ -156,9 +190,48 @@ namespace ParseProcs
 		public readonly PSqlType CString;
 		public readonly PSqlType RegType;
 
-		public SqlTypeMap ()
+		public SqlTypeMap (Dictionary<uint, PgTypeEntry> PgTypeEntriesDict = null)
 		{
 			_Map = new Dictionary<string, PSqlType> ();
+
+			if (PgTypeEntriesDict != null)
+			{
+				Dictionary<uint, PSqlType> OidToSqlTypeDict = new Dictionary<uint, PSqlType> ();
+				MapByOid = OidToSqlTypeDict;
+
+				foreach (var t in PgTypeEntriesDict.Values)
+				{
+					// avoid types which are both arrays and items
+					bool IsArray = t.ElemId > 0 && PgTypeEntriesDict[t.ElemId].ArrayId == t.Oid;
+
+					string Schema = IsArray
+						? PgTypeEntriesDict[t.ElemId].Schema
+						: t.Schema;
+					string QualTypeName = Schema + "."
+					                             + (IsArray
+						                             ? PgTypeEntriesDict[t.ElemId].Name + "[]"
+						                             : t.Name);
+
+					PSqlType SqlType = new PSqlType { Schema = Schema, Display = QualTypeName, IsArray = IsArray };
+					_Map[QualTypeName] = SqlType;
+					OidToSqlTypeDict[t.Oid] = SqlType;
+				}
+
+				// connect base types to arrays
+				foreach (var t in PgTypeEntriesDict.Values)
+				{
+					PSqlType BaseType = OidToSqlTypeDict[t.Oid];
+					BaseType.BaseType = BaseType;
+
+					if (t.ArrayId > 0)
+					{
+						PSqlType ArrayType = OidToSqlTypeDict[t.ArrayId];
+						ArrayType.BaseType = BaseType;
+						BaseType.ArrayType = ArrayType;
+						ArrayType.ArrayType = ArrayType;
+					}
+				}
+			}
 
 			this.Null = AddPgCatalogType (typeof (object), "unknown");
 			this.Record = AddPgCatalogType (typeof (object), "record");

@@ -17,44 +17,13 @@ namespace ParseProcs
 		public List<string> SchemaOrder;
 	}
 
-	class PgTypeEntry
-	{
-		public uint Oid;
-		public string Name;
-		public string Schema;
-		public char Category;
-		public uint RelId;
-		public uint ElemId;
-		public uint ArrayId;
-
-		public class Attribute
-		{
-			public string Name;
-			public PgTypeEntry Type;
-
-			public override string ToString ()
-			{
-				return $"{Name ?? "???"}.{Type?.ToString () ?? "???"}";
-			}
-		}
-
-		public List<Attribute> Attributes;
-		public List<string> EnumValues;
-
-		public override string ToString ()
-		{
-			return $"{Schema ?? "???"}.{Name ?? "???"}";
-		}
-	}
-
 	partial class Program
 	{
 		private static DatabaseContext ReadDatabase (string ConnectionString)
 		{
-			var TypeMap = new SqlTypeMap ();
 			DatabaseContext Result = new DatabaseContext
 			{
-				TypeMap = TypeMap,
+				TypeMap = null,
 				TablesDict = new Dictionary<string, DbTable> (),
 				ProceduresDict = new Dictionary<string, Procedure> (),
 				FunctionsDict = new Dictionary<string, PSqlType> (),
@@ -167,7 +136,9 @@ ORDER BY attrelid, attnum
 					}
 				}
 
-				//
+				Result.TypeMap = new SqlTypeMap (PgTypeEntriesDict);
+
+				// tables
 				using (var cmd = conn.CreateCommand ())
 				{
 					cmd.CommandText = @"
@@ -190,6 +161,7 @@ WHERE table_schema NOT IN ('pg_catalog', 'information_schema');
 					}
 				}
 
+				// table columns
 				using (var cmd = conn.CreateCommand ())
 				{
 					cmd.CommandText = @"
@@ -197,6 +169,7 @@ SELECT  table_schema,
         table_name,
         column_name,
         ordinal_position,
+		udt_schema AS data_type_schema,
         udt_name::regtype::varchar AS data_type
 FROM information_schema.columns
 ORDER BY table_schema, table_name, ordinal_position;
@@ -209,6 +182,7 @@ ORDER BY table_schema, table_name, ordinal_position;
 							string Schema = (string) rdr["table_schema"];
 							string TableName = (string) rdr["table_name"];
 							string ColumnName = (string) rdr["column_name"];
+							string TypeSchema = (string) rdr["data_type_schema"];
 							string Type = (string) rdr["data_type"];
 
 							if (!Result.TablesDict.TryGetValue (SchemaEntity.GetDisplay (Schema, TableName), out DbTable t))
@@ -216,7 +190,8 @@ ORDER BY table_schema, table_name, ordinal_position;
 								continue;
 							}
 
-							NamedTyped c = new NamedTyped (ColumnName, Result.TypeMap.GetForSqlTypeName(Type));
+							NamedTyped c = new NamedTyped (ColumnName,
+								Result.TypeMap.GetForSqlTypeName (TypeSchema + "." + Type));
 							t.AddColumn (c);
 						}
 					}
@@ -259,23 +234,11 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 
 								Argument.DirectionType[] ArgDirections = ArgModes.Select (c =>
 									c == 'b' ? Argument.DirectionType.InOut : Argument.DirectionType.In).ToArray ();
-								string[] ArgTypes = ArgTypeCodes.Select (n => PgTypeEntriesDict[n].Name).ToArray ();
+								PSqlType[] ArgTypes = ArgTypeCodes.Select (n => Result.TypeMap.MapByOid[n]).ToArray ();
 
 								foreach (var arg in ArgNames.Indexed ())
 								{
-									string Type = ArgTypes[arg.Index];
-									PSqlType SqlType;
-
-									if (Type.StartsWith ("_"))		// here: user pg_catalog.pg_type.typelem for proper item type reference
-									{
-										SqlType = Result.TypeMap.GetForSqlTypeName (Type[1..])?.ArrayType;
-									}
-									else
-									{
-										SqlType = Result.TypeMap.GetForSqlTypeName (Type);
-									}
-
-									Argument c = new Argument (arg.Value, SqlType, ArgDirections[arg.Index]);
+									Argument c = new Argument (arg.Value, ArgTypes[arg.Index], ArgDirections[arg.Index]);
 									p.AddArgument (c);
 								}
 							}

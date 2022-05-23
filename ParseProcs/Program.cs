@@ -421,24 +421,19 @@ namespace ParseProcs
 			var PBinaryConjunctionST = SpracheUtils.AnyTokenST ("and");
 			var PBinaryDisjunctionST = SpracheUtils.AnyTokenST ("or");
 
-			var PBaseTypeST =
-					from t in SpracheUtils.AnyTokenST (DatabaseContext.TypeMap.GetAllKeys ())
-					from p in Parse.Number.SqlToken ()
-						.CommaDelimitedST ()
-						.InParentsST ()
-						.Optional ()
-					select t
-				;
-
 			var PTypeST =
 					(
 						from _tn in PQualifiedIdentifierLST
 						from _ps in SpracheUtils.SqlToken ("%")
 						from _rt in SpracheUtils.SqlToken ("rowtype")
-						select new { given_as = _tn.JoinDot () + _ps + _rt, key = (string)null }
+						select new { given_as = _tn.JoinDot () + _ps + _rt, key = (PSqlType)null }
 					)
 					.Or (
-						from t in PBaseTypeST
+						from t in PQualifiedIdentifierLST
+						from p in Parse.Number.SqlToken ()
+							.CommaDelimitedST ()
+							.InParentsST ()
+							.Optional ()
 						from array in
 							(
 								from _1 in Parse.String ("[").SqlToken ()
@@ -447,8 +442,13 @@ namespace ParseProcs
 							)
 							.AtLeastOnce ()
 							.Optional ()
+						let tp = t.Length > 1
+							? (DatabaseContext.TypeMap.Map.TryGetValue (t.JoinDot (), out var f) ? f : null)
+							: DatabaseContext.SchemaOrder.Select (s => DatabaseContext.TypeMap.Map.TryGetValue (t.JoinDot (), out var f) ? f : null)
+								.FirstOrDefault (f => f != null)
+						where tp != null
 						let given_as = t + (array.IsDefined ? "[]" : "")
-						select new { given_as = given_as, key = given_as }
+						select new { given_as = given_as, key = tp }
 					)
 				;
 
@@ -658,7 +658,7 @@ namespace ParseProcs
 								return NamedTyped.WithType (NamedTyped.Type.BaseType);
 							}))
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
-							(l, r) => rc => l (rc).WithType (DatabaseContext.TypeMap.GetForSqlTypeName(tc.key)))))
+							(l, r) => rc => l (rc).WithType (tc.key))))
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
 							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool))))
 						.Many ()
@@ -1190,7 +1190,7 @@ namespace ParseProcs
 							).Optional ()
 							from _2 in SpracheUtils.SqlToken (";")
 							select type.key != null
-								? new NamedTyped (name, DatabaseContext.TypeMap.GetForSqlTypeName (type.key))
+								? new NamedTyped (name, type.key)
 								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.given_as + ") is not supported")
 						).AtLeastOnce ()
 						select vars.ToArray ()
