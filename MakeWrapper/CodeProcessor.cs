@@ -25,6 +25,8 @@ namespace MakeWrapper
 	{
 		public override void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, string> TypeMap)
 		{
+			string PgCatalogPrefix = "pg_catalog.";
+
 			foreach (var p in DbTypeMap.Map.Where (p => !p.Value.IsArray))
 			{
 				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
@@ -42,16 +44,16 @@ namespace MakeWrapper
 				}
 			}
 
-			TypeMap["timestamp"] = "LocalDateTime?";
-			TypeMap["timestamp[]"] = "LocalDateTime[]";
-			TypeMap["timestamp without time zone"] = "LocalDateTime?";
-			TypeMap["timestamp without time zone[]"] = "LocalDateTime[]";
+			TypeMap[PgCatalogPrefix + "timestamp"] = "LocalDateTime?";
+			TypeMap[PgCatalogPrefix + "timestamp[]"] = "LocalDateTime[]";
+			TypeMap[PgCatalogPrefix + "timestamp without time zone"] = "LocalDateTime?";
+			TypeMap[PgCatalogPrefix + "timestamp without time zone[]"] = "LocalDateTime[]";
 
-			TypeMap["date"] = "LocalDate?";
-			TypeMap["date[]"] = "LocalDate[]";
+			TypeMap[PgCatalogPrefix + "date"] = "LocalDate?";
+			TypeMap[PgCatalogPrefix + "date[]"] = "LocalDate[]";
 
-			TypeMap["interval"] = "Period";
-			TypeMap["interval[]"] = "Period[]";
+			TypeMap[PgCatalogPrefix + "interval"] = "Period";
+			TypeMap[PgCatalogPrefix + "interval[]"] = "Period[]";
 		}
 
 		public override void OnHaveWrapper (Wrapper Wrapper)

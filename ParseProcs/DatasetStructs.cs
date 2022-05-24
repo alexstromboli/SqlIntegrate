@@ -10,16 +10,24 @@ namespace ParseProcs.Datasets
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public bool IsArray = false;
 
+		[JsonIgnore]
+		public PSqlType Origin;
+
+		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
+		public string[] Enum;
+
 		public SqlType ()
 		{
 			SqlBaseType = null;
 			IsArray = false;
 		}
 
-		public SqlType (PSqlType Type)
+		public SqlType (PSqlType Origin)
 		{
-			SqlBaseType = Type.BaseType.Display;
-			IsArray = Type.IsArray;
+			this.Origin = Origin;
+			SqlBaseType = Origin.BaseType.Display;
+			IsArray = Origin.IsArray;
+			Enum = Origin.EnumValues;
 		}
 
 		public override string ToString ()
@@ -79,6 +87,7 @@ namespace ParseProcs.Datasets
 
 	public class Module
 	{
+		public List<SqlType> Types;
 		public List<Procedure> Procedures;
 	}
 }

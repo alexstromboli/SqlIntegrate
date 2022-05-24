@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using System.Linq;
 using System.Collections.Generic;
@@ -46,6 +47,22 @@ namespace Utils
 		public static string JoinDot (this IEnumerable<string> Fragments)
 		{
 			return string.Join (".", Fragments);
+		}
+
+		public static IEnumerable<T> Distinct<T, K> (this IEnumerable<T> Source, Func<T, K> KeySelector)
+		{
+			SortedSet<K> Keys = new SortedSet<K> ();
+			foreach (T t in Source)
+			{
+				K Key = KeySelector (t);
+				if (Keys.Contains (Key))
+				{
+					continue;
+				}
+
+				Keys.Add (Key);
+				yield return t;
+			}
 		}
 	}
 

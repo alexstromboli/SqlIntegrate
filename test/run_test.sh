@@ -24,5 +24,5 @@ if [ -f "$OUTPUT_JSON_FILE" ]; then
     popd >/dev/null
 fi
 
-sed -i "s/      \"Schema\": \"$USER\",/      \"Schema\": \"USER\",/g" "$OUTPUT_JSON_FILE"
+sed -i "s/\"$USER/\"USER/g" "$OUTPUT_JSON_FILE"
 [ "$(sha1sum correct_output.json | cut -c 1-40)" == "$(sha1sum $OUTPUT_JSON_FILE | cut -c 1-40)" ] && echo -e "\e[92m""success""\e[0m" && rm "$OUTPUT_JSON_FILE" || echo -e "\e[91m""failed""\e[0m"

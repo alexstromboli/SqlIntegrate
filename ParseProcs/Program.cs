@@ -1263,7 +1263,6 @@ END
 					}
 
 					ModuleReport.Procedures.Add (ProcedureReport);
-					//Console.WriteLine ($"{proc.Name} ok");
 				}
 				catch (Exception ex)
 				{
@@ -1271,11 +1270,28 @@ END
 				}
 			}
 
+			SqlType[] UsedTypes = ModuleReport.Procedures
+					.Select (p => p.Arguments.Select (a => a.SqlType)
+						.Concat (p.ResultSets.Select (rs => rs.Columns.Select (c => c.SqlType)).SelectMany (t => t))
+					)
+					.SelectMany (t => t)
+					.Distinct (t => t.Origin.Display)
+					.OrderBy (t => t.Origin.Display)
+					.ToArray ()
+				;
+
+			SqlType[] UsedEnumTypes = UsedTypes
+					.Where (t => t.Enum != null && t.Enum.Length > 0)
+					.ToArray ()
+				;
+
 			ModuleReport.Procedures = ModuleReport.Procedures
 					.OrderBy (p => p.Schema)
 					.ThenBy (p => p.Name)
 					.ToList ()
 				;
+
+			ModuleReport.Types = UsedEnumTypes.ToList ();
 
 			File.WriteAllText (OutputFileName, JsonConvert.SerializeObject (ModuleReport, Formatting.Indented));
 		}
