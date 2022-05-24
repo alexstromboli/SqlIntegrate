@@ -223,6 +223,7 @@ namespace ParseProcs
 						                             : t.Name);
 
 					PSqlType SqlType = new PSqlType { Schema = Schema, Display = QualTypeName, IsArray = IsArray };
+					SqlType.BaseType = SqlType;
 					_Map[QualTypeName] = SqlType;
 					OidToSqlTypeDict[t.Oid] = SqlType;
 
@@ -236,7 +237,6 @@ namespace ParseProcs
 				foreach (var t in PgTypeEntriesDict.Values)
 				{
 					PSqlType BaseType = OidToSqlTypeDict[t.Oid];
-					BaseType.BaseType = BaseType;
 
 					if (t.ArrayId > 0)
 					{

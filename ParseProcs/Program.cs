@@ -438,8 +438,8 @@ namespace ParseProcs
 						.Optional ()
 					let tp = DatabaseContext.GetTypeForName (t.ToArray ())
 					where tp != null
-					let given_as = t + (array.IsDefined ? "[]" : "")
-					select new { given_as = given_as, key = tp }
+					let given_as = t.JoinDot () + (array.IsDefined ? "[]" : "")
+					select new { given_as = given_as, key = array.IsDefined ? tp.ArrayType : tp }
 				;
 
 			var PSimpleTypeCastST =
