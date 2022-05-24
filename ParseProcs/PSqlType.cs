@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
+using Utils;
+
 namespace ParseProcs
 {
 	public class PgTypeEntry
@@ -106,9 +108,14 @@ namespace ParseProcs
 		public IReadOnlyDictionary<string, PSqlType> Map => _Map;
 		public IReadOnlyDictionary<uint, PSqlType> MapByOid { get; }	// null if not initialized from DB
 
-		public string[] GetAllKeys ()
+		public PSqlType GetTypeForName (IEnumerable<string> SchemaOrder, params string[] TypeName)
 		{
-			return _Map.Keys.OrderByDescending (k => k.Length).ToArray ();
+			return TypeName.Length > 1
+					? (Map.TryGetValue (TypeName.JoinDot (), out var f) ? f : null)
+					: SchemaOrder.Select (s =>
+							Map.TryGetValue (s + "." + TypeName.JoinDot (), out var f) ? f : null)
+						.FirstOrDefault (f => f != null)
+				;
 		}
 
 		// https://dba.stackexchange.com/questions/90230/postgresql-determine-column-type-when-data-type-is-set-to-array

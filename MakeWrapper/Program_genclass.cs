@@ -42,6 +42,7 @@ namespace MakeWrapper
 				}
 			}
 			TypeMap["bytea"] = "byte[]";
+			TypeMap["pg_catalog.bytea"] = "byte[]";
 
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
@@ -89,6 +90,7 @@ namespace MakeWrapper
 												: null,
 											IsOut = a.IsOut,
 											IsCursor = a.SqlType.SqlBaseType == "refcursor"
+												|| a.SqlType.SqlBaseType == "pg_catalog.refcursor"		// here: find more elegant way
 										})
 										.ToArray (),
 									ResultClassName = p.Name.ValidCsNamePart () + "_Result",

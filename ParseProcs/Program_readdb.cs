@@ -18,11 +18,7 @@ namespace ParseProcs
 
 		public PSqlType GetTypeForName (params string[] TypeName)
 		{
-			return TypeName.Count () > 1
-				? (TypeMap.Map.TryGetValue (TypeName.JoinDot (), out var f) ? f : null)
-				: SchemaOrder.Select (s =>
-						TypeMap.Map.TryGetValue (s + "." + TypeName.JoinDot (), out var f) ? f : null)
-					.FirstOrDefault (f => f != null);
+			return TypeMap.GetTypeForName (SchemaOrder, TypeName);
 		}
 	}
 

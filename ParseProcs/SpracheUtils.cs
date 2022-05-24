@@ -8,11 +8,6 @@ namespace ParseProcs
 {
 	public static class SpracheUtils
 	{
-		public static string JoinDot (this IEnumerable<string> Fragments)
-		{
-			return string.Join (".", Fragments);
-		}
-
 		public static Parser<string> ToLower (this Parser<string> Inner)
 		{
 			return Inner.Select (s => s.ToLower ());

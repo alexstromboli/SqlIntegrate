@@ -42,6 +42,11 @@ namespace Utils
 		{
 			return Other == null ? ThisColl : ThisColl.Concat (Other);
 		}
+
+		public static string JoinDot (this IEnumerable<string> Fragments)
+		{
+			return string.Join (".", Fragments);
+		}
 	}
 
 	public static class CsUtils
