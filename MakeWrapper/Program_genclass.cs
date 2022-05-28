@@ -39,6 +39,12 @@ namespace MakeWrapper
 				{
 					TypeMap[p.Key] = ct.CsNullableName;
 					TypeMap[p.Key + "[]"] = ct.CsName + "[]";
+
+					if (p.Value.ShortName != null)
+					{
+						TypeMap[p.Value.ShortName] = ct.CsNullableName;
+						TypeMap[p.Value.ShortName + "[]"] = ct.CsName + "[]";
+					}
 				}
 			}
 			TypeMap["bytea"] = "byte[]";

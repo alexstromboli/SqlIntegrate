@@ -27,33 +27,26 @@ namespace MakeWrapper
 		{
 			string PgCatalogPrefix = "pg_catalog.";
 
-			foreach (var p in DbTypeMap.Map.Where (p => !p.Value.IsArray))
+			foreach (var cm in new[]
+			         {
+				         new { sql_type = "timestamptz", clr_type = "Instant?" },
+				         new { sql_type = "timestamp with time zone", clr_type = "Instant?" },
+				         new { sql_type = "timestamp", clr_type = "LocalDateTime?" },
+				         new { sql_type = "timestamp without time zone", clr_type = "LocalDateTime?" },
+				         new { sql_type = "timetz", clr_type = "LocalTime?" },
+				         new { sql_type = "time with time zone", clr_type = "LocalTime?" },
+				         new { sql_type = "time", clr_type = "LocalTime?" },
+				         new { sql_type = "time without time zone", clr_type = "LocalTime?" },
+				         new { sql_type = "interval", clr_type = "Period" },
+				         new { sql_type = "date", clr_type = "LocalDate?" }
+			         })
 			{
-				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
+				foreach (var prefix in new[] { "", PgCatalogPrefix })
 				{
-					if (p.Value.IsDate)
-					{
-						TypeMap[p.Key] = "Instant?";
-						TypeMap[p.Key + "[]"] = "Instant[]";
-					}
-					else if (p.Value.IsTimeSpan)
-					{
-						TypeMap[p.Key] = "LocalTime?";
-						TypeMap[p.Key + "[]"] = "LocalTime[]";
-					}
+					TypeMap[prefix + cm.sql_type] = cm.clr_type;
+					TypeMap[prefix + cm.sql_type + "[]"] = cm.clr_type.Trim ('?') + "[]";
 				}
 			}
-
-			TypeMap[PgCatalogPrefix + "timestamp"] = "LocalDateTime?";
-			TypeMap[PgCatalogPrefix + "timestamp[]"] = "LocalDateTime[]";
-			TypeMap[PgCatalogPrefix + "timestamp without time zone"] = "LocalDateTime?";
-			TypeMap[PgCatalogPrefix + "timestamp without time zone[]"] = "LocalDateTime[]";
-
-			TypeMap[PgCatalogPrefix + "date"] = "LocalDate?";
-			TypeMap[PgCatalogPrefix + "date[]"] = "LocalDate[]";
-
-			TypeMap[PgCatalogPrefix + "interval"] = "Period";
-			TypeMap[PgCatalogPrefix + "interval[]"] = "Period[]";
 		}
 
 		public override void OnHaveWrapper (Wrapper Wrapper)

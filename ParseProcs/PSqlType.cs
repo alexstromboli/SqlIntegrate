@@ -99,7 +99,7 @@ namespace ParseProcs
 
 		public override string ToString ()
 		{
-			return Display;
+			return ShortName ?? Display;
 		}
 	}
 
