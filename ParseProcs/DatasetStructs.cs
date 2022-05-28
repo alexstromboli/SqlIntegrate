@@ -25,7 +25,7 @@ namespace ParseProcs.Datasets
 		public SqlType (PSqlType Origin)
 		{
 			this.Origin = Origin;
-			SqlBaseType = Origin.BaseType.Display;
+			SqlBaseType = Origin.BaseType.ShortName ?? Origin.BaseType.Display;
 			IsArray = Origin.IsArray;
 			Enum = Origin.EnumValues;
 		}

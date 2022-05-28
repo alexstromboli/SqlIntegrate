@@ -69,6 +69,7 @@ namespace ParseProcs
 		public PSqlType BaseType { get; set; }		// can be self
 		public PSqlType ArrayType { get; set; }			// can be self
 
+		public string ShortName { get; set; }
 		public string Display { get; set; }
 		public Type ClrType { get; set; }
 		public NumericOrderLevel NumericLevel = NumericOrderLevel.None;
@@ -172,7 +173,14 @@ namespace ParseProcs
 
 		protected PSqlType AddPgCatalogType (Type ClrType, params string[] Keys)
 		{
-			return AddType (ClrType, "pg_catalog", Keys);
+			var Result = AddType (ClrType, "pg_catalog", Keys);
+			Result.ShortName ??= Keys[0];
+			if (Result.ArrayType != null)
+			{
+				Result.ArrayType.ShortName ??= Keys[0] + "[]";
+			}
+
+			return Result;
 		}
 
 		public readonly PSqlType Null;
