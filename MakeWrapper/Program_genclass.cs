@@ -44,6 +44,11 @@ namespace MakeWrapper
 			TypeMap["bytea"] = "byte[]";
 			TypeMap["pg_catalog.bytea"] = "byte[]";
 
+			foreach (var EnumType in Module.Types.Where (t => t.Enum != null && t.Enum.Length > 0))
+			{
+				TypeMap[EnumType.SqlBaseType] = "string";
+			}
+
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
 			//
