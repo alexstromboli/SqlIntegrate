@@ -228,7 +228,7 @@ CREATE PROCEDURE RoomsForPerson (
         txt text = null,
         amount money = null,
         INOUT came bigint = 115,
-        INOUT done char(5) = 'emp'
+        INOUT done char(5) = 'emp'      -- argument type read as bpchar
         )
 LANGUAGE 'plpgsql'
 AS $$

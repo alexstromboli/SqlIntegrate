@@ -211,6 +211,7 @@ namespace ParseProcs
 		public readonly PSqlType Text;
 		public readonly PSqlType Char;
 		public readonly PSqlType VarChar;
+		public readonly PSqlType BpChar;
 		public readonly PSqlType Name;
 		public readonly PSqlType CString;
 		public readonly PSqlType RegType;
@@ -312,6 +313,7 @@ namespace ParseProcs
 			this.Text = AddPgCatalogType (typeof (string), "text").SetIsText ();
 			this.Char = AddPgCatalogType (typeof (string), "char", "character", "bpchar").SetIsText ();
 			this.VarChar = AddPgCatalogType (typeof (string), "varchar", "character varying").SetIsText ();
+			this.BpChar = AddPgCatalogType (typeof (string), "bpchar").SetIsText ();
 			this.Name = AddPgCatalogType (typeof (string), "name").SetIsText ();
 			this.CString = AddPgCatalogType (typeof (string), "cstring").SetIsText ();
 			this.RegType = AddPgCatalogType (typeof (uint), "regtype");
