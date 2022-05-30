@@ -52,7 +52,7 @@ namespace MakeWrapper
 
 			foreach (var EnumType in Module.Types.Where (t => t.Enum != null && t.Enum.Length > 0))
 			{
-				TypeMap[EnumType.SqlBaseType] = "string";
+				TypeMap[EnumType.Name] = "string";
 			}
 
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
@@ -100,8 +100,8 @@ namespace MakeWrapper
 												? t
 												: null,
 											IsOut = a.IsOut,
-											IsCursor = a.SqlType.SqlBaseType == "refcursor"
-												|| a.SqlType.SqlBaseType == "pg_catalog.refcursor"		// here: find more elegant way
+											IsCursor = a.SqlType.Name == "refcursor"
+												|| a.SqlType.Name == "pg_catalog.refcursor"		// here: find more elegant way
 										})
 										.ToArray (),
 									ResultClassName = p.Name.ValidCsNamePart () + "_Result",

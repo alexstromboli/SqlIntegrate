@@ -6,9 +6,7 @@ namespace ParseProcs.Datasets
 {
 	public class SqlType
 	{
-		public string SqlBaseType;
-		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
-		public bool IsArray = false;
+		public string Name;
 
 		[JsonIgnore]
 		public PSqlType Origin;
@@ -18,21 +16,19 @@ namespace ParseProcs.Datasets
 
 		public SqlType ()
 		{
-			SqlBaseType = null;
-			IsArray = false;
+			Name = null;
 		}
 
 		public SqlType (PSqlType Origin)
 		{
 			this.Origin = Origin;
-			SqlBaseType = Origin.BaseType.ShortName ?? Origin.BaseType.Display;
-			IsArray = Origin.IsArray;
+			Name = Origin.ShortName ?? Origin.Display;
 			Enum = Origin.EnumValues;
 		}
 
 		public override string ToString ()
 		{
-			return SqlBaseType + (IsArray ? "[]" : "");
+			return Name;
 		}
 	}
 
