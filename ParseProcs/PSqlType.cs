@@ -311,7 +311,7 @@ namespace ParseProcs
 			this.TimeTz = AddPgCatalogType (typeof (TimeSpan), "timetz", "time with time zone").SetIsTimeSpan ();
 
 			this.Text = AddPgCatalogType (typeof (string), "text").SetIsText ();
-			this.Char = AddPgCatalogType (typeof (string), "char", "character", "bpchar").SetIsText ();
+			this.Char = AddPgCatalogType (typeof (string), "char", "character").SetIsText ();
 			this.VarChar = AddPgCatalogType (typeof (string), "varchar", "character varying").SetIsText ();
 			this.BpChar = AddPgCatalogType (typeof (string), "bpchar").SetIsText ();
 			this.Name = AddPgCatalogType (typeof (string), "name").SetIsText ();
