@@ -640,6 +640,12 @@ namespace ParseProcs
 						.Optional ()
 				;
 
+			var PTakePropertyST =
+					from _1 in SpracheUtils.SqlToken (".")
+					from prop in PColumnNameLST
+					select prop
+				;
+
 			var PAtomicPostfixOptionalST =
 					PBracketsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.None, false,
 							(l, r) => rc =>
@@ -647,10 +653,16 @@ namespace ParseProcs
 								var NamedTyped = l (rc);
 								return NamedTyped.WithType (NamedTyped.Type.BaseType);
 							}))
-						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast, false,
+						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast,
+							false,
 							(l, r) => rc => l (rc).WithType (tc.key))))
-						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is, false,
+						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is,
+							false,
 							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool))))
+						.Or (PTakePropertyST.Select (prop => new OperatorProcessor (PSqlOperatorPriority.None, false,
+							(l, r) => rc => new NamedTyped (prop,
+								l (rc).Type.Properties.First (p => p.Name == prop).Type)
+						)))
 						.Many ()
 						.Optional ()
 				;

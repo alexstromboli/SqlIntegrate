@@ -148,6 +148,53 @@
     },
     {
       "Schema": "USER",
+      "Name": "get_composite",
+      "Arguments": [
+        {
+          "Name": "result",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "result",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id",
+              "Type": "int"
+            },
+            {
+              "Name": "as_block",
+              "Type": "USER.payment"
+            },
+            {
+              "Name": "date",
+              "Type": "date"
+            },
+            {
+              "Name": "paid",
+              "Type": "USER.monetary"
+            },
+            {
+              "Name": "amount",
+              "Type": "decimal"
+            },
+            {
+              "Name": "last_status",
+              "Type": "USER.app_status"
+            },
+            {
+              "Name": "aux_status",
+              "Type": "USER.app_status"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "get_db_qualified",
       "Arguments": [
         {
