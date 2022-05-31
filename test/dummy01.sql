@@ -16,6 +16,19 @@ CREATE TYPE useless_enum AS ENUM
     'rigged'
 );
 
+CREATE TYPE indirectly_used_enum AS ENUM
+(
+    'first',
+    'second'
+);
+
+CREATE TYPE indirectly_used_type AS
+(
+    sign char(5),
+    is_on bool,
+    "order" indirectly_used_enum
+);
+
 -- not used (directly or indirectly) in any procedure
 CREATE TYPE useless_struct AS
 (
@@ -70,7 +83,8 @@ CREATE TYPE monetary AS
 CREATE TYPE payment AS
 (
     paid monetary,
-    date date
+    date date,
+    indi indirectly_used_type
 );
 
 CREATE TABLE financial_history
@@ -79,7 +93,7 @@ CREATE TABLE financial_history
     diff payment
 );
 
-INSERT INTO financial_history VALUES (76, ((562.30, 2), '2019-08-21'));
+INSERT INTO financial_history VALUES (76, ((562.30, 2), '2019-08-21', ('high', false, 'second')));
 
 INSERT INTO Depts VALUES (1, null, 'Administration');
 INSERT INTO Depts VALUES (2, 1, 'Operation');

@@ -7,6 +7,60 @@
         "active",
         "hold"
       ]
+    },
+    {
+      "Name": "USER.indirectly_used_enum",
+      "Enum": [
+        "first",
+        "second"
+      ]
+    },
+    {
+      "Name": "USER.indirectly_used_type",
+      "Properties": [
+        {
+          "Name": "sign",
+          "Type": "bpchar"
+        },
+        {
+          "Name": "is_on",
+          "Type": "bool"
+        },
+        {
+          "Name": "order",
+          "Type": "USER.indirectly_used_enum"
+        }
+      ]
+    },
+    {
+      "Name": "USER.monetary",
+      "Properties": [
+        {
+          "Name": "amount",
+          "Type": "decimal"
+        },
+        {
+          "Name": "id_currency",
+          "Type": "int"
+        }
+      ]
+    },
+    {
+      "Name": "USER.payment",
+      "Properties": [
+        {
+          "Name": "paid",
+          "Type": "USER.monetary"
+        },
+        {
+          "Name": "date",
+          "Type": "date"
+        },
+        {
+          "Name": "indi",
+          "Type": "USER.indirectly_used_type"
+        }
+      ]
     }
   ],
   "Procedures": [

@@ -78,6 +78,9 @@ namespace ParseProcs
 		public Property[] Properties;
 		public Dictionary<string, Property> PropertiesDict;
 
+		public bool IsCustom => EnumValues != null && EnumValues.Length > 0
+		                        || Properties != null && Properties.Length > 0;
+
 		public bool IsNumber { get; set; } = false;
 		public PSqlType SetNumericLevel (NumericOrderLevel Level)
 		{

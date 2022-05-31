@@ -661,7 +661,7 @@ namespace ParseProcs
 							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool))))
 						.Or (PTakePropertyST.Select (prop => new OperatorProcessor (PSqlOperatorPriority.None, false,
 							(l, r) => rc => new NamedTyped (prop,
-								l (rc).Type.Properties.First (p => p.Name == prop).Type)
+								l (rc).Type.PropertiesDict[prop].Type)
 						)))
 						.Many ()
 						.Optional ()
@@ -1284,21 +1284,47 @@ END
 				}
 			}
 
-			PSqlType[] UsedTypes = ModuleReport.Procedures
+			PSqlType[] DirectlyUsedTypes = ModuleReport.Procedures
 					.Select (p => p.Arguments.Select (a => a.PSqlType)
 						.Concat (p.ResultSets.Select (rs => rs.Columns.Select (c => c.PSqlType)).SelectMany (t => t))
 					)
 					.SelectMany (t => t)
 					.Distinct (t => t.Display)
-					.OrderBy (t => t.Display)
+					.OrderBy (t => t.ToString ())
 					.ToArray ()
 				;
 
-			SqlType[] UsedEnumTypes = UsedTypes
-					.Where (t => t.EnumValues != null && t.EnumValues.Length > 0)
-					.Select (t => new SqlType (t))
+			PSqlType[] UsedCustomTypes = DirectlyUsedTypes
+					.Where (t => t.IsCustom)
 					.ToArray ()
 				;
+
+			// include types used indirectly, from properties, by recursion
+			while (true)
+			{
+				var UsedTypesDict = UsedCustomTypes.ToDictionary (t => t.ToString ());
+				var ToAdd = UsedCustomTypes
+						.Where (t => t.Properties != null)
+						.Select (t => t.Properties)
+						.SelectMany (p => p)
+						.Select (p => p.Type)
+						.Where (t => t.IsCustom)
+						.Distinct (t => t.Display)
+						.Where (t => !UsedTypesDict.ContainsKey (t.ToString ()))
+						.ToArray ()
+					;
+
+				if (ToAdd.Length == 0)
+				{
+					break;
+				}
+
+				UsedCustomTypes = UsedCustomTypes
+						.Concat (ToAdd)
+						.OrderBy (t => t.ToString ())
+						.ToArray ()
+					;
+			}
 
 			ModuleReport.Procedures = ModuleReport.Procedures
 					.OrderBy (p => p.Schema)
@@ -1306,7 +1332,10 @@ END
 					.ToList ()
 				;
 
-			ModuleReport.Types = UsedEnumTypes.ToList ();
+			ModuleReport.Types = UsedCustomTypes
+					.Select (t => new SqlType (t))
+					.ToList ()
+				;
 
 			File.WriteAllText (OutputFileName, JsonConvert.SerializeObject (ModuleReport, Formatting.Indented));
 		}

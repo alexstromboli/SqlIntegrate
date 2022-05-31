@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Linq;
+using System.Collections.Generic;
 
 using Newtonsoft.Json;
 
@@ -14,6 +15,9 @@ namespace ParseProcs.Datasets
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public string[] Enum;
 
+		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
+		public Column[] Properties;
+
 		public SqlType ()
 		{
 			Name = null;
@@ -24,6 +28,18 @@ namespace ParseProcs.Datasets
 			this.Origin = Origin;
 			Name = Origin.ToString ();
 			Enum = Origin.EnumValues;
+
+			if (Origin.Properties != null && Origin.Properties.Length > 0)
+			{
+				Properties = Origin.Properties.Select (p => new Column
+						{
+							Name = p.Name,
+							Type = p.Type.ToString (),
+							PSqlType = p.Type
+						})
+						.ToArray ()
+					;
+			}
 		}
 
 		public override string ToString ()
