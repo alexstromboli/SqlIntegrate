@@ -1305,8 +1305,7 @@ END
 				var UsedTypesDict = UsedCustomTypes.ToDictionary (t => t.ToString ());
 				var ToAdd = UsedCustomTypes
 						.Where (t => t.Properties != null)
-						.Select (t => t.Properties)
-						.SelectMany (p => p)
+						.SelectMany (t => t.Properties)
 						.Select (p => p.Type)
 						.Where (t => t.IsCustom)
 						.Distinct (t => t.Display)

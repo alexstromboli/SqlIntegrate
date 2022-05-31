@@ -1482,6 +1482,11 @@
           "IsOut": true
         },
         {
+          "Name": "p_status",
+          "Type": "USER.app_status",
+          "IsOut": true
+        },
+        {
           "Name": "result_1",
           "Type": "refcursor",
           "IsOut": true

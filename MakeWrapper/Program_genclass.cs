@@ -55,6 +55,11 @@ namespace MakeWrapper
 				TypeMap[EnumType.Name] = "string";
 			}
 
+			foreach (var CompositeType in Module.Types.Where (t => t.Properties != null && t.Properties.Length > 0))
+			{
+				TypeMap[CompositeType.Name] = "object";
+			}
+
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
 			//
