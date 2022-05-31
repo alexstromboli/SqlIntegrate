@@ -35,7 +35,24 @@ namespace ParseProcs.Datasets
 	public class Column
 	{
 		public string Name;
+
+		[JsonIgnore]
 		public SqlType SqlType;
+		[JsonIgnore]
+		public string _Type;
+		public string Type
+		{
+			get
+			{
+				return SqlType?.Name ?? _Type ?? "unknown";
+			}
+
+			set
+			{
+				_Type = value;
+				SqlType = null;
+			}
+		}
 
 		public override string ToString ()
 		{
@@ -58,7 +75,25 @@ namespace ParseProcs.Datasets
 	public class Argument
 	{
 		public string Name;
+
+		[JsonIgnore]
 		public SqlType SqlType;
+		[JsonIgnore]
+		public string _Type;
+		public string Type
+		{
+			get
+			{
+				return SqlType?.Name ?? _Type ?? "unknown";
+			}
+
+			set
+			{
+				_Type = value;
+				SqlType = null;
+			}
+		}
+
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public bool IsOut = false;
 
