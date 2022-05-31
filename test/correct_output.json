@@ -1,4 +1,14 @@
 {
+  "Types": [
+    {
+      "Name": "USER.app_status",
+      "Enum": [
+        "pending",
+        "active",
+        "hold"
+      ]
+    }
+  ],
   "Procedures": [
     {
       "Schema": "USER",
@@ -6,15 +16,11 @@
       "Arguments": [
         {
           "Name": "coef",
-          "SqlType": {
-            "SqlBaseType": "real"
-          }
+          "Type": "real"
         },
         {
           "Name": "result",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -25,33 +31,23 @@
           "Columns": [
             {
               "Name": "id_agent",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "lastname",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "input",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "count",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "first",
-              "SqlType": {
-                "SqlBaseType": "date"
-              }
+              "Type": "date"
             }
           ]
         }
@@ -63,23 +59,17 @@
       "Arguments": [
         {
           "Name": "names",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "by_person",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "unnest",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -90,52 +80,31 @@
           "Columns": [
             {
               "Name": "extents",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             },
             {
               "Name": "array",
-              "SqlType": {
-                "SqlBaseType": "bool",
-                "IsArray": true
-              }
+              "Type": "bool[]"
             },
             {
               "Name": "names",
-              "SqlType": {
-                "SqlBaseType": "varchar",
-                "IsArray": true
-              }
+              "Type": "varchar[]"
             },
             {
               "Name": "order",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             },
             {
               "Name": "array_plus_item",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             },
             {
               "Name": "array_plus_array",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             },
             {
               "Name": "item_plus_array",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             }
           ]
         },
@@ -145,16 +114,11 @@
           "Columns": [
             {
               "Name": "id_person",
-              "SqlType": {
-                "SqlBaseType": "uuid"
-              }
+              "Type": "uuid"
             },
             {
               "Name": "array_agg",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             }
           ]
         },
@@ -164,27 +128,19 @@
           "Columns": [
             {
               "Name": "unnest",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "e",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "w",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "qw",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             }
           ]
         }
@@ -196,9 +152,7 @@
       "Arguments": [
         {
           "Name": "own",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -209,34 +163,23 @@
           "Columns": [
             {
               "Name": "id_person",
-              "SqlType": {
-                "SqlBaseType": "uuid"
-              }
+              "Type": "uuid"
             },
             {
               "Name": "id_room",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "id",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "name",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "extents",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             }
           ]
         }
@@ -248,9 +191,7 @@
       "Arguments": [
         {
           "Name": "inserted",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -261,15 +202,11 @@
           "Columns": [
             {
               "Name": "id_person",
-              "SqlType": {
-                "SqlBaseType": "uuid"
-              }
+              "Type": "uuid"
             },
             {
               "Name": "id_room",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             }
           ]
         }
@@ -281,9 +218,7 @@
       "Arguments": [
         {
           "Name": "joined",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -294,21 +229,15 @@
           "Columns": [
             {
               "Name": "title",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "document_id",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "date",
-              "SqlType": {
-                "SqlBaseType": "date"
-              }
+              "Type": "date"
             }
           ]
         }
@@ -320,9 +249,7 @@
       "Arguments": [
         {
           "Name": "result",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -335,435 +262,291 @@
           "Columns": [
             {
               "Name": "res_numeric_numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "type_numeric_numeric",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_numeric_real",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_numeric_real",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_numeric_float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_numeric_float",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_numeric_int",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "type_numeric_int",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_numeric_smallint",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "type_numeric_smallint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_numeric_bigint",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "type_numeric_bigint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_real_numeric",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_real_numeric",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_real_real",
-              "SqlType": {
-                "SqlBaseType": "real"
-              }
+              "Type": "real"
             },
             {
               "Name": "type_real_real",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_real_float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_real_float",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_real_int",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_real_int",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_real_smallint",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_real_smallint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_real_bigint",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_real_bigint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_float_numeric",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_float_numeric",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_float_real",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_float_real",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_float_float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_float_float",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_float_int",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_float_int",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_float_smallint",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_float_smallint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_float_bigint",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_float_bigint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_int_numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "type_int_numeric",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_int_real",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_int_real",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_int_float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_int_float",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_int_int",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "type_int_int",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_int_smallint",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "type_int_smallint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_int_bigint",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "type_int_bigint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_smallint_numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "type_smallint_numeric",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_smallint_real",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_smallint_real",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_smallint_float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_smallint_float",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_smallint_int",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "type_smallint_int",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_smallint_smallint",
-              "SqlType": {
-                "SqlBaseType": "smallint"
-              }
+              "Type": "smallint"
             },
             {
               "Name": "type_smallint_smallint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_smallint_bigint",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "type_smallint_bigint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_bigint_numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "type_bigint_numeric",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_bigint_real",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_bigint_real",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_bigint_float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "type_bigint_float",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_bigint_int",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "type_bigint_int",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_bigint_smallint",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "type_bigint_smallint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "res_bigint_bigint",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "type_bigint_bigint",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             }
           ]
         }
@@ -775,9 +558,7 @@
       "Arguments": [
         {
           "Name": "result",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -790,27 +571,19 @@
           "Columns": [
             {
               "Name": "t1",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "t2",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "t3",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "sum",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             }
           ]
         }
@@ -822,23 +595,17 @@
       "Arguments": [
         {
           "Name": "insert_result_1",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "insert_result_2",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "delete_result_1",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -849,15 +616,11 @@
           "Columns": [
             {
               "Name": "notch",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "category",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             }
           ]
         },
@@ -867,21 +630,15 @@
           "Columns": [
             {
               "Name": "id",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "category",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "height",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             }
           ]
         },
@@ -891,15 +648,11 @@
           "Columns": [
             {
               "Name": "id_person",
-              "SqlType": {
-                "SqlBaseType": "uuid"
-              }
+              "Type": "uuid"
             },
             {
               "Name": "id_room",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             }
           ]
         }
@@ -911,9 +664,7 @@
       "Arguments": [
         {
           "Name": "partial",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -926,9 +677,7 @@
           "Columns": [
             {
               "Name": "name",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             }
           ]
         }
@@ -940,9 +689,7 @@
       "Arguments": [
         {
           "Name": "partial",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -955,21 +702,15 @@
           "Columns": [
             {
               "Name": "id",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "name",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "float",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             }
           ]
         }
@@ -981,16 +722,12 @@
       "Arguments": [
         {
           "Name": "user",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "details",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -1003,9 +740,7 @@
           "Columns": [
             {
               "Name": "name",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             }
           ]
         },
@@ -1015,39 +750,27 @@
           "Columns": [
             {
               "Name": "id",
-              "SqlType": {
-                "SqlBaseType": "uuid"
-              }
+              "Type": "uuid"
             },
             {
               "Name": "lastname",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "firstname",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "dob",
-              "SqlType": {
-                "SqlBaseType": "date"
-              }
+              "Type": "date"
             },
             {
               "Name": "tab_num",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "effect",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             }
           ]
         }
@@ -1059,23 +782,17 @@
       "Arguments": [
         {
           "Name": "result",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "expressions_2",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "nulls",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -1088,75 +805,55 @@
           "Columns": [
             {
               "Name": "int",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "numeric_e_neg",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "numeric_e_pos",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "numeric_e_def",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "real",
-              "SqlType": {
-                "SqlBaseType": "real"
-              }
+              "Type": "real"
             },
             {
               "Name": "float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "money",
-              "SqlType": {
-                "SqlBaseType": "money"
-              }
+              "Type": "money"
             },
             {
               "Name": "varchar",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "bool",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "regtype",
-              "SqlType": {
-                "SqlBaseType": "regtype"
-              }
+              "Type": "regtype"
+            },
+            {
+              "Name": "last_status",
+              "Type": "USER.app_status"
             },
             {
               "Name": "owner_sum",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             }
           ]
         },
@@ -1168,111 +865,75 @@
           "Columns": [
             {
               "Name": "timestamptz",
-              "SqlType": {
-                "SqlBaseType": "timestamptz"
-              }
+              "Type": "timestamptz"
             },
             {
               "Name": "money",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "timestamp 2",
-              "SqlType": {
-                "SqlBaseType": "timestamp"
-              }
+              "Type": "timestamp"
             },
             {
               "Name": "timestamp 3",
-              "SqlType": {
-                "SqlBaseType": "timestamp"
-              }
+              "Type": "timestamp"
             },
             {
               "Name": "interval",
-              "SqlType": {
-                "SqlBaseType": "interval"
-              }
+              "Type": "interval"
             },
             {
               "Name": "bool",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "bool 2",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "bool 3",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "varchar 1",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "varchar 2",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "varchar 3",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "bigint",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "between 2",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "loop",
-              "SqlType": {
-                "SqlBaseType": "bytea"
-              }
+              "Type": "bytea"
             },
             {
               "Name": "money 2",
-              "SqlType": {
-                "SqlBaseType": "money"
-              }
+              "Type": "money"
             },
             {
               "Name": "array_agg",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "array_agg_2",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "case",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             }
           ]
         },
@@ -1284,87 +945,59 @@
           "Columns": [
             {
               "Name": "int",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "numeric",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             },
             {
               "Name": "float",
-              "SqlType": {
-                "SqlBaseType": "float"
-              }
+              "Type": "float"
             },
             {
               "Name": "real",
-              "SqlType": {
-                "SqlBaseType": "real"
-              }
+              "Type": "real"
             },
             {
               "Name": "bigint",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "smallint",
-              "SqlType": {
-                "SqlBaseType": "smallint"
-              }
+              "Type": "smallint"
             },
             {
               "Name": "money",
-              "SqlType": {
-                "SqlBaseType": "money"
-              }
+              "Type": "money"
             },
             {
               "Name": "varchar",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "uuid",
-              "SqlType": {
-                "SqlBaseType": "uuid"
-              }
+              "Type": "uuid"
             },
             {
               "Name": "timestamp",
-              "SqlType": {
-                "SqlBaseType": "timestamp"
-              }
+              "Type": "timestamp"
             },
             {
               "Name": "date",
-              "SqlType": {
-                "SqlBaseType": "date"
-              }
+              "Type": "date"
             },
             {
               "Name": "bool",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "coalesce_first",
-              "SqlType": {
-                "SqlBaseType": "bool"
-              }
+              "Type": "bool"
             },
             {
               "Name": "coalesce_second",
-              "SqlType": {
-                "SqlBaseType": "decimal"
-              }
+              "Type": "decimal"
             }
           ]
         }
@@ -1376,15 +1009,11 @@
       "Arguments": [
         {
           "Name": "p_id",
-          "SqlType": {
-            "SqlBaseType": "int"
-          }
+          "Type": "int"
         },
         {
           "Name": "res01",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -1398,21 +1027,15 @@
           "Columns": [
             {
               "Name": "id",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "name",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "float",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             }
           ]
         }
@@ -1430,16 +1053,12 @@
       "Arguments": [
         {
           "Name": "users",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "ownership",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -1450,45 +1069,35 @@
           "Columns": [
             {
               "Name": "num",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "id",
-              "SqlType": {
-                "SqlBaseType": "uuid"
-              }
+              "Type": "uuid"
             },
             {
               "Name": "lastname",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "firstname",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "dob",
-              "SqlType": {
-                "SqlBaseType": "date"
-              }
+              "Type": "date"
             },
             {
               "Name": "tab_num",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
+            },
+            {
+              "Name": "status",
+              "Type": "USER.app_status"
             },
             {
               "Name": "effect",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             }
           ]
         },
@@ -1498,34 +1107,23 @@
           "Columns": [
             {
               "Name": "lastname",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "num",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "id",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "name",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "extents",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             }
           ]
         }
@@ -1537,99 +1135,67 @@
       "Arguments": [
         {
           "Name": "id_person",
-          "SqlType": {
-            "SqlBaseType": "uuid"
-          }
+          "Type": "uuid"
         },
         {
           "Name": "res01",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "res02",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         },
         {
           "Name": "bwahaha",
-          "SqlType": {
-            "SqlBaseType": "int",
-            "IsArray": true
-          }
+          "Type": "int[]"
         },
         {
           "Name": "get_array",
-          "SqlType": {
-            "SqlBaseType": "int",
-            "IsArray": true
-          },
+          "Type": "int[]",
           "IsOut": true
         },
         {
           "Name": "name",
-          "SqlType": {
-            "SqlBaseType": "varchar"
-          }
+          "Type": "varchar"
         },
         {
           "Name": "over",
-          "SqlType": {
-            "SqlBaseType": "bool"
-          }
+          "Type": "bool"
         },
         {
           "Name": "dt01",
-          "SqlType": {
-            "SqlBaseType": "date"
-          }
+          "Type": "date"
         },
         {
           "Name": "dt02",
-          "SqlType": {
-            "SqlBaseType": "timestamp"
-          }
+          "Type": "timestamp"
         },
         {
           "Name": "dt03",
-          "SqlType": {
-            "SqlBaseType": "interval"
-          }
+          "Type": "interval"
         },
         {
           "Name": "dt04",
-          "SqlType": {
-            "SqlBaseType": "time"
-          }
+          "Type": "time"
         },
         {
           "Name": "txt",
-          "SqlType": {
-            "SqlBaseType": "text"
-          }
+          "Type": "text"
         },
         {
           "Name": "amount",
-          "SqlType": {
-            "SqlBaseType": "money"
-          }
+          "Type": "money"
         },
         {
           "Name": "came",
-          "SqlType": {
-            "SqlBaseType": "bigint"
-          },
+          "Type": "bigint",
           "IsOut": true
         },
         {
           "Name": "done",
-          "SqlType": {
-            "SqlBaseType": "char"
-          },
+          "Type": "bpchar",
           "IsOut": true
         }
       ],
@@ -1640,58 +1206,43 @@
           "Columns": [
             {
               "Name": "id",
-              "SqlType": {
-                "SqlBaseType": "uuid"
-              }
+              "Type": "uuid"
             },
             {
               "Name": "lastname",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "firstname",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "dob",
-              "SqlType": {
-                "SqlBaseType": "date"
-              }
+              "Type": "date"
             },
             {
               "Name": "tab_num",
-              "SqlType": {
-                "SqlBaseType": "bigint"
-              }
+              "Type": "bigint"
             },
             {
               "Name": "them_all",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             },
             {
               "Name": "piece",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "sample",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "had it",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
+            },
+            {
+              "Name": "status",
+              "Type": "USER.app_status"
             }
           ]
         },
@@ -1701,35 +1252,23 @@
           "Columns": [
             {
               "Name": "id",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             },
             {
               "Name": "name",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "extents",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             },
             {
               "Name": "ord",
-              "SqlType": {
-                "SqlBaseType": "int",
-                "IsArray": true
-              }
+              "Type": "int[]"
             },
             {
               "Name": "json",
-              "SqlType": {
-                "SqlBaseType": "json"
-              }
+              "Type": "json"
             }
           ]
         }
@@ -1741,9 +1280,7 @@
       "Arguments": [
         {
           "Name": "result",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -1754,21 +1291,15 @@
           "Columns": [
             {
               "Name": "lastname",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "room",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             },
             {
               "Name": "own",
-              "SqlType": {
-                "SqlBaseType": "varchar"
-              }
+              "Type": "varchar"
             }
           ]
         }
@@ -1786,106 +1317,72 @@
       "Arguments": [
         {
           "Name": "p_int",
-          "SqlType": {
-            "SqlBaseType": "int"
-          },
+          "Type": "int",
           "IsOut": true
         },
         {
           "Name": "p_int_arr",
-          "SqlType": {
-            "SqlBaseType": "int",
-            "IsArray": true
-          },
+          "Type": "int[]",
           "IsOut": true
         },
         {
           "Name": "p_bool",
-          "SqlType": {
-            "SqlBaseType": "bool"
-          },
+          "Type": "bool",
           "IsOut": true
         },
         {
           "Name": "p_bool_arr",
-          "SqlType": {
-            "SqlBaseType": "bool",
-            "IsArray": true
-          },
+          "Type": "bool[]",
           "IsOut": true
         },
         {
           "Name": "p_date",
-          "SqlType": {
-            "SqlBaseType": "date"
-          },
+          "Type": "date",
           "IsOut": true
         },
         {
           "Name": "p_date_arr",
-          "SqlType": {
-            "SqlBaseType": "date",
-            "IsArray": true
-          },
+          "Type": "date[]",
           "IsOut": true
         },
         {
           "Name": "p_instant",
-          "SqlType": {
-            "SqlBaseType": "timestamptz"
-          },
+          "Type": "timestamptz",
           "IsOut": true
         },
         {
           "Name": "p_instant_arr",
-          "SqlType": {
-            "SqlBaseType": "timestamptz",
-            "IsArray": true
-          },
+          "Type": "timestamptz[]",
           "IsOut": true
         },
         {
           "Name": "p_datetime",
-          "SqlType": {
-            "SqlBaseType": "timestamp"
-          },
+          "Type": "timestamp",
           "IsOut": true
         },
         {
           "Name": "p_datetime_arr",
-          "SqlType": {
-            "SqlBaseType": "timestamp",
-            "IsArray": true
-          },
+          "Type": "timestamp[]",
           "IsOut": true
         },
         {
           "Name": "p_varchar",
-          "SqlType": {
-            "SqlBaseType": "varchar"
-          },
+          "Type": "varchar",
           "IsOut": true
         },
         {
           "Name": "p_varchar_arr",
-          "SqlType": {
-            "SqlBaseType": "varchar",
-            "IsArray": true
-          },
+          "Type": "varchar[]",
           "IsOut": true
         },
         {
           "Name": "p_bytea",
-          "SqlType": {
-            "SqlBaseType": "bytea"
-          },
+          "Type": "bytea",
           "IsOut": true
         },
         {
           "Name": "result_1",
-          "SqlType": {
-            "SqlBaseType": "refcursor"
-          },
+          "Type": "refcursor",
           "IsOut": true
         }
       ],
@@ -1898,9 +1395,7 @@
           "Columns": [
             {
               "Name": "in",
-              "SqlType": {
-                "SqlBaseType": "int"
-              }
+              "Type": "int"
             }
           ]
         }
