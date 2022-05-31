@@ -22,7 +22,7 @@ namespace ParseProcs.Datasets
 		public SqlType (PSqlType Origin)
 		{
 			this.Origin = Origin;
-			Name = Origin.ShortName ?? Origin.Display;
+			Name = Origin.ToString ();
 			Enum = Origin.EnumValues;
 		}
 
@@ -35,28 +35,14 @@ namespace ParseProcs.Datasets
 	public class Column
 	{
 		public string Name;
+		public string Type;
 
 		[JsonIgnore]
-		public SqlType SqlType;
-		[JsonIgnore]
-		public string _Type;
-		public string Type
-		{
-			get
-			{
-				return SqlType?.Name ?? _Type ?? "unknown";
-			}
-
-			set
-			{
-				_Type = value;
-				SqlType = null;
-			}
-		}
+		public PSqlType PSqlType;
 
 		public override string ToString ()
 		{
-			return $"{Name} {SqlType}";
+			return $"{Name} {Type}";
 		}
 	}
 
@@ -75,31 +61,17 @@ namespace ParseProcs.Datasets
 	public class Argument
 	{
 		public string Name;
+		public string Type;
 
 		[JsonIgnore]
-		public SqlType SqlType;
-		[JsonIgnore]
-		public string _Type;
-		public string Type
-		{
-			get
-			{
-				return SqlType?.Name ?? _Type ?? "unknown";
-			}
-
-			set
-			{
-				_Type = value;
-				SqlType = null;
-			}
-		}
+		public PSqlType PSqlType;
 
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public bool IsOut = false;
 
 		public override string ToString ()
 		{
-			return (IsOut ? "INOUT " : "") + Name + " " + SqlType;
+			return (IsOut ? "INOUT " : "") + Name + " " + Type;
 		}
 	}
 

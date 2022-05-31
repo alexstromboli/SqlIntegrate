@@ -1222,7 +1222,8 @@ END
 						new Datasets.Argument
 						{
 							Name = a.Name,
-							SqlType = new SqlType (a.Type),
+							Type = a.Type.ToString (),
+							PSqlType = a.Type,
 							IsOut = a.Direction == Argument.DirectionType.InOut
 						}).ToList (),
 					ResultSets = new List<ResultSet> ()
@@ -1255,7 +1256,8 @@ END
 							Columns = Set.Table.Columns.Select (c => new Column
 							{
 								Name = c.Name,
-								SqlType = new SqlType (c.Type)
+								Type = c.Type.ToString (),
+								PSqlType = c.Type
 							}).ToList ()
 						};
 
@@ -1270,18 +1272,19 @@ END
 				}
 			}
 
-			SqlType[] UsedTypes = ModuleReport.Procedures
-					.Select (p => p.Arguments.Select (a => a.SqlType)
-						.Concat (p.ResultSets.Select (rs => rs.Columns.Select (c => c.SqlType)).SelectMany (t => t))
+			PSqlType[] UsedTypes = ModuleReport.Procedures
+					.Select (p => p.Arguments.Select (a => a.PSqlType)
+						.Concat (p.ResultSets.Select (rs => rs.Columns.Select (c => c.PSqlType)).SelectMany (t => t))
 					)
 					.SelectMany (t => t)
-					.Distinct (t => t.Origin.Display)
-					.OrderBy (t => t.Origin.Display)
+					.Distinct (t => t.Display)
+					.OrderBy (t => t.Display)
 					.ToArray ()
 				;
 
 			SqlType[] UsedEnumTypes = UsedTypes
-					.Where (t => t.Enum != null && t.Enum.Length > 0)
+					.Where (t => t.EnumValues != null && t.EnumValues.Length > 0)
+					.Select (t => new SqlType (t))
 					.ToArray ()
 				;
 

@@ -96,12 +96,12 @@ namespace MakeWrapper
 											NativeName = a.Name,
 											CallParamName = "@" + a.Name,
 											CsName = a.Name.ValidCsName (),
-											ClrType = TypeMap.TryGetValue (a.SqlType.ToString (), out var t)
+											ClrType = TypeMap.TryGetValue (a.Type, out var t)
 												? t
 												: null,
 											IsOut = a.IsOut,
-											IsCursor = a.SqlType.Name == "refcursor"
-												|| a.SqlType.Name == "pg_catalog.refcursor"		// here: find more elegant way
+											IsCursor = a.Type == "refcursor"
+												|| a.Type == "pg_catalog.refcursor"		// here: find more elegant way
 										})
 										.ToArray (),
 									ResultClassName = p.Name.ValidCsNamePart () + "_Result",
@@ -125,7 +125,7 @@ namespace MakeWrapper
 														{
 															Origin = c,
 															NativeName = c.Name,
-															ClrType = TypeMap.TryGetValue (c.SqlType.ToString (),
+															ClrType = TypeMap.TryGetValue (c.Type,
 																out var t)
 																? t
 																: null,
