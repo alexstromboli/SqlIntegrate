@@ -79,16 +79,29 @@ namespace MakeWrapper
 				ClrNamespace = "Generated",
 				TypeMap = TypeMap,
 				Schemata = Module.Procedures
-					.GroupBy (p => p.Schema)
-					.OrderBy (g => g.Key)
+					.Select (p => p.Schema)
+					.Concat (Module.Types.Select (t => t.Schema))
+					.Distinct ()
+					.OrderBy (ns => ns)
 					.Select (s =>
 					{
 						return new Wrapper.Schema
 						{
-							NativeName = s.Key,
-							CsClassName = s.Key.ValidCsName (),
-							NameHolderVar = "Name_" + s.Key.ValidCsNamePart (),
-							Procedures = s
+							NativeName = s,
+							CsClassName = s.ValidCsName (),
+							NameHolderVar = "Name_" + s.ValidCsNamePart (),
+							EnumTypes = Module.Types
+								.Where (t => t.Schema == s && t.Enum != null && t.Enum.Length > 0)
+								.Select (t => new Wrapper.Schema.Enum
+								{
+									Origin = t,
+									NativeName = t.Name,
+									CsName = t.Name.ValidCsName (),
+									Values = t.Enum
+								})
+								.ToArray (),
+							Procedures = Module.Procedures
+								.Where (p => p.Schema == s)
 								.OrderBy (p => p.Name)
 								.Select (p => new Wrapper.Schema.Procedure
 								{
@@ -107,7 +120,8 @@ namespace MakeWrapper
 												: null,
 											IsOut = a.IsOut,
 											IsCursor = a.Type == "refcursor"
-												|| a.Type == "pg_catalog.refcursor"		// here: find more elegant way
+											           || a.Type ==
+											           "pg_catalog.refcursor" // here: find more elegant way
 										})
 										.ToArray (),
 									ResultClassName = p.Name.ValidCsNamePart () + "_Result",
@@ -229,6 +243,21 @@ namespace MakeWrapper
 
 					using (sb.UseCurlyBraces ($"public class {ns.CsClassName}"))
 					{
+						// enum types
+						foreach (var e in ns.EnumTypes)
+						{
+							using (sb.UseCurlyBraces ($"public static class {e.CsName}"))
+							{
+								foreach (var v in e.Values)
+								{
+									sb.AppendLine ($"public const string {v.ValidCsName ()} = {v.ToDoubleQuotes ()};");
+								}
+							}
+
+							sb.AppendLine ();
+						}
+
+						// properties
 						sb.AppendLine ("public NpgsqlConnection Conn;")
 							.AppendLine ("public string SchemaName;")
 							.AppendLine ();

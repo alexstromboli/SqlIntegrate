@@ -54,6 +54,14 @@ namespace MakeWrapper
 	{
 		public class Schema
 		{
+			public class Enum
+			{
+				public ParseProcs.Datasets.SqlType Origin;
+				public string NativeName;
+				public string CsName;
+				public string[] Values;
+			}
+
 			public class Procedure
 			{
 				public class Argument
@@ -117,6 +125,7 @@ namespace MakeWrapper
 			public string NativeName;
 			public string CsClassName;
 			public string NameHolderVar;
+			public Enum[] EnumTypes;
 			public Procedure[] Procedures;
 		}
 

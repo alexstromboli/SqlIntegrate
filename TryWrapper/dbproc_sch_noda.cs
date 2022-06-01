@@ -44,16 +44,44 @@ namespace Generated
 			}
 		}
 
-		public DbProc (NpgsqlConnection Conn, string Name_alexey, string Name_ext)
+		protected no_proc m_no_proc = null;
+		protected string Name_no_proc = null;
+		public no_proc no_proc
+		{
+			get
+			{
+				if (m_no_proc == null)
+				{
+					m_no_proc = new no_proc (Conn, Name_no_proc);
+				}
+				return m_no_proc;
+			}
+		}
+
+		public DbProc (NpgsqlConnection Conn, string Name_alexey, string Name_ext, string Name_no_proc)
 		{
 			this.Conn = Conn;
 			this.Name_alexey = Name_alexey;
 			this.Name_ext = Name_ext;
+			this.Name_no_proc = Name_no_proc;
 		}
 	}
 
 	public class alexey
 	{
+		public static class app_status
+		{
+			public const string pending = "pending";
+			public const string active = "active";
+			public const string hold = "hold";
+		}
+
+		public static class indirectly_used_enum
+		{
+			public const string first = "first";
+			public const string second = "second";
+		}
+
 		public NpgsqlConnection Conn;
 		public string SchemaName;
 
@@ -1633,5 +1661,25 @@ namespace Generated
 			}
 		}
 		#endregion 
+	}
+
+	public class no_proc
+	{
+		public static class package
+		{
+			public const string open = "open";
+			public const string _sealed = "sealed";
+			public const string enclosed = "enclosed";
+		}
+
+		public NpgsqlConnection Conn;
+		public string SchemaName;
+
+		public no_proc (NpgsqlConnection Conn, string SchemaName)
+		{
+			this.Conn = Conn;
+			this.SchemaName = SchemaName;
+		}
+
 	}
 }
