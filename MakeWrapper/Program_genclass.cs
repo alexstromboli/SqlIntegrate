@@ -52,12 +52,12 @@ namespace MakeWrapper
 
 			foreach (var EnumType in Module.Types.Where (t => t.Enum != null && t.Enum.Length > 0))
 			{
-				TypeMap[EnumType.Name] = "string";
+				TypeMap[EnumType.Schema + "." + EnumType.Name] = "string";
 			}
 
 			foreach (var CompositeType in Module.Types.Where (t => t.Properties != null && t.Properties.Length > 0))
 			{
-				TypeMap[CompositeType.Name] = "object";
+				TypeMap[CompositeType.Schema + "." + CompositeType.Name] = "object";
 			}
 
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));

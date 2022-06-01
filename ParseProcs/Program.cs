@@ -1290,7 +1290,8 @@ END
 					)
 					.SelectMany (t => t)
 					.Distinct (t => t.Display)
-					.OrderBy (t => t.ToString ())
+					.OrderBy (t => t.Schema)
+					.ThenBy (t => t.OwnName)
 					.ToArray ()
 				;
 
@@ -1320,7 +1321,8 @@ END
 
 				UsedCustomTypes = UsedCustomTypes
 						.Concat (ToAdd)
-						.OrderBy (t => t.ToString ())
+						.OrderBy (t => t.Schema)
+						.ThenBy (t => t.OwnName)
 						.ToArray ()
 					;
 			}

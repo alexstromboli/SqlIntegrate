@@ -7,6 +7,7 @@ namespace ParseProcs.Datasets
 {
 	public class SqlType
 	{
+		public string Schema;
 		public string Name;
 
 		[JsonIgnore]
@@ -26,7 +27,8 @@ namespace ParseProcs.Datasets
 		public SqlType (PSqlType Origin)
 		{
 			this.Origin = Origin;
-			Name = Origin.ToString ();
+			Schema = Origin.Schema;
+			Name = Origin.OwnName;
 			Enum = Origin.EnumValues;
 
 			if (Origin.Properties != null && Origin.Properties.Length > 0)

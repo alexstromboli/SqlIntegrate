@@ -62,6 +62,7 @@ namespace ParseProcs
 		}
 
 		public string Schema { get; set; }
+		public string OwnName { get; set; }
 		public bool IsArray { get; set; } = false;
 		// doesn't work for types
 		// name, int2vector, oidvector, point, lseg, box, line
@@ -241,7 +242,7 @@ namespace ParseProcs
 						                             ? PgTypeEntriesDict[t.ElemId].Name + "[]"
 						                             : t.Name);
 
-					PSqlType SqlType = new PSqlType { Schema = Schema, Display = QualTypeName, IsArray = IsArray };
+					PSqlType SqlType = new PSqlType { Schema = Schema, OwnName = t.Name, Display = QualTypeName, IsArray = IsArray };
 					SqlType.BaseType = SqlType;
 					_Map[QualTypeName] = SqlType;
 					OidToSqlTypeDict[t.Oid] = SqlType;
