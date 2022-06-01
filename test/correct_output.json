@@ -66,6 +66,15 @@
           "Type": "USER.indirectly_used_type"
         }
       ]
+    },
+    {
+      "Schema": "no_proc",
+      "Name": "package",
+      "Enum": [
+        "open",
+        "sealed",
+        "enclosed"
+      ]
     }
   ],
   "Procedures": [
@@ -956,6 +965,10 @@
             {
               "Name": "last_status",
               "Type": "USER.app_status"
+            },
+            {
+              "Name": "packages",
+              "Type": "no_proc.package[]"
             },
             {
               "Name": "owner_sum",

@@ -53,6 +53,7 @@ namespace MakeWrapper
 			foreach (var EnumType in Module.Types.Where (t => t.Enum != null && t.Enum.Length > 0))
 			{
 				TypeMap[EnumType.Schema + "." + EnumType.Name] = "string";
+				TypeMap[EnumType.Schema + "." + EnumType.Name + "[]"] = "string[]";
 			}
 
 			foreach (var CompositeType in Module.Types.Where (t => t.Properties != null && t.Properties.Length > 0))

@@ -984,6 +984,7 @@ namespace Generated
 			public bool? _bool;
 			public uint? regtype;
 			public string last_status;
+			public string[] packages;
 			public long? owner_sum;
 		}
 
@@ -1072,6 +1073,7 @@ namespace Generated
 									_bool = Rdr["bool"] as bool?,
 									regtype = Rdr["regtype"] as uint?,
 									last_status = Rdr["last_status"] as string,
+									packages = Rdr["packages"] as string[],
 									owner_sum = Rdr["owner_sum"] as long?
 								};
 							}

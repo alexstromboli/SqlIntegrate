@@ -1,4 +1,5 @@
 CREATE SCHEMA ext;
+CREATE SCHEMA no_proc;      -- no procedures in this schema, only types
 CREATE SCHEMA :owner;     -- for test, needs to match the username
 
 CREATE TYPE app_status AS ENUM
@@ -6,6 +7,13 @@ CREATE TYPE app_status AS ENUM
     'pending',
     'active',
     'hold'
+);
+
+CREATE TYPE no_proc.package AS ENUM
+(
+    'open',
+    'sealed',
+    'enclosed'
 );
 
 -- not used (directly or indirectly) in any procedure
@@ -461,6 +469,7 @@ BEGIN
             false as bool,
             pg_typeof(5) regtype,
             'hold'::app_status as last_status,
+            array['enclosed', 'sealed']::no_proc.package[] packages,
             owner_sum
         ;
 

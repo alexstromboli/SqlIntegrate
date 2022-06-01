@@ -1290,12 +1290,11 @@ END
 					)
 					.SelectMany (t => t)
 					.Distinct (t => t.Display)
-					.OrderBy (t => t.Schema)
-					.ThenBy (t => t.OwnName)
 					.ToArray ()
 				;
 
 			PSqlType[] UsedCustomTypes = DirectlyUsedTypes
+					.Select (t => t.BaseType)
 					.Where (t => t.IsCustom)
 					.ToArray ()
 				;
@@ -1307,7 +1306,7 @@ END
 				var ToAdd = UsedCustomTypes
 						.Where (t => t.Properties != null)
 						.SelectMany (t => t.Properties)
-						.Select (p => p.Type)
+						.Select (p => p.Type.BaseType)
 						.Where (t => t.IsCustom)
 						.Distinct (t => t.Display)
 						.Where (t => !UsedTypesDict.ContainsKey (t.ToString ()))
@@ -1321,11 +1320,16 @@ END
 
 				UsedCustomTypes = UsedCustomTypes
 						.Concat (ToAdd)
-						.OrderBy (t => t.Schema)
-						.ThenBy (t => t.OwnName)
 						.ToArray ()
 					;
 			}
+
+			// sort
+			UsedCustomTypes = UsedCustomTypes
+					.OrderBy (t => t.Schema)
+					.ThenBy (t => t.OwnName)
+					.ToArray ()
+				;
 
 			ModuleReport.Procedures = ModuleReport.Procedures
 					.OrderBy (p => p.Schema)
