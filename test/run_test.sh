@@ -21,6 +21,7 @@ export OUTPUT_JSON_FILE="$(realpath temp_"$(tr -dc a-f0-9 </dev/urandom | dd bs=
 if [ -f "$OUTPUT_JSON_FILE" ]; then
     pushd ../MakeWrapper/bin/Debug/net5.0 >/dev/null
     ./MakeWrapper "$OUTPUT_JSON_FILE"
+    cp dbproc_sch_noda.cs ../../../../TryWrapper
     popd >/dev/null
 fi
 
