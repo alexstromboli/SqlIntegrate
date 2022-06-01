@@ -1,7 +1,8 @@
 {
   "Types": [
     {
-      "Name": "USER.app_status",
+      "Schema": "USER",
+      "Name": "app_status",
       "Enum": [
         "pending",
         "active",
@@ -9,14 +10,16 @@
       ]
     },
     {
-      "Name": "USER.indirectly_used_enum",
+      "Schema": "USER",
+      "Name": "indirectly_used_enum",
       "Enum": [
         "first",
         "second"
       ]
     },
     {
-      "Name": "USER.indirectly_used_type",
+      "Schema": "USER",
+      "Name": "indirectly_used_type",
       "Properties": [
         {
           "Name": "sign",
@@ -33,7 +36,8 @@
       ]
     },
     {
-      "Name": "USER.monetary",
+      "Schema": "USER",
+      "Name": "monetary",
       "Properties": [
         {
           "Name": "amount",
@@ -46,7 +50,8 @@
       ]
     },
     {
-      "Name": "USER.payment",
+      "Schema": "USER",
+      "Name": "payment",
       "Properties": [
         {
           "Name": "paid",
