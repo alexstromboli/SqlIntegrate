@@ -82,6 +82,26 @@ namespace Generated
 			public const string second = "second";
 		}
 
+		public class indirectly_used_type
+		{
+			public string sign;
+			public bool? is_on;
+			public string order;
+		}
+
+		public class monetary
+		{
+			public decimal? amount;
+			public int? id_currency;
+		}
+
+		public class payment
+		{
+			public object paid;
+			public LocalDate? date;
+			public object indi;
+		}
+
 		public NpgsqlConnection Conn;
 		public string SchemaName;
 

@@ -81,12 +81,33 @@ namespace MakeWrapper
 							NameHolderVar = "Name_" + s.ValidCsNamePart (),
 							EnumTypes = Module.Types
 								.Where (t => t.Schema == s && t.Enum != null && t.Enum.Length > 0)
-								.Select (t => new Wrapper.Schema.Enum
+								.Select (t => new Wrapper.Schema.CustomType
 								{
 									Origin = t,
 									NativeName = t.Name,
-									CsName = t.Name.ValidCsName (),
-									Values = t.Enum
+									RowCsClassName = t.Name.ValidCsName (),
+									EnumValues = t.Enum
+								})
+								.ToArray (),
+							CompositeTypes = Module.Types
+								.Where (t => t.Schema == s && t.Properties != null && t.Properties.Length > 0)
+								.Select (t => new Wrapper.Schema.CustomType
+								{
+									Origin = t,
+									NativeName = t.Name,
+									RowCsClassName = t.Name.ValidCsName (),
+									Properties = t.Properties
+										.Select (p => new Wrapper.Schema.Set<SqlType, Column>.Property
+										{
+											Origin = p,
+											NativeName = p.Name,
+											ClrType = TypeMap.TryGetValue (p.Type,
+												out var t)
+												? t
+												: null,
+											CsName = p.Name.ValidCsName ()
+										})
+										.ToList ()
 								})
 								.ToArray (),
 							Procedures = Module.Procedures
@@ -235,11 +256,26 @@ namespace MakeWrapper
 						// enum types
 						foreach (var e in ns.EnumTypes)
 						{
-							using (sb.UseCurlyBraces ($"public static class {e.CsName}"))
+							using (sb.UseCurlyBraces ($"public static class {e.RowCsClassName}"))
 							{
-								foreach (var v in e.Values)
+								foreach (var v in e.EnumValues)
 								{
+									// here: provide proper CLR mapping for composite types, not object
 									sb.AppendLine ($"public const string {v.ValidCsName ()} = {v.ToDoubleQuotes ()};");
+								}
+							}
+
+							sb.AppendLine ();
+						}
+
+						// composite types
+						foreach (var ct in ns.CompositeTypes)
+						{
+							using (sb.UseCurlyBraces ($"public class {ct.RowCsClassName}"))
+							{
+								foreach (var p in ct.Properties)
+								{
+									sb.AppendLine ($"public {p.ClrType} {p.CsName};");
 								}
 							}
 

@@ -56,12 +56,33 @@ namespace MakeWrapper
 	{
 		public class Schema
 		{
-			public class Enum
+			public class Set<TResultSet, TColumn>
 			{
-				public ParseProcs.Datasets.SqlType Origin;
+				public class Property
+				{
+					public TColumn Origin;
+					public string NativeName;
+					public string CsName;
+					public string ClrType;
+					public Func<string, string> ReaderExpression;
+
+					public override string ToString ()
+					{
+						return (CsName ?? NativeName) + " " + ClrType;
+					}
+				}
+
+				public TResultSet Origin;
+				public string RowCsClassName;
+				public List<Property> Properties;
+			}
+
+			public class CustomType : Set<SqlType, Column>
+			{
 				public string NativeName;
-				public string CsName;
-				public string[] Values;
+				//public string CsName;
+
+				public string[] EnumValues;
 			}
 
 			public class Procedure
@@ -77,31 +98,14 @@ namespace MakeWrapper
 					public bool IsOut;
 				}
 
-				public class Set
+				public class Set : Set<ResultSet, Column>
 				{
-					public class Property
-					{
-						public Column Origin;
-						public string NativeName;
-						public string CsName;
-						public string ClrType;
-						public Func<string, string> ReaderExpression;
-
-						public override string ToString ()
-						{
-							return (CsName ?? NativeName) + " " + ClrType;
-						}
-					}
-
-					public ResultSet Origin;
 					public string CursorName;
-					public string RowCsClassName;
 					public string SetCsTypeName;
 					public string PropertyName;
 					public bool IsSingleRow;
 					public bool IsSingleColumn => Properties.Count == 1;
 					public bool IsScalar => IsSingleRow && IsSingleColumn;
-					public List<Property> Properties;
 
 					public override string ToString ()
 					{
@@ -127,7 +131,8 @@ namespace MakeWrapper
 			public string NativeName;
 			public string CsClassName;
 			public string NameHolderVar;
-			public Enum[] EnumTypes;
+			public CustomType[] EnumTypes;
+			public CustomType[] CompositeTypes;
 			public Procedure[] Procedures;
 		}
 
