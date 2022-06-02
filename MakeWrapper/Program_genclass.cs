@@ -50,17 +50,6 @@ namespace MakeWrapper
 			TypeMap["bytea"] = "byte[]";
 			TypeMap["pg_catalog.bytea"] = "byte[]";
 
-			foreach (var EnumType in Module.Types.Where (t => t.Enum != null && t.Enum.Length > 0))
-			{
-				TypeMap[EnumType.Schema + "." + EnumType.Name] = "string";
-				TypeMap[EnumType.Schema + "." + EnumType.Name + "[]"] = "string[]";
-			}
-
-			foreach (var CompositeType in Module.Types.Where (t => t.Properties != null && t.Properties.Length > 0))
-			{
-				TypeMap[CompositeType.Schema + "." + CompositeType.Name] = "object";
-			}
-
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
 			//
@@ -324,6 +313,12 @@ namespace MakeWrapper
 								sb.AppendLine ();
 							}
 
+							// type comments
+							foreach (var e in p.Arguments.Where (a => a.Origin.PSqlType?.BaseType.EnumValues != null))
+							{
+								sb.AppendLine ($"/// <param name=\"{e.CsName}\">Value from {e.Origin.PSqlType.BaseType.Display}</param>");
+							}
+
 							string MethodDeclPrefix = $"public {p.ResultClassName} {pi.Value.CsName} (";
 							if (Args.Length <= 2)
 							{
@@ -358,7 +353,11 @@ namespace MakeWrapper
 								{
 									using (sb.UseCurlyBraces ("using (var Cmd = Conn.CreateCommand ())"))
 									{
-										string Params = string.Join (", ", p.Arguments.Select (a => a.CallParamName));
+										string Params = string.Join (", ", p.Arguments.Select (a => a.CallParamName
+												// here: schema hard-coded, not using SchemaName
+											+ (a.Origin.PSqlType?.BaseType.EnumValues == null ? "" : ($"::{a.Origin.PSqlType.BaseType.Schema.ToDoubleQuotes ()}.{a.Origin.PSqlType.BaseType.OwnName.ToDoubleQuotes ()}"
+											+ (a.Origin.PSqlType.IsArray ? "[]" : "")))
+										));
 										string Call =
 											"call \"".ToDoubleQuotes () + " + SchemaName + " +
 											$"\".{pi.Value.NativeName.ToDoubleQuotes ()} ({Params});".ToDoubleQuotes ();

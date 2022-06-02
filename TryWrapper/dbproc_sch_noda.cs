@@ -1545,6 +1545,8 @@ namespace Generated
 		#endregion 
 
 		#region test_out
+		/// <param name="p_status">Value from alexey.app_status</param>
+		/// <param name="p_valid_statuses">Value from alexey.app_status</param>
 		public int? test_out (
 				ref int? p_int,
 				ref int[] p_int_arr,
@@ -1559,7 +1561,8 @@ namespace Generated
 				ref string p_varchar,
 				ref string[] p_varchar_arr,
 				ref byte[] p_bytea,
-				ref string p_status 
+				ref string p_status,
+				ref string[] p_valid_statuses 
 			)
 		{
 			int? Result = null;
@@ -1568,7 +1571,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"test_out\" (@p_int, @p_int_arr, @p_bool, @p_bool_arr, @p_date, @p_date_arr, @p_instant, @p_instant_arr, @p_datetime, @p_datetime_arr, @p_varchar, @p_varchar_arr, @p_bytea, @p_status, @result_1);";
+					Cmd.CommandText = "call \"" + SchemaName + "\".\"test_out\" (@p_int, @p_int_arr, @p_bool, @p_bool_arr, @p_date, @p_date_arr, @p_instant, @p_instant_arr, @p_datetime, @p_datetime_arr, @p_varchar, @p_varchar_arr, @p_bytea, @p_status::\"alexey\".\"app_status\", @p_valid_statuses::\"alexey\".\"app_status\"[], @result_1);";
 					Cmd.Parameters.AddWithValue ("@p_int", (object)p_int ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_int_arr", (object)p_int_arr ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_bool", (object)p_bool ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
@@ -1583,6 +1586,7 @@ namespace Generated
 					Cmd.Parameters.AddWithValue ("@p_varchar_arr", (object)p_varchar_arr ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_bytea", (object)p_bytea ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_status", (object)p_status ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
+					Cmd.Parameters.AddWithValue ("@p_valid_statuses", (object)p_valid_statuses ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result_1" });
 
 					Cmd.ExecuteNonQuery ();
@@ -1601,6 +1605,7 @@ namespace Generated
 					p_varchar_arr = Cmd.Parameters["@p_varchar_arr"].Value as string[];
 					p_bytea = Cmd.Parameters["@p_bytea"].Value as byte[];
 					p_status = Cmd.Parameters["@p_status"].Value as string;
+					p_valid_statuses = Cmd.Parameters["@p_valid_statuses"].Value as string[];
 
 					using (var ResCmd = Conn.CreateCommand ())
 					{

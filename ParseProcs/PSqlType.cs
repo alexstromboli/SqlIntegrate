@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 using Utils;
+using ParseProcs.Datasets;
 
 namespace ParseProcs
 {
@@ -113,6 +114,7 @@ namespace ParseProcs
 		public IReadOnlyDictionary<string, PSqlType> Map => _Map;
 		public IReadOnlyDictionary<uint, PSqlType> MapByOid { get; }	// null if not initialized from DB
 
+		// version for lookup during procedure body parsing
 		public PSqlType GetTypeForName (IEnumerable<string> SchemaOrder, params string[] TypeName)
 		{
 			return TypeName.Length > 1
@@ -121,6 +123,12 @@ namespace ParseProcs
 							Map.TryGetValue (s + "." + TypeName.JoinDot (), out var f) ? f : null)
 						.FirstOrDefault (f => f != null)
 				;
+		}
+
+		// version for lookup during code generation
+		public PSqlType GetTypeForName (string TypeName)
+		{
+			return Map.TryGetValue (TypeName, out var f) ? f : null;
 		}
 
 		// https://dba.stackexchange.com/questions/90230/postgresql-determine-column-type-when-data-type-is-set-to-array
@@ -184,41 +192,89 @@ namespace ParseProcs
 				Result.ArrayType.ShortName ??= Keys[0] + "[]";
 			}
 
+			// for standard types add short names to map
+			foreach (var p in new[]
+			         {
+				         new { type = Result, keys = Keys },
+				         new { type = Result.ArrayType, keys = Keys.Select (k => k + "[]").ToArray () }
+			         })
+			{
+				if (p.type != null)
+				{
+					foreach (string Key in p.keys)
+					{
+						_Map.TryAdd (Key, p.type);
+					}
+				}
+			}
+
 			return Result;
 		}
 
-		public readonly PSqlType Null;
-		public readonly PSqlType Record;
-		public readonly PSqlType RefCursor;
-		public readonly PSqlType Bool;
-		public readonly PSqlType Binary;
-		public readonly PSqlType Guid;
+		public PSqlType Null { get; protected set; }
+		public PSqlType Record { get; protected set; }
+		public PSqlType RefCursor { get; protected set; }
+		public PSqlType Bool { get; protected set; }
+		public PSqlType Binary { get; protected set; }
+		public PSqlType Guid { get; protected set; }
 
-		public readonly PSqlType Int;
-		public readonly PSqlType SmallInt;
-		public readonly PSqlType BigInt;
-		public readonly PSqlType Money;
-		public readonly PSqlType Decimal;
-		public readonly PSqlType Real;
-		public readonly PSqlType Float;
+		public PSqlType Int { get; protected set; }
+		public PSqlType SmallInt { get; protected set; }
+		public PSqlType BigInt { get; protected set; }
+		public PSqlType Money { get; protected set; }
+		public PSqlType Decimal { get; protected set; }
+		public PSqlType Real { get; protected set; }
+		public PSqlType Float { get; protected set; }
 
-		public readonly PSqlType Json;
-		public readonly PSqlType Jsonb;
+		public PSqlType Json { get; protected set; }
+		public PSqlType Jsonb { get; protected set; }
 
-		public readonly PSqlType Date;
-		public readonly PSqlType Timestamp;
-		public readonly PSqlType TimestampTz;
-		public readonly PSqlType Interval;
-		public readonly PSqlType Time;
-		public readonly PSqlType TimeTz;
+		public PSqlType Date { get; protected set; }
+		public PSqlType Timestamp { get; protected set; }
+		public PSqlType TimestampTz { get; protected set; }
+		public PSqlType Interval { get; protected set; }
+		public PSqlType Time { get; protected set; }
+		public PSqlType TimeTz { get; protected set; }
 
-		public readonly PSqlType Text;
-		public readonly PSqlType Char;
-		public readonly PSqlType VarChar;
-		public readonly PSqlType BpChar;
-		public readonly PSqlType Name;
-		public readonly PSqlType CString;
-		public readonly PSqlType RegType;
+		public PSqlType Text { get; protected set; }
+		public PSqlType Char { get; protected set; }
+		public PSqlType VarChar { get; protected set; }
+		public PSqlType BpChar { get; protected set; }
+		public PSqlType Name { get; protected set; }
+		public PSqlType CString { get; protected set; }
+		public PSqlType RegType { get; protected set; }
+
+		public SqlTypeMap (Module Module)
+		{
+			_Map = new Dictionary<string, PSqlType> ();
+
+			InitStandardProperties ();
+
+			foreach (var t in Module.Types)
+			{
+				PSqlType BaseType = new PSqlType { Schema = t.Schema, OwnName = t.Name, Display = t.Schema + "." + t.Name };
+				PSqlType ArrayType = new PSqlType { Schema = t.Schema, OwnName = t.Name + "[]", Display = t.Schema + "." + t.Name + "[]", IsArray = true};
+				BaseType.BaseType = BaseType;
+				ArrayType.BaseType = BaseType;
+				BaseType.ArrayType = ArrayType;
+				ArrayType.ArrayType = ArrayType;
+				_Map[BaseType.Display] = BaseType;
+				_Map[ArrayType.Display] = ArrayType;
+
+				if (t.Enum != null && t.Enum.Length > 0)
+				{
+					BaseType.EnumValues = t.Enum;
+					BaseType.ClrType = typeof(string);
+					ArrayType.ClrType = typeof(string[]);
+				}
+
+				if (t.Properties != null && t.Properties.Length > 0)
+				{
+					//SqlType.EnumValues = t.Enum;
+					BaseType.ClrType = typeof(object);
+				}
+			}
+		}
 
 		public SqlTypeMap (Dictionary<uint, PgTypeEntry> PgTypeEntriesDict = null)
 		{
@@ -289,6 +345,11 @@ namespace ParseProcs
 				}
 			}
 
+			InitStandardProperties ();
+		}
+
+		protected void InitStandardProperties ()
+		{
 			this.Null = AddPgCatalogType (typeof (object), "unknown");
 			this.Record = AddPgCatalogType (typeof (object), "record");
 			this.RefCursor = AddPgCatalogType (typeof (object), "refcursor");

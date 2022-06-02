@@ -927,6 +927,7 @@ CREATE PROCEDURE test_out
     INOUT p_varchar_arr varchar(3)[],
     INOUT p_bytea bytea,
     INOUT p_status app_status,
+    INOUT p_valid_statuses app_status[],
     INOUT result_1 refcursor
 )
 LANGUAGE 'plpgsql'
@@ -951,6 +952,7 @@ BEGIN
     p_varchar_arr := p_varchar_arr || array[null, p_varchar];       -- nulls are okay for string arrays
     p_bytea := p_bytea || '123'::bytea;
     p_status := 'hold';
+    p_valid_statuses := p_valid_statuses || 'pending'::app_status;
 
     /*
     -- for INOUT values, nulls in arrays don't come through

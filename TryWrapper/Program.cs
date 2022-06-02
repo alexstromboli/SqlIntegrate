@@ -22,8 +22,8 @@ namespace TryWrapper
 			{
 				Conn.Open ();
 				Conn.TypeMapper.UseNodaTime ();
-				Conn.TypeMapper.MapEnum<EStatus> ("alexey.app_status");
-				var DbProc = new Generated.DbProc (Conn, "alexey", "ext");
+				//Conn.TypeMapper.MapEnum<EStatus> ("alexey.app_status");
+				var DbProc = new Generated.DbProc (Conn, "alexey", "ext", "no_proc");
 
 				/*
 -- DROP PROCEDURE test;
@@ -82,15 +82,16 @@ $$;
 				string t_string = "town";
 				string[] t_string_arr = { "town", "fly" };
 				byte[] t_bytea = { 4, 8, 1 };
-				//string t_status = "active";
-				EStatus? t_status = EStatus.r_active;
+				string t_status = Generated.alexey.app_status.active;
+				string[] t_valid_statuses = new[] { Generated.alexey.app_status.active };
+				//EStatus? t_status = EStatus.r_active;
 
 				var Result = DbProc.alexey.test_out (ref t_int, ref t_int_arr, ref t_bool, ref t_bool_arr,
 					ref t_date, ref t_date_arr,
 					ref t_instant, ref t_instant_arr,
 					ref t_datetime, ref t_datetime_arr,
 					ref t_string, ref t_string_arr,
-					ref t_bytea, ref t_status);
+					ref t_bytea, ref t_status, ref t_valid_statuses);
 
 				//
 				var test_from_select = DbProc.alexey.test_from_select ();

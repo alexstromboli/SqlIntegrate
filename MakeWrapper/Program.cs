@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Collections.Generic;
 
 using Newtonsoft.Json;
@@ -27,6 +28,7 @@ namespace MakeWrapper
 		{
 			_Map = new Dictionary<Type, ClrType> ();
 
+			Add (typeof (object), "object");
 			Add (typeof (bool), "bool");
 			Add (typeof (int), "int");
 			Add (typeof (uint), "uint");
@@ -155,7 +157,21 @@ namespace MakeWrapper
 			         }
 			        )
 			{
-				string Code = GenerateCode (Module, new SqlTypeMap (), run.UseSchemaSettings, Processors: run.processors);
+				SqlTypeMap DbTypeMap = new SqlTypeMap (Module);
+
+				// origins
+				foreach (var a in Module.Procedures.SelectMany (p => p.Arguments))
+				{
+					a.PSqlType = DbTypeMap.GetTypeForName (a.Type);
+				}
+
+				foreach (var c in Module.Procedures.SelectMany (p => p.ResultSets).SelectMany (rs => rs.Columns))
+				{
+					c.PSqlType = DbTypeMap.GetTypeForName (c.Type);
+				}
+
+				//
+				string Code = GenerateCode (Module, DbTypeMap, run.UseSchemaSettings, Processors: run.processors);
 				CodeGenerationUtils.EnsureFileContents (run.target, Code);
 			}
 		}

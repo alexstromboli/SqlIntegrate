@@ -1505,6 +1505,11 @@
           "IsOut": true
         },
         {
+          "Name": "p_valid_statuses",
+          "Type": "USER.app_status[]",
+          "IsOut": true
+        },
+        {
           "Name": "result_1",
           "Type": "refcursor",
           "IsOut": true

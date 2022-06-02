@@ -1296,6 +1296,7 @@ END
 			PSqlType[] UsedCustomTypes = DirectlyUsedTypes
 					.Select (t => t.BaseType)
 					.Where (t => t.IsCustom)
+					.Distinct (t => t.Display)
 					.ToArray ()
 				;
 
