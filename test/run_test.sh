@@ -19,6 +19,8 @@ export OUTPUT_JSON_FILE="$(realpath temp_"$(tr -dc a-f0-9 </dev/urandom | dd bs=
 ../ParseProcs/bin/Debug/net5.0/ParseProcs "host=/var/run/postgresql;database=$DBNAME;Integrated Security=true" "$OUTPUT_JSON_FILE"
 
 if [ -f "$OUTPUT_JSON_FILE" ]; then
+    sed -i "s/\"Name\": \"indirectly_used_enum\",/\"Name\": \"indirectly_used_enum\", \"GenerateEnum\": true,/g" "$OUTPUT_JSON_FILE"
+
     pushd ../MakeWrapper/bin/Debug/net5.0 >/dev/null
     ./MakeWrapper "$OUTPUT_JSON_FILE"
     cp dbproc_sch_noda.cs ../../../../TryWrapper

@@ -11,7 +11,7 @@
     },
     {
       "Schema": "USER",
-      "Name": "indirectly_used_enum",
+      "Name": "indirectly_used_enum", "GenerateEnum": true,
       "Enum": [
         "first",
         "second"

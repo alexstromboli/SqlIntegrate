@@ -50,7 +50,8 @@ namespace MakeWrapper
 			TypeMap["bytea"] = "byte[]";
 			TypeMap["pg_catalog.bytea"] = "byte[]";
 
-			foreach (var t in Module.Types.Where (ct => ct.Properties != null))
+			foreach (var t in Module.Types.Where (ct => ct.Properties != null
+			         || ct.Enum != null && ct.GenerateEnum))
 			{
 				string PsqlKey = t.Schema + "." + t.Name;
 				// must match names filled in Wrapper below
@@ -96,7 +97,8 @@ namespace MakeWrapper
 									Origin = t,
 									NativeName = t.Name,
 									RowCsClassName = t.Name.ValidCsName (),
-									EnumValues = t.Enum
+									EnumValues = t.Enum,
+									GenerateEnum = t.GenerateEnum
 								})
 								.ToArray (),
 							CompositeTypes = Module.Types
@@ -306,12 +308,25 @@ namespace MakeWrapper
 						// enum types
 						foreach (var e in ns.EnumTypes)
 						{
-							using (sb.UseCurlyBraces ($"public static class {e.RowCsClassName}"))
+							if (e.GenerateEnum)
 							{
-								foreach (var v in e.EnumValues)
+								using (sb.UseCurlyBraces ($"public enum {e.RowCsClassName}"))
 								{
-									// here: provide proper CLR mapping for composite types, not object
-									sb.AppendLine ($"public const string {v.ValidCsName ()} = {v.ToDoubleQuotes ()};");
+									foreach (var v in e.EnumValues.Indexed ())
+									{
+										sb.AppendLine ($"{v.Value}{(v.IsLast ? "" : ",")}");
+									}
+								}
+							}
+							else
+							{
+								using (sb.UseCurlyBraces ($"public static class {e.RowCsClassName}"))
+								{
+									foreach (var v in e.EnumValues)
+									{
+										sb.AppendLine (
+											$"public const string {v.ValidCsName ()} = {v.ToDoubleQuotes ()};");
+									}
 								}
 							}
 

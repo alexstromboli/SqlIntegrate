@@ -74,6 +74,7 @@ namespace Generated
 				return;
 			}
 
+			Conn.TypeMapper.MapEnum<alexey.indirectly_used_enum> ("alexey.indirectly_used_enum");
 			Conn.TypeMapper.MapComposite<alexey.indirectly_used_type> ("alexey.indirectly_used_type");
 			Conn.TypeMapper.MapComposite<alexey.monetary> ("alexey.monetary");
 			Conn.TypeMapper.MapComposite<alexey.payment> ("alexey.payment");
@@ -89,17 +90,17 @@ namespace Generated
 			public const string hold = "hold";
 		}
 
-		public static class indirectly_used_enum
+		public enum indirectly_used_enum
 		{
-			public const string first = "first";
-			public const string second = "second";
+			first,
+			second
 		}
 
 		public class indirectly_used_type
 		{
 			public string sign;
 			public bool? is_on;
-			public string order;
+			public alexey.indirectly_used_enum order;
 		}
 
 		public class monetary

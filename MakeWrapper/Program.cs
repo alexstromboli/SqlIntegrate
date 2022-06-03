@@ -74,6 +74,7 @@ namespace MakeWrapper
 
 				public TResultSet Origin;
 				public string RowCsClassName;
+				public bool GenerateEnum;
 				public List<Property> Properties;
 			}
 
