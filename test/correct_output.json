@@ -63,7 +63,7 @@
         },
         {
           "Name": "indi",
-          "Type": "USER.indirectly_used_type"
+          "Type": "USER.indirectly_used_type[]"
         }
       ]
     },

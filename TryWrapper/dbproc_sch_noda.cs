@@ -99,7 +99,7 @@ namespace Generated
 		{
 			public alexey.monetary paid;
 			public LocalDate? date;
-			public alexey.indirectly_used_type indi;
+			public alexey.indirectly_used_type[] indi;
 		}
 
 		public NpgsqlConnection Conn;

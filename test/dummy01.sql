@@ -92,7 +92,7 @@ CREATE TYPE payment AS
 (
     paid monetary,
     date date,
-    indi indirectly_used_type
+    indi indirectly_used_type[]
 );
 
 CREATE TABLE financial_history
@@ -101,7 +101,15 @@ CREATE TABLE financial_history
     diff payment
 );
 
-INSERT INTO financial_history VALUES (76, ((562.30, 2), '2019-08-21', ('high', false, 'second')));
+INSERT INTO financial_history VALUES
+(
+    76,
+    (
+        (562.30, 2),
+        '2019-08-21',
+        array[('high', false, 'second'), ('mid', true, 'first')]::indirectly_used_type[]
+    )
+);
 
 INSERT INTO Depts VALUES (1, null, 'Administration');
 INSERT INTO Depts VALUES (2, 1, 'Operation');

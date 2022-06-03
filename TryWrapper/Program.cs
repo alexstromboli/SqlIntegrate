@@ -23,50 +23,13 @@ namespace TryWrapper
 				Conn.Open ();
 				Conn.TypeMapper.UseNodaTime ();
 				//Conn.TypeMapper.MapEnum<EStatus> ("alexey.app_status");
+				Conn.TypeMapper.MapComposite<Generated.alexey.monetary> ("alexey.monetary");
+				Conn.TypeMapper.MapComposite<Generated.alexey.payment> ("alexey.payment");
+				Conn.TypeMapper.MapComposite<Generated.alexey.indirectly_used_type> ("alexey.indirectly_used_type");
 				var DbProc = new Generated.DbProc (Conn, "alexey", "ext", "no_proc");
 
-				/*
--- DROP PROCEDURE test;
-CREATE PROCEDURE test (INOUT p int, INOUT res01 refcursor)
-LANGUAGE 'plpgsql'
-AS $$
-BEGIN
-    p := p + 17;
-
-    OPEN res01 FOR
-    SELECT 41 as id, false as is_built;
-END;
-$$;
-				 */
-
-				/*
-				using (var tran = Conn.BeginTransaction ())
-				using (var cmd = Conn.CreateCommand ())
-				{
-					cmd.CommandText = "call alexey.test(@t_p, @res01);";
-					cmd.Parameters.AddWithValue ("@t_p", 11).Direction = ParameterDirection.InputOutput;
-					cmd.Parameters.Add (new NpgsqlParameter ("@res01", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "res01"});
-
-					cmd.ExecuteNonQuery ();
-					long res_p = (int) cmd.Parameters["@t_p"].Value;
-
-					using (var rescmd = Conn.CreateCommand ())
-					{
-						rescmd.CommandText = "FETCH ALL IN \"res01\"";
-
-						using (var rdr = rescmd.ExecuteReader ())
-						{
-							if (rdr.Read ())
-							{
-								int? id = rdr["id"] as int?;
-								bool? is_built = rdr["is_built"] as bool?;
-							}
-						}
-					}
-
-					tran.Commit ();
-				}
-				*/
+				//
+				var r01 = DbProc.alexey.get_composite ();
 
 				//
 				int? t_int = 10;
