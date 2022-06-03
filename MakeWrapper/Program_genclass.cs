@@ -220,6 +220,9 @@ namespace MakeWrapper
 				       ? sb.UseCurlyBraces ($"namespace {Wrapper.ClrNamespace}")
 				       : null)
 			{
+				bool HasCustomMapping = Module.Types.Any (t => t.Enum != null && t.GenerateEnum
+					|| t.Properties != null);
+
 				using (sb.UseCurlyBraces ("public class DbProc"))
 				{
 					sb.AppendLine ("public NpgsqlConnection Conn;");
@@ -247,12 +250,49 @@ namespace MakeWrapper
 
 					sb.AppendLine ();
 
+					// constructor
 					using (sb.UseCurlyBraces ($"public DbProc (NpgsqlConnection Conn{(UseSchemaSettings ? string.Join ("", Wrapper.Schemata.Select (s => ", string " + s.NameHolderVar)) : "")})"))
 					{
 						sb.AppendLine ("this.Conn = Conn;");
+
+						if (HasCustomMapping)
+						{
+							sb.AppendLine ("UseCustomMapping (this.Conn);");
+						}
+
 						foreach (var ns in Wrapper.Schemata)
 						{
 							sb.AppendLine ($"this.{ns.NameHolderVar} = {(UseSchemaSettings ? ns.NameHolderVar : ns.NativeName.ToDoubleQuotes ())};");
+						}
+					}
+
+					if (HasCustomMapping)
+					{
+						sb.AppendLine ();
+
+						using (sb.UseCurlyBraces ($"public static void UseCustomMapping (NpgsqlConnection Conn)"))
+						{
+							// check connection state
+							using (sb.UseCurlyBraces (
+								       "if (Conn.State == ConnectionState.Closed || Conn.State == ConnectionState.Broken || Conn.State == ConnectionState.Connecting)"))
+							{
+								sb.AppendLine ("return;");
+							}
+
+							sb.AppendLine ();
+
+							foreach (var s in Wrapper.Schemata)
+							{
+								foreach (var t in s.EnumTypes.Where (et => et.Origin.GenerateEnum))
+								{
+									sb.AppendLine ($"Conn.TypeMapper.MapEnum<{s.CsClassName}.{t.RowCsClassName}> (\"{s.NativeName}.{t.NativeName}\");");
+								}
+
+								foreach (var t in s.CompositeTypes.Where (ct => ct.Properties != null))
+								{
+									sb.AppendLine ($"Conn.TypeMapper.MapComposite<{s.CsClassName}.{t.RowCsClassName}> (\"{s.NativeName}.{t.NativeName}\");");
+								}
+							}
 						}
 					}
 				}

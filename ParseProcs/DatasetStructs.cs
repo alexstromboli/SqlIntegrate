@@ -15,6 +15,8 @@ namespace ParseProcs.Datasets
 
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public string[] Enum;
+		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
+		public bool GenerateEnum = false;
 
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public Column[] Properties;

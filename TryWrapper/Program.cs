@@ -23,9 +23,9 @@ namespace TryWrapper
 				Conn.Open ();
 				Conn.TypeMapper.UseNodaTime ();
 				//Conn.TypeMapper.MapEnum<EStatus> ("alexey.app_status");
-				Conn.TypeMapper.MapComposite<Generated.alexey.monetary> ("alexey.monetary");
-				Conn.TypeMapper.MapComposite<Generated.alexey.payment> ("alexey.payment");
-				Conn.TypeMapper.MapComposite<Generated.alexey.indirectly_used_type> ("alexey.indirectly_used_type");
+				//Conn.TypeMapper.MapComposite<Generated.alexey.monetary> ("alexey.monetary");
+				//Conn.TypeMapper.MapComposite<Generated.alexey.payment> ("alexey.payment");
+				//Conn.TypeMapper.MapComposite<Generated.alexey.indirectly_used_type> ("alexey.indirectly_used_type");
 				var DbProc = new Generated.DbProc (Conn, "alexey", "ext", "no_proc");
 
 				//
