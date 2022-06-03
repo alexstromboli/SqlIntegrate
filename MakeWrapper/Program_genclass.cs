@@ -50,6 +50,16 @@ namespace MakeWrapper
 			TypeMap["bytea"] = "byte[]";
 			TypeMap["pg_catalog.bytea"] = "byte[]";
 
+			foreach (var t in Module.Types.Where (ct => ct.Properties != null))
+			{
+				string PsqlKey = t.Schema + "." + t.Name;
+				// must match names filled in Wrapper below
+				string ClrKey = t.Schema.ValidCsName () + "." + t.Name.ValidCsName ();
+
+				TypeMap[PsqlKey] = ClrKey;
+				TypeMap[PsqlKey + "[]"] = ClrKey + "[]";
+			}
+
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
 			//

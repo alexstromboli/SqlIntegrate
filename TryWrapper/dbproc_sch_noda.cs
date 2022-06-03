@@ -97,9 +97,9 @@ namespace Generated
 
 		public class payment
 		{
-			public object paid;
+			public alexey.monetary paid;
 			public LocalDate? date;
-			public object indi;
+			public alexey.indirectly_used_type indi;
 		}
 
 		public NpgsqlConnection Conn;
@@ -293,9 +293,9 @@ namespace Generated
 		public class get_composite_Result_result
 		{
 			public int? id;
-			public object as_block;
+			public alexey.payment as_block;
 			public LocalDate? date;
-			public object paid;
+			public alexey.monetary paid;
 			public decimal? amount;
 			public string last_status;
 			public string aux_status;
@@ -326,9 +326,9 @@ namespace Generated
 								Set.Add (new get_composite_Result_result
 								{
 									id = Rdr["id"] as int?,
-									as_block = Rdr["as_block"] as object,
+									as_block = Rdr["as_block"] as alexey.payment,
 									date = Rdr["date"] as LocalDate?,
-									paid = Rdr["paid"] as object,
+									paid = Rdr["paid"] as alexey.monetary,
 									amount = Rdr["amount"] as decimal?,
 									last_status = Rdr["last_status"] as string,
 									aux_status = Rdr["aux_status"] as string
