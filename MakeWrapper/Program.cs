@@ -142,8 +142,19 @@ namespace MakeWrapper
 
 		public string TitleComment;
 		public List<string> Usings;
-		public string ClrNamespace;
+		public string CsNamespace;
+		public string CsClassName;
 		public Dictionary<string, string> TypeMap;
+	}
+
+	class ChangeNameCodeProcessor : CodeProcessor
+	{
+		public override void OnHaveWrapper (Wrapper Wrapper)
+		{
+			base.OnHaveWrapper (Wrapper);
+			Wrapper.CsNamespace = "FirstSolution";
+			Wrapper.CsClassName = "Proxy";
+		}
 	}
 
 	partial class Program
@@ -157,27 +168,12 @@ namespace MakeWrapper
 			//
 			foreach (var run in new[]
 			         {
-				         new { UseSchemaSettings = false, target = "dbproc.cs", processors = new CodeProcessor[0] },
-				         new { UseSchemaSettings = true, target = "dbproc_sch.cs", processors = new CodeProcessor[0] },
-				         new { UseSchemaSettings = true, target = "dbproc_sch_noda.cs", processors = new[] { (CodeProcessor)new NodaTimeCodeProcessor () } }
+				         new { target = "dbproc.cs", processors = new[] { (CodeProcessor)new ChangeNameCodeProcessor () } },
+				         new { target = "dbproc_sch_noda.cs", processors = new[] { (CodeProcessor)new NodaTimeCodeProcessor () } }
 			         }
 			        )
 			{
-				SqlTypeMap DbTypeMap = new SqlTypeMap (Module);
-
-				// origins
-				foreach (var a in Module.Procedures.SelectMany (p => p.Arguments))
-				{
-					a.PSqlType = DbTypeMap.GetTypeForName (a.Type);
-				}
-
-				foreach (var c in Module.Procedures.SelectMany (p => p.ResultSets).SelectMany (rs => rs.Columns))
-				{
-					c.PSqlType = DbTypeMap.GetTypeForName (c.Type);
-				}
-
-				//
-				string Code = GenerateCode (Module, DbTypeMap, run.UseSchemaSettings, Processors: run.processors);
+				string Code = GenerateCode (Module, run.processors);
 				CodeGenerationUtils.EnsureFileContents (run.target, Code);
 			}
 		}

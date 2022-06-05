@@ -25,8 +25,25 @@ namespace MakeWrapper
 
 	partial class Program
 	{
-		static string GenerateCode (Module Module, SqlTypeMap DbTypeMap, bool UseSchemaSettings, params CodeProcessor[] Processors)
+		static string GenerateCode (Module Module, params CodeProcessor[] Processors)
 		{
+			bool UseSchemaSettings = false;
+
+			//
+			SqlTypeMap DbTypeMap = new SqlTypeMap (Module);
+
+			// origins
+			foreach (var a in Module.Procedures.SelectMany (p => p.Arguments))
+			{
+				a.PSqlType = DbTypeMap.GetTypeForName (a.Type);
+			}
+
+			foreach (var c in Module.Procedures.SelectMany (p => p.ResultSets).SelectMany (rs => rs.Columns))
+			{
+				c.PSqlType = DbTypeMap.GetTypeForName (c.Type);
+			}
+
+			//
 			Processors.Act (p => p.OnHaveModule (Module));
 
 			// build type map
@@ -76,7 +93,8 @@ namespace MakeWrapper
 					"using Npgsql;",
 					"using NpgsqlTypes;"
 				},
-				ClrNamespace = "Generated",
+				CsNamespace = "Generated",
+				CsClassName = "DbProc",
 				TypeMap = TypeMap,
 				Schemata = Module.Procedures
 					.Select (p => p.Schema)
@@ -218,14 +236,14 @@ namespace MakeWrapper
 
 			sb.AppendLine ();
 
-			using (!string.IsNullOrWhiteSpace (Wrapper.ClrNamespace)
-				       ? sb.UseCurlyBraces ($"namespace {Wrapper.ClrNamespace}")
+			using (!string.IsNullOrWhiteSpace (Wrapper.CsNamespace)
+				       ? sb.UseCurlyBraces ($"namespace {Wrapper.CsNamespace}")
 				       : null)
 			{
 				bool HasCustomMapping = Module.Types.Any (t => t.Enum != null && t.GenerateEnum
 					|| t.Properties != null);
 
-				using (sb.UseCurlyBraces ("public class DbProc"))
+				using (sb.UseCurlyBraces ($"public class {Wrapper.CsClassName}"))
 				{
 					sb.AppendLine ("public NpgsqlConnection Conn;");
 
@@ -253,7 +271,7 @@ namespace MakeWrapper
 					sb.AppendLine ();
 
 					// constructor
-					using (sb.UseCurlyBraces ($"public DbProc (NpgsqlConnection Conn{(UseSchemaSettings ? string.Join ("", Wrapper.Schemata.Select (s => ", string " + s.NameHolderVar)) : "")})"))
+					using (sb.UseCurlyBraces ($"public {Wrapper.CsClassName} (NpgsqlConnection Conn{(UseSchemaSettings ? string.Join ("", Wrapper.Schemata.Select (s => ", string " + s.NameHolderVar)) : "")})"))
 					{
 						sb.AppendLine ("this.Conn = Conn;");
 

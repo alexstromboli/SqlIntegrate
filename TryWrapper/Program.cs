@@ -26,7 +26,8 @@ namespace TryWrapper
 				//Conn.TypeMapper.MapComposite<Generated.alexey.monetary> ("alexey.monetary");
 				//Conn.TypeMapper.MapComposite<Generated.alexey.payment> ("alexey.payment");
 				//Conn.TypeMapper.MapComposite<Generated.alexey.indirectly_used_type> ("alexey.indirectly_used_type");
-				var DbProc = new Generated.DbProc (Conn, "alexey", "ext", "no_proc");
+				var DbProc = new Generated.DbProc (Conn//, "alexey", "ext", "no_proc"
+					);
 
 				//
 				var r01 = DbProc.alexey.get_composite ();

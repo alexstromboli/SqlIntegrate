@@ -58,13 +58,13 @@ namespace Generated
 			}
 		}
 
-		public DbProc (NpgsqlConnection Conn, string Name_alexey, string Name_ext, string Name_no_proc)
+		public DbProc (NpgsqlConnection Conn)
 		{
 			this.Conn = Conn;
 			UseCustomMapping (this.Conn);
-			this.Name_alexey = Name_alexey;
-			this.Name_ext = Name_ext;
-			this.Name_no_proc = Name_no_proc;
+			this.Name_alexey = "alexey";
+			this.Name_ext = "ext";
+			this.Name_no_proc = "no_proc";
 		}
 
 		public static void UseCustomMapping (NpgsqlConnection Conn)
