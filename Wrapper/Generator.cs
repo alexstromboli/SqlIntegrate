@@ -8,7 +8,7 @@ using ParseProcs;
 using ParseProcs.Datasets;
 using Utils.CodeGeneration;
 
-namespace MakeWrapper
+namespace Wrapper
 {
 	static class ProcessorUtils
 	{
@@ -23,9 +23,9 @@ namespace MakeWrapper
 		}
 	}
 
-	partial class Program
+	public class Generator
 	{
-		static string GenerateCode (Module Module, params CodeProcessor[] Processors)
+		public static string GenerateCode (Module Module, params CodeProcessor[] Processors)
 		{
 			bool UseSchemaSettings = false;
 
@@ -81,7 +81,7 @@ namespace MakeWrapper
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
 			//
-			Wrapper Wrapper = new Wrapper
+			Database Database = new Database
 			{
 				Origin = Module,
 				TitleComment = CodeGenerationUtils.AutomaticWarning,
@@ -103,14 +103,14 @@ namespace MakeWrapper
 					.OrderBy (ns => ns)
 					.Select (s =>
 					{
-						return new Wrapper.Schema
+						return new Database.Schema
 						{
 							NativeName = s,
 							CsClassName = s.ValidCsName (),
 							NameHolderVar = "Name_" + s.ValidCsNamePart (),
 							EnumTypes = Module.Types
 								.Where (t => t.Schema == s && t.Enum != null && t.Enum.Length > 0)
-								.Select (t => new Wrapper.Schema.CustomType
+								.Select (t => new Database.Schema.CustomType
 								{
 									Origin = t,
 									NativeName = t.Name,
@@ -121,13 +121,13 @@ namespace MakeWrapper
 								.ToArray (),
 							CompositeTypes = Module.Types
 								.Where (t => t.Schema == s && t.Properties != null && t.Properties.Length > 0)
-								.Select (t => new Wrapper.Schema.CustomType
+								.Select (t => new Database.Schema.CustomType
 								{
 									Origin = t,
 									NativeName = t.Name,
 									RowCsClassName = t.Name.ValidCsName (),
 									Properties = t.Properties
-										.Select (p => new Wrapper.Schema.Set<SqlType, Column>.Property
+										.Select (p => new Database.Schema.Set<SqlType, Column>.Property
 										{
 											Origin = p,
 											NativeName = p.Name,
@@ -143,13 +143,13 @@ namespace MakeWrapper
 							Procedures = Module.Procedures
 								.Where (p => p.Schema == s)
 								.OrderBy (p => p.Name)
-								.Select (p => new Wrapper.Schema.Procedure
+								.Select (p => new Database.Schema.Procedure
 								{
 									Origin = p,
 									NativeName = p.Name,
 									CsName = p.Name.ValidCsName (),
 									Arguments = p.Arguments
-										.Select (a => new Wrapper.Schema.Procedure.Argument
+										.Select (a => new Database.Schema.Procedure.Argument
 										{
 											Origin = a,
 											NativeName = a.Name,
@@ -168,7 +168,7 @@ namespace MakeWrapper
 									ResultSets = p.ResultSets
 										.Select (s =>
 										{
-											var Set = new Wrapper.Schema.Procedure.Set
+											var Set = new Database.Schema.Procedure.Set
 											{
 												Origin = s,
 												CursorName = s.Name,
@@ -181,7 +181,7 @@ namespace MakeWrapper
 												Properties = s.Columns
 													.Select (c =>
 													{
-														var Property = new Wrapper.Schema.Procedure.Set.Property
+														var Property = new Database.Schema.Procedure.Set.Property
 														{
 															Origin = c,
 															NativeName = c.Name,
@@ -219,35 +219,35 @@ namespace MakeWrapper
 					.ToArray ()
 			};
 
-			Processors.Act (p => p.OnHaveWrapper (Wrapper));
+			Processors.Act (p => p.OnHaveWrapper (Database));
 
 			//
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
 
-			if (!string.IsNullOrWhiteSpace (Wrapper.TitleComment))
+			if (!string.IsNullOrWhiteSpace (Database.TitleComment))
 			{
 				sb.AppendLine (CodeGenerationUtils.AutomaticWarning);
 			}
 
-			foreach (var u in Wrapper.Usings)
+			foreach (var u in Database.Usings)
 			{
 				sb.AppendLine (u);
 			}
 
 			sb.AppendLine ();
 
-			using (!string.IsNullOrWhiteSpace (Wrapper.CsNamespace)
-				       ? sb.UseCurlyBraces ($"namespace {Wrapper.CsNamespace}")
+			using (!string.IsNullOrWhiteSpace (Database.CsNamespace)
+				       ? sb.UseCurlyBraces ($"namespace {Database.CsNamespace}")
 				       : null)
 			{
 				bool HasCustomMapping = Module.Types.Any (t => t.Enum != null && t.GenerateEnum
 					|| t.Properties != null);
 
-				using (sb.UseCurlyBraces ($"public class {Wrapper.CsClassName}"))
+				using (sb.UseCurlyBraces ($"public class {Database.CsClassName}"))
 				{
 					sb.AppendLine ("public NpgsqlConnection Conn;");
 
-					foreach (var ns in Wrapper.Schemata)
+					foreach (var ns in Database.Schemata)
 					{
 						string ValueHolderName = "m_" + ns.CsClassName;
 
@@ -271,7 +271,7 @@ namespace MakeWrapper
 					sb.AppendLine ();
 
 					// constructor
-					using (sb.UseCurlyBraces ($"public {Wrapper.CsClassName} (NpgsqlConnection Conn{(UseSchemaSettings ? string.Join ("", Wrapper.Schemata.Select (s => ", string " + s.NameHolderVar)) : "")})"))
+					using (sb.UseCurlyBraces ($"public {Database.CsClassName} (NpgsqlConnection Conn{(UseSchemaSettings ? string.Join ("", Database.Schemata.Select (s => ", string " + s.NameHolderVar)) : "")})"))
 					{
 						sb.AppendLine ("this.Conn = Conn;");
 
@@ -280,7 +280,7 @@ namespace MakeWrapper
 							sb.AppendLine ("UseCustomMapping (this.Conn);");
 						}
 
-						foreach (var ns in Wrapper.Schemata)
+						foreach (var ns in Database.Schemata)
 						{
 							sb.AppendLine ($"this.{ns.NameHolderVar} = {(UseSchemaSettings ? ns.NameHolderVar : ns.NativeName.ToDoubleQuotes ())};");
 						}
@@ -301,7 +301,7 @@ namespace MakeWrapper
 
 							sb.AppendLine ();
 
-							foreach (var s in Wrapper.Schemata)
+							foreach (var s in Database.Schemata)
 							{
 								foreach (var t in s.EnumTypes.Where (et => et.Origin.GenerateEnum))
 								{
@@ -317,7 +317,7 @@ namespace MakeWrapper
 					}
 				}
 
-				foreach (var ns in Wrapper.Schemata)
+				foreach (var ns in Database.Schemata)
 				{
 					sb.AppendLine ();
 

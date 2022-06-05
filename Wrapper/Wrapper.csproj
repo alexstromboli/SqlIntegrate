@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Include="..\ParseProcs\DatasetStructs.cs">
+        <Link>DatasetStructs.cs</Link>
+      </Compile>
+      <Compile Include="..\ParseProcs\PSqlType.cs">
+        <Link>PSqlType.cs</Link>
+      </Compile>
+      <Compile Include="..\ParseProcs\Utils.cs">
+        <Link>Utils.cs</Link>
+      </Compile>
+    </ItemGroup>
+
+</Project>

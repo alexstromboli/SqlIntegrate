@@ -4,9 +4,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TryPsql", "TryPsql\TryPsql.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParseProcs", "ParseProcs\ParseProcs.csproj", "{E76D6612-EA79-4D83-A64C-FA831ECEAF08}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakeWrapper", "MakeWrapper\MakeWrapper.csproj", "{C51A29A1-777A-4B7A-975B-FDF8F8FCCEEE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestWrapper", "TestWrapper\TestWrapper.csproj", "{C51A29A1-777A-4B7A-975B-FDF8F8FCCEEE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TryWrapper", "TryWrapper\TryWrapper.csproj", "{B1877256-F0B9-4B45-9E3E-A9A3B79CDBB9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wrapper", "Wrapper\Wrapper.csproj", "{52977F5B-C518-470A-A2B8-DE9CF77A7DEC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +32,9 @@ Global
 		{B1877256-F0B9-4B45-9E3E-A9A3B79CDBB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B1877256-F0B9-4B45-9E3E-A9A3B79CDBB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B1877256-F0B9-4B45-9E3E-A9A3B79CDBB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52977F5B-C518-470A-A2B8-DE9CF77A7DEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52977F5B-C518-470A-A2B8-DE9CF77A7DEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52977F5B-C518-470A-A2B8-DE9CF77A7DEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52977F5B-C518-470A-A2B8-DE9CF77A7DEC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

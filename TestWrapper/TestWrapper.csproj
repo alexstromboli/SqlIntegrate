@@ -3,6 +3,7 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net5.0</TargetFramework>
+        <RootNamespace>MakeWrapper</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
@@ -10,15 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Include="..\ParseProcs\DatasetStructs.cs">
-        <Link>DatasetStructs.cs</Link>
-      </Compile>
-      <Compile Include="..\ParseProcs\PSqlType.cs">
-        <Link>PSqlType.cs</Link>
-      </Compile>
-      <Compile Include="..\ParseProcs\Utils.cs">
-        <Link>Utils.cs</Link>
-      </Compile>
+      <ProjectReference Include="..\Wrapper\Wrapper.csproj" />
     </ItemGroup>
 
 </Project>

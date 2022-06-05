@@ -1,10 +1,9 @@
-using System.Linq;
 using System.Collections.Generic;
 
 using ParseProcs;
 using ParseProcs.Datasets;
 
-namespace MakeWrapper
+namespace Wrapper
 {
 	public class CodeProcessor
 	{
@@ -16,7 +15,7 @@ namespace MakeWrapper
 		{
 		}
 
-		public virtual void OnHaveWrapper (Wrapper Wrapper)
+		public virtual void OnHaveWrapper (Database Database)
 		{
 		}
 	}
@@ -49,9 +48,9 @@ namespace MakeWrapper
 			}
 		}
 
-		public override void OnHaveWrapper (Wrapper Wrapper)
+		public override void OnHaveWrapper (Database Database)
 		{
-			Wrapper.Usings.Add ("using NodaTime;");
+			Database.Usings.Add ("using NodaTime;");
 		}
 	}
 }

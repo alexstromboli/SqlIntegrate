@@ -6,14 +6,14 @@ using System.Text.RegularExpressions;
 
 namespace Utils.CodeGeneration
 {
-	enum EndOfLine
+	public enum EndOfLine
 	{
 		LeaveAsIs,
 		MakeLf,
 		MakeCrLf
 	}
 
-	static class CodeGenerationUtils
+	public static class CodeGenerationUtils
 	{
 		public static readonly string AutomaticWarning =
 @"/*
