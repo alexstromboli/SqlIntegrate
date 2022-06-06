@@ -1255,25 +1255,41 @@ END
 
 					RequestContext rcProc = new RequestContext (mcProc);
 
+					// to make sure each name is only taken once
+					Dictionary<string, ResultSet> ResultSetsDict = new Dictionary<string, ResultSet> ();
+
 					foreach (var drs in Parse.body
 						         .Where (s => s != null)
 					        )
 					{
 						NamedDataReturn Set = drs.GetResult (rcProc);
 
-						ResultSet ResultSetReport = new ResultSet
+						ResultSet ResultSetReport;
+						if (ResultSetsDict.TryGetValue (Set.Name, out ResultSetReport))
 						{
-							Name = Set.Name,
-							Comments = Set.Comments.ToList (),
-							Columns = Set.Table.Columns.Select (c => new Column
+							if (ResultSetReport.Comments.Count == 0)
 							{
-								Name = c.Name,
-								Type = c.Type.ToString (),
-								PSqlType = c.Type
-							}).ToList ()
-						};
+								ResultSetReport.Comments = Set.Comments.ToList ();
+							}
+						}
+						else
+						{
+							ResultSetReport = new ResultSet
+							{
+								Name = Set.Name,
+								Comments = Set.Comments.ToList (),
+								Columns = Set.Table.Columns.Select (c => new Column
+								{
+									Name = c.Name,
+									Type = c.Type.ToString (),
+									PSqlType = c.Type
+								}).ToList ()
+							};
 
-						ProcedureReport.ResultSets.Add (ResultSetReport);
+							ResultSetsDict[Set.Name] = ResultSetReport;
+
+							ProcedureReport.ResultSets.Add (ResultSetReport);
+						}
 					}
 
 					ModuleReport.Procedures.Add (ProcedureReport);

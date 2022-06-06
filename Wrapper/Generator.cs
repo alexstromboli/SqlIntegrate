@@ -332,7 +332,7 @@ namespace Wrapper
 								{
 									foreach (var v in e.EnumValues.Indexed ())
 									{
-										sb.AppendLine ($"{v.Value}{(v.IsLast ? "" : ",")}");
+										sb.AppendLine ($"{v.Value.ValidCsName ()}{(v.IsLast ? "" : ",")}");
 									}
 								}
 							}

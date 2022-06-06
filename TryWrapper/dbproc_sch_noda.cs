@@ -88,12 +88,16 @@ namespace Generated
 			public const string pending = "pending";
 			public const string active = "active";
 			public const string hold = "hold";
+			public const string half_reviewed = "half-reviewed";
+			public const string _13_digits = "13 digits";
 		}
 
 		public enum indirectly_used_enum
 		{
 			first,
-			second
+			second,
+			put_out,
+			_2_digit
 		}
 
 		public class indirectly_used_type
@@ -1506,6 +1510,78 @@ namespace Generated
 						}
 
 						Result.res02 = Set;
+					}
+
+					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+		#endregion 
+
+		#region test_duplicate_open
+		public class test_duplicate_open_Result_single
+		{
+			public int? id;
+			public string name;
+		}
+
+		public class test_duplicate_open_Result
+		{
+			public int? scalar;
+			public test_duplicate_open_Result_single single;
+		}
+
+		public test_duplicate_open_Result test_duplicate_open (int? i)
+		{
+			test_duplicate_open_Result Result = new test_duplicate_open_Result ();
+
+			using (var Tran = Conn.BeginTransaction ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"" + SchemaName + "\".\"test_duplicate_open\" (@i, @scalar, @single);";
+					Cmd.Parameters.AddWithValue ("@i", (object)i ?? DBNull.Value);
+					Cmd.Parameters.Add (new NpgsqlParameter ("@scalar", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "scalar" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@single", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "single" });
+
+					Cmd.ExecuteNonQuery ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"scalar\";";
+						int? Set = null;
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = Rdr["id"] as int?;
+							}
+						}
+
+						Result.scalar = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"single\";";
+						test_duplicate_open_Result_single Set = null;
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new test_duplicate_open_Result_single
+								{
+									id = Rdr["id"] as int?,
+									name = Rdr["name"] as string
+								};
+							}
+						}
+
+						Result.single = Set;
 					}
 
 					Tran.Commit ();

@@ -93,9 +93,25 @@ namespace Utils
 
 		public static string ValidCsNamePart (this string Name)
 		{
+			if (Name.Length == 0)
+			{
+				Name = "_";
+			}
+
 			if (Name.Contains (' '))
 			{
-				return Name.Replace (' ', '_');
+				Name = Name.Replace (' ', '_');
+			}
+
+			if (Name.Contains ('-'))
+			{
+				Name = Name.Replace ('-', '_');
+			}
+
+			char c = Name[0];
+			if (char.IsDigit (c))
+			{
+				Name = "_" + Name;
 			}
 
 			return Name;

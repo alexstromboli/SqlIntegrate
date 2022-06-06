@@ -6,7 +6,9 @@ CREATE TYPE app_status AS ENUM
 (
     'pending',
     'active',
-    'hold'
+    'hold',
+    'half-reviewed',
+    '13 digits'
 );
 
 CREATE TYPE no_proc.package AS ENUM
@@ -27,7 +29,9 @@ CREATE TYPE useless_enum AS ENUM
 CREATE TYPE indirectly_used_enum AS ENUM
 (
     'first',
-    'second'
+    'second',
+    'put-out',
+    '2 digit'
 );
 
 CREATE TYPE indirectly_used_type AS
@@ -999,5 +1003,38 @@ BEGIN
     FROM financial_history
     ORDER BY (diff).date DESC
     ;
+END;
+$$;
+
+-- DROP PROCEDURE test_duplicate_open;
+CREATE PROCEDURE test_duplicate_open
+(
+    i int,
+    INOUT scalar refcursor,
+    INOUT single refcursor
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    IF i > 10 THEN
+        OPEN scalar FOR
+        -- # 1
+        SELECT 4 AS id;
+
+        OPEN single FOR
+        SELECT  4 AS id,
+                'name' AS name;
+    ELSE
+        -- another branch to fulfill the same refcursors
+
+        OPEN scalar FOR
+        SELECT 5 AS id;
+
+        OPEN single FOR
+        -- # 1
+        -- comment from second instance
+        SELECT  5 AS id,
+                'name' AS name;
+    END IF;
 END;
 $$;

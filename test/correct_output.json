@@ -6,7 +6,9 @@
       "Enum": [
         "pending",
         "active",
-        "hold"
+        "hold",
+        "half-reviewed",
+        "13 digits"
       ]
     },
     {
@@ -14,7 +16,9 @@
       "Name": "indirectly_used_enum", "GenerateEnum": true,
       "Enum": [
         "first",
-        "second"
+        "second",
+        "put-out",
+        "2 digit"
       ]
     },
     {
@@ -1388,6 +1392,57 @@
             {
               "Name": "json",
               "Type": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "test_duplicate_open",
+      "Arguments": [
+        {
+          "Name": "i",
+          "Type": "int"
+        },
+        {
+          "Name": "scalar",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "single",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "scalar",
+          "Comments": [
+            " # 1"
+          ],
+          "Columns": [
+            {
+              "Name": "id",
+              "Type": "int"
+            }
+          ]
+        },
+        {
+          "Name": "single",
+          "Comments": [
+            " # 1",
+            " comment from second instance"
+          ],
+          "Columns": [
+            {
+              "Name": "id",
+              "Type": "int"
+            },
+            {
+              "Name": "name",
+              "Type": "varchar"
             }
           ]
         }
