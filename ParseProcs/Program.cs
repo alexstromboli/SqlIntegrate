@@ -557,7 +557,8 @@ namespace ParseProcs
 						).Optional ()
 						from _5 in POrderByClauseOptionalST
 						from _6 in SpracheUtils.SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int))
+						select (Func<RequestContext, NamedTyped>)
+							(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int))
 					)
 					.Or (
 						from f in SpracheUtils.AnyTokenST ("sum", "min", "max")
@@ -573,7 +574,8 @@ namespace ParseProcs
 						from _2 in SpracheUtils.SqlToken ("distinct").Optional ()
 						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SpracheUtils.SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (f, DatabaseContext.TypeMap.BigInt))
+						select (Func<RequestContext, NamedTyped>)(rc =>
+							new NamedTyped (f, DatabaseContext.TypeMap.BigInt))
 					)
 					.Or (
 						from f in SpracheUtils.SqlToken ("array_agg")
@@ -594,7 +596,8 @@ namespace ParseProcs
 						select (Func<RequestContext, NamedTyped>)(rc =>
 						{
 							var ExpRes = exp.GetResult (rc);
-							return (ExpRes.Type == DatabaseContext.TypeMap.Null ? subst.GetResult (rc) : ExpRes).WithName (f);
+							return (ExpRes.Type == DatabaseContext.TypeMap.Null ? subst.GetResult (rc) : ExpRes)
+								.WithName (f);
 						})
 					)
 					.Or (
@@ -630,6 +633,9 @@ namespace ParseProcs
 						))
 					)
 					.Or (PArrayST)
+					.Or (PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
+						.Where (r => r.Count () > 1)
+						.ProduceType (DatabaseContext.TypeMap.Record))
 					.Or (PBaseAtomicST)
 				;
 

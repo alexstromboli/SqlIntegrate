@@ -763,7 +763,9 @@ BEGIN
 
     FOREACH i IN ARRAY array[21, 22, 23, 24]
     LOOP
-        CASE WHEN i <= 23 THEN
+        CASE WHEN i <= 23
+                AND 'name' IN ('row', 'name', 'index')      -- test for 'in row'
+            THEN
                 INSERT INTO VoidThings (category, height)
                 VALUES ('foreach-case', i);
             WHEN i BETWEEN 23 AND 24 THEN
