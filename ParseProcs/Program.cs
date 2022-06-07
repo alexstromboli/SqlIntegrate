@@ -400,7 +400,7 @@ namespace ParseProcs
 			);
 
 			var PBinaryRangeOperatorsST = SpracheUtils.AnyTokenST (
-				"like"
+				"like", "ilike"
 			);
 
 			var PBetweenOperatorST = SpracheUtils.SqlToken ("between");
@@ -547,7 +547,7 @@ namespace ParseProcs
 
 			var PAtomicST =
 					(
-						from rn in SpracheUtils.SqlToken ("row_number")
+						from rn in SpracheUtils.AnyTokenST ("row_number", "rank")
 						from _1 in SpracheUtils.AnyTokenST ("( ) over (")
 						from _2 in
 						(
