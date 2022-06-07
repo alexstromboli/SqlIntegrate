@@ -995,6 +995,11 @@ AS $$
 DECLARE
     arrow Depts%rowtype;
 BEGIN
+    UPDATE financial_history
+    SET diff.paid.id_currency = 3
+    WHERE (diff).paid.id_currency = 2
+    ;
+
     SELECT
         5 as id,
         11 as id_parent,

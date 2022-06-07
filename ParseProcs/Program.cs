@@ -945,7 +945,7 @@ namespace ParseProcs
 								from act in SpracheUtils.AnyTokenST ("update set")
 								from _set in
 								(
-									from col in PColumnNameLST
+									from col in PQualifiedIdentifierLST
 									from eq in SpracheUtils.SqlToken ("=")
 									from val in PExpressionRefST.Get
 									select 0
@@ -1122,7 +1122,7 @@ namespace ParseProcs
 											from _3 in SpracheUtils.SqlToken ("set")
 											from _4 in
 											(
-												from _1 in PColumnNameLST
+												from _1 in PQualifiedIdentifierLST
 												from _2 in SpracheUtils.SqlToken ("=")
 												from _3 in PExpressionRefST.Get
 												select 0
