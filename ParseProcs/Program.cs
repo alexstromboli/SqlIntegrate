@@ -633,9 +633,17 @@ namespace ParseProcs
 						))
 					)
 					.Or (PArrayST)
-					.Or (PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
+					.Or (PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()		// ('one', 'two', 'three')
 						.Where (r => r.Count () > 1)
 						.ProduceType (DatabaseContext.TypeMap.Record))
+					.Or (	// interval '90 days'
+						(
+							from t in PTypeST
+							from v in PExpressionRefST.Get
+							// here: restrict type of value to text?
+							select t.key
+						).ProduceType () // here: get default column name
+					)
 					.Or (PBaseAtomicST)
 				;
 

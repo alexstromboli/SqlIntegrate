@@ -491,7 +491,7 @@ BEGIN
 
     OPEN expressions_2 FOR
     -- # 1
-    SELECT  noW() as timestamptz,
+    SELECT  noW() + interval '10 days'+interval'2d' as timestamptz,
             ext.SUM(3::money, 2::money) as money,
             '2020-03-01'::date + '14:50'::interval AS "timestamp 2",
             '2020-03-01'::date + '14:50'::time AS "timestamp 3",
