@@ -758,6 +758,10 @@
             {
               "Name": "height",
               "Type": "int"
+            },
+            {
+              "Name": "stub",
+              "Type": "int"
             }
           ]
         },

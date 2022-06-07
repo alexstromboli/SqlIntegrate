@@ -776,6 +776,7 @@ namespace ParseProcs
 			var PValuesClauseST =
 					from _1 in SpracheUtils.SqlToken ("values")
 					from v in PExpressionRefST.Get
+						.Or (SpracheUtils.SqlToken ("default").Return (PExpressionRefST.Get.Parse ("0")))
 						.CommaDelimitedST ()
 						.InParentsST ()
 						.CommaDelimitedST ()
@@ -829,7 +830,7 @@ namespace ParseProcs
 							select tN
 						)
 						.Or (
-							from kw_joinN in SpracheUtils.AnyTokenST ("cross join")
+							from kw_joinN in SpracheUtils.AnyTokenST ("cross join", ",")
 							from tN in PFromTableExpressionST
 							select tN
 						)

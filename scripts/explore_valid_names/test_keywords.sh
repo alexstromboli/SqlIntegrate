@@ -46,5 +46,9 @@ do
     #(sudo -u postgres psql -q -d dummy01 -c "CREATE FUNCTION $KW() RETURNS int AS \$\$ BEGIN RETURN 5; END \$\$ LANGUAGE plpgsql; DROP FUNCTION $KW;" 2>/dev/null >/dev/null) || echo "$KW"
 
     # simple expression
-    (sudo -u postgres psql -q -d dummy01 -c "SELECT $KW;" 2>/dev/null >/dev/null) || echo "$KW"
+    #(sudo -u postgres psql -q -d dummy01 -c "SELECT $KW;" 2>/dev/null >/dev/null) || echo "$KW"
+
+    # simple column alias
+    # from procedure
+    (psql -q -d dummy01 -c "CREATE OR REPLACE PROCEDURE test_$KW() LANGUAGE 'plpgsql' AS \$\$ DECLARE test_11 dump%rowtype; BEGIN SELECT 5 $KW INTO test_11; END; \$\$; CALL test_$KW(); DROP PROCEDURE test_$KW;" 2>/dev/null >/dev/null) || echo "$KW"
 done <<<"$(cat list.txt)"

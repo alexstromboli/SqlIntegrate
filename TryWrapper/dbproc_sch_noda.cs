@@ -769,6 +769,7 @@ namespace Generated
 			public int? id;
 			public string category;
 			public int? height;
+			public int? stub;
 		}
 
 		public class get_returning_Result_delete_result_1
@@ -832,7 +833,8 @@ namespace Generated
 								{
 									id = Rdr["id"] as int?,
 									category = Rdr["category"] as string,
-									height = Rdr["height"] as int?
+									height = Rdr["height"] as int?,
+									stub = Rdr["stub"] as int?
 								});
 							}
 						}

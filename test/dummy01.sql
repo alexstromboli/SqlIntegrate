@@ -83,7 +83,8 @@ CREATE TABLE VoidThings
 (
     id serial PRIMARY KEY,
     category varchar(30),
-    height int
+    height int,
+    stub int
 );
 
 CREATE TYPE monetary AS
@@ -227,6 +228,9 @@ AS $$
         dt := now();
         --SELECT 6 as done;
         --SELECT 't' as over;
+
+        SELECT name
+        FROM shifts, unions u;      -- join through comma
     END;
 $$;
 
@@ -704,8 +708,11 @@ DECLARE
     t varchar(20);
     i int;
 BEGIN
-    INSERT INTO VoidThings (category, height)
-    VALUES ('empty', 2);
+    INSERT INTO VoidThings (category, height, stub)
+    VALUES ('empty', 2, default);
+
+    INSERT INTO VoidThings
+    VALUES ('exhaust', 7, default);
 
     INSERT INTO VoidThings (category, height)
     VALUES ('guest', 11), ('need', 10), ('empty', 21);
