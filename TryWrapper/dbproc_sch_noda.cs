@@ -129,6 +129,61 @@ namespace Generated
 			this.SchemaName = SchemaName;
 		}
 
+		#region get_aggregates
+		public class get_aggregates_Result_result
+		{
+			public string id_agent;
+			public string lastname;
+			public double? input;
+			public long? count;
+			public LocalDate? first;
+		}
+
+		public List<get_aggregates_Result_result> get_aggregates (float? coef)
+		{
+			List<get_aggregates_Result_result> Result = null;
+
+			using (var Tran = Conn.BeginTransaction ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_aggregates\" (@coef, @result);";
+					Cmd.Parameters.AddWithValue ("@coef", (object)coef ?? DBNull.Value);
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+
+					Cmd.ExecuteNonQuery ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						List<get_aggregates_Result_result> Set = new List<get_aggregates_Result_result> ();
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_aggregates_Result_result
+								{
+									id_agent = Rdr["id_agent"] as string,
+									lastname = Rdr["lastname"] as string,
+									input = Rdr["input"] as double?,
+									count = Rdr["count"] as long?,
+									first = Rdr["first"] as LocalDate?
+								});
+							}
+						}
+
+						Result = Set;
+					}
+
+					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+		#endregion 
+
 		#region get_array
 		public class get_array_Result_names
 		{
@@ -295,6 +350,60 @@ namespace Generated
 									amount = Rdr["amount"] as decimal?,
 									last_status = Rdr["last_status"] as string,
 									aux_status = Rdr["aux_status"] as string
+								});
+							}
+						}
+
+						Result = Set;
+					}
+
+					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+		#endregion 
+
+		#region get_db_qualified
+		public class get_db_qualified_Result_own
+		{
+			public Guid? id_person;
+			public int? id_room;
+			public int? id;
+			public string name;
+			public int[] extents;
+		}
+
+		public List<get_db_qualified_Result_own> get_db_qualified ()
+		{
+			List<get_db_qualified_Result_own> Result = null;
+
+			using (var Tran = Conn.BeginTransaction ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_db_qualified\" (@own);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@own", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "own" });
+
+					Cmd.ExecuteNonQuery ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"own\";";
+						List<get_db_qualified_Result_own> Set = new List<get_db_qualified_Result_own> ();
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_db_qualified_Result_own
+								{
+									id_person = Rdr["id_person"] as Guid?,
+									id_room = Rdr["id_room"] as int?,
+									id = Rdr["id"] as int?,
+									name = Rdr["name"] as string,
+									extents = Rdr["extents"] as int[]
 								});
 							}
 						}
@@ -1178,6 +1287,117 @@ namespace Generated
 		}
 		#endregion 
 
+		#region insert_conflict
+		public void insert_conflict ()
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"" + SchemaName + "\".\"insert_conflict\" ();";
+
+				Cmd.ExecuteNonQuery ();
+			}
+		}
+		#endregion 
+
+		#region persons_getall
+		public class persons_getall_Result_users
+		{
+			public int? num;
+			public Guid? id;
+			public string lastname;
+			public string firstname;
+			public LocalDate? dob;
+			public long? tab_num;
+			public string status;
+			public int? effect;
+		}
+
+		public class persons_getall_Result_ownership
+		{
+			public string lastname;
+			public int? num;
+			public int? id;
+			public string name;
+			public int[] extents;
+		}
+
+		public class persons_getall_Result
+		{
+			public List<persons_getall_Result_users> users;
+			public List<persons_getall_Result_ownership> ownership;
+		}
+
+		public persons_getall_Result persons_getall ()
+		{
+			persons_getall_Result Result = new persons_getall_Result ();
+
+			using (var Tran = Conn.BeginTransaction ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"" + SchemaName + "\".\"persons_getall\" (@users, @ownership);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@users", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "users" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@ownership", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "ownership" });
+
+					Cmd.ExecuteNonQuery ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"users\";";
+						List<persons_getall_Result_users> Set = new List<persons_getall_Result_users> ();
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new persons_getall_Result_users
+								{
+									num = Rdr["num"] as int?,
+									id = Rdr["id"] as Guid?,
+									lastname = Rdr["lastname"] as string,
+									firstname = Rdr["firstname"] as string,
+									dob = Rdr["dob"] as LocalDate?,
+									tab_num = Rdr["tab_num"] as long?,
+									status = Rdr["status"] as string,
+									effect = Rdr["effect"] as int?
+								});
+							}
+						}
+
+						Result.users = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"ownership\";";
+						List<persons_getall_Result_ownership> Set = new List<persons_getall_Result_ownership> ();
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new persons_getall_Result_ownership
+								{
+									lastname = Rdr["lastname"] as string,
+									num = Rdr["num"] as int?,
+									id = Rdr["id"] as int?,
+									name = Rdr["name"] as string,
+									extents = Rdr["extents"] as int[]
+								});
+							}
+						}
+
+						Result.ownership = Set;
+					}
+
+					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+		#endregion 
+
 		#region roomsforperson
 		public class roomsforperson_Result_res01
 		{
@@ -1374,6 +1594,56 @@ namespace Generated
 						}
 
 						Result.single = Set;
+					}
+
+					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+		#endregion 
+
+		#region test_from_select
+		public class test_from_select_Result_result
+		{
+			public string lastname;
+			public string room;
+			public string own;
+		}
+
+		public List<test_from_select_Result_result> test_from_select ()
+		{
+			List<test_from_select_Result_result> Result = null;
+
+			using (var Tran = Conn.BeginTransaction ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"" + SchemaName + "\".\"test_from_select\" (@result);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+
+					Cmd.ExecuteNonQuery ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						List<test_from_select_Result_result> Set = new List<test_from_select_Result_result> ();
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new test_from_select_Result_result
+								{
+									lastname = Rdr["lastname"] as string,
+									room = Rdr["room"] as string,
+									own = Rdr["own"] as string
+								});
+							}
+						}
+
+						Result = Set;
 					}
 
 					Tran.Commit ();

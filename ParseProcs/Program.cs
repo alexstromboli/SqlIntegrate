@@ -691,8 +691,7 @@ namespace ParseProcs
 					.Or (	// interval '90 days'
 						(
 							from t in PTypeST
-							from v in PExpressionRefST.Get
-							// here: restrict type of value to text?
+							from v in PSingleQuotedString.SqlToken ()
 							select t.key
 						).ProduceType () // here: get default column name
 					)
@@ -1276,16 +1275,6 @@ namespace ParseProcs
 				select 0
 			).Parse (@"
 BEGIN
-		rt := '4500-12-31 00:00:00+05:30'::timestamptz;
-		rt := 'ACTIVE'::varchar;
-
-        INSERT INTO salonpay.addresses
-		(address_id)
-		VALUES
-	(
-		'4500-12-31 00:00:00+05:30'::timestamp with time zone,
-		'ACTIVE'::character varying
-		);
 END
 ~
 ");
