@@ -115,20 +115,18 @@ namespace ParseProcs
 		public IReadOnlyDictionary<uint, PSqlType> MapByOid { get; }	// null if not initialized from DB
 
 		// version for lookup during procedure body parsing
-		public PSqlType GetTypeForName (IEnumerable<string> SchemaOrder, params string[] TypeName)
+		protected PSqlType GetTypeForName (IEnumerable<string> SchemaOrder, string TypeName)
 		{
-			return TypeName.Length > 1
-					? (Map.TryGetValue (TypeName.JoinDot (), out var f) ? f : null)
-					: SchemaOrder.Select (s =>
-							Map.TryGetValue (s + "." + TypeName.JoinDot (), out var f) ? f : null)
-						.FirstOrDefault (f => f != null)
+			return SchemaOrder.Select (s =>
+						Map.TryGetValue (s + "." + TypeName, out var f) ? f : null)
+					.FirstOrDefault (f => f != null)
 				;
 		}
 
 		// version for lookup during code generation
-		public PSqlType GetTypeForName (string TypeName)
+		public PSqlType GetTypeForName (params string[] TypeName)
 		{
-			return Map.TryGetValue (TypeName, out var f) ? f : null;
+			return Map.TryGetValue (TypeName.JoinDot (), out var f) ? f : null;
 		}
 
 		// https://dba.stackexchange.com/questions/90230/postgresql-determine-column-type-when-data-type-is-set-to-array
@@ -382,6 +380,25 @@ namespace ParseProcs
 			this.Name = AddPgCatalogType (typeof (string), "name").SetIsText ();
 			this.CString = AddPgCatalogType (typeof (string), "cstring").SetIsText ();
 			this.RegType = AddPgCatalogType (typeof (uint), "regtype");
+		}
+
+		public void AdoptSchemaOrder (List<string> SchemaOrder)
+		{
+			foreach (var t in Map.Values.ToArray ())
+			{
+				if (t.OwnName != null
+				    && !Map.ContainsKey (t.OwnName)
+				    && ReferenceEquals (GetTypeForName (SchemaOrder, t.OwnName), t)
+				    )
+				{
+					_Map[t.OwnName] = t;
+
+					if (t.ArrayType != null)
+					{
+						_Map[t.OwnName + "[]"] = t.ArrayType;
+					}
+				}
+			}
 		}
 	}
 }

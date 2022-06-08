@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 using Sprache;
 using Newtonsoft.Json;
@@ -275,6 +276,18 @@ namespace ParseProcs
 				;
 		}
 
+		public class KeyedType
+		{
+			public string given_as;
+			public PSqlType key;
+
+			public KeyedType (string given_as, PSqlType key)
+			{
+				this.given_as = given_as;
+				this.key = key;
+			}
+		}
+
 		static void Main (string[] args)
 		{
 			string ConnectionString = args[0];
@@ -353,10 +366,12 @@ namespace ParseProcs
 					.SqlToken ()
 				;
 
-			var PAsColumnAliasLST = PAlphaNumericL
+			var PAlphaNumericOrQuotedLST = PAlphaNumericL
 					.Or (PDoubleQuotedString.ToLower ())
 					.SqlToken ()
 				;
+
+			var PAsColumnAliasLST = PAlphaNumericOrQuotedLST;
 
 			// direct or 'as'
 			var PTableAliasLST = PColumnNameLST;
@@ -367,7 +382,7 @@ namespace ParseProcs
 					from kn in
 					(
 						from d in SpracheUtils.SqlToken (".")
-						from n in PAlphaNumericL.Or (PDoubleQuotedString.ToLower ()).SqlToken ()
+						from n in PAlphaNumericOrQuotedLST
 						select n
 					).Many ()
 					select k1.ToTrivialArray ().Concat (kn).ToArray ()
@@ -421,8 +436,45 @@ namespace ParseProcs
 			var PBinaryConjunctionST = SpracheUtils.AnyTokenST ("and");
 			var PBinaryDisjunctionST = SpracheUtils.AnyTokenST ("or");
 
+			// types
+
+			Parser<KeyedType> PTypeTitleST = null;
+			foreach (var TypeEntry in DatabaseContext.TypeMap.Map.OrderByDescending (p => p.Key.Length))
+			{
+				string[] Fragments = Regex.Matches (TypeEntry.Key, @"\[|\]|\.|[^\s\[\]\.]+").Select (m => m.Value)
+					.ToArray ();
+
+				// here: provide for
+				// select '1979-12-07'::character varying;
+				// vs
+				// select '1979-12-07'::character "varying";
+
+				// here: skip quoting for built-in types like 'timestamp with time zone'
+
+				var Items = Fragments.Select (f =>
+						f == "[" || f == "]" || f == "."
+							? SpracheUtils.SqlToken (f)
+							: PAlphaNumericOrQuotedLST.Where (s => s == f))
+					.ToArray ();
+				var Chain = Items.Skip (1).Aggregate (Items[0], (ch, i) => ch.Then (_ => i));
+				Parser<KeyedType> Local = Chain.Return (new KeyedType (TypeEntry.Key, TypeEntry.Value));
+
+				PTypeTitleST = PTypeTitleST == null ? Local : PTypeTitleST.Or (Local);
+			}
+
+			// DEBUG
+			var t01 =
+			(
+				from _1 in PTypeTitleST
+				from _2 in SpracheUtils.SqlToken ("~")
+				select _1
+			).Parse (
+				//"\"alexey\".app_status~"
+				"app_status~"
+				);
+
 			var PTypeST =
-					from t in PAlphaNumericL.SqlToken ().DelimitedBy (Parse.Char ('.').SqlToken ())
+					from t in PTypeTitleST
 					from p in Parse.Number.SqlToken ()
 						.CommaDelimitedST ()
 						.InParentsST ()
@@ -436,10 +488,10 @@ namespace ParseProcs
 						)
 						.AtLeastOnce ()
 						.Optional ()
-					let tp = DatabaseContext.GetTypeForName (t.ToArray ())
-					where tp != null
-					let given_as = t.JoinDot () + (array.IsDefined ? "[]" : "")
-					select new { given_as = given_as, key = array.IsDefined ? tp.ArrayType : tp }
+					//let tp = DatabaseContext.GetTypeForName (t.ToArray ())
+					//where tp != null
+					//let given_as = t.JoinDot () + (array.IsDefined ? "[]" : "")
+					select t
 				;
 
 			var PSimpleTypeCastST =
@@ -1224,6 +1276,16 @@ namespace ParseProcs
 				select 0
 			).Parse (@"
 BEGIN
+		rt := '4500-12-31 00:00:00+05:30'::timestamptz;
+		rt := 'ACTIVE'::varchar;
+
+        INSERT INTO salonpay.addresses
+		(address_id)
+		VALUES
+	(
+		'4500-12-31 00:00:00+05:30'::timestamp with time zone,
+		'ACTIVE'::character varying
+		);
 END
 ~
 ");

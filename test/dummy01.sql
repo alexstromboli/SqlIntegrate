@@ -481,12 +481,17 @@ BEGIN
             .238::real as real,
             4.::float as float,
             .238::money as money,
-            'n'::varchar(5) as varchar,
+            'n'::character varying as varchar,
+            'name'::char(5) given,
+            '1983-06-01'::timestamp without time zone remote,
             false as bool,
             pg_typeof(5) regtype,
             'hold'::app_status as last_status,
             array['enclosed', 'sealed']::no_proc.package[] packages,
-            owner_sum
+            owner_sum,
+            'open'::no_proc.package AS full_qual,
+            'sealed'::"no_proc"."package" AS full_qual_quot,
+            'enclosed'::"no_proc".package AS full_qual_quot_2
         ;
 
     OPEN expressions_2 FOR
@@ -522,7 +527,7 @@ BEGIN
             null::money as money,
             null::varchar as varchar,
             null::uuid as uuid,
-            null::timestamp as timestamp,
+            null::timestamp without time zone as timestamp,
             null::date as date,
             null::bool as bool,
             coalesce(true, false) AS coalesce_first,
