@@ -462,17 +462,6 @@ namespace ParseProcs
 				PTypeTitleST = PTypeTitleST == null ? Local : PTypeTitleST.Or (Local);
 			}
 
-			// DEBUG
-			var t01 =
-			(
-				from _1 in PTypeTitleST
-				from _2 in SpracheUtils.SqlToken ("~")
-				select _1
-			).Parse (
-				//"\"alexey\".app_status~"
-				"app_status~"
-				);
-
 			var PTypeST =
 					from t in PTypeTitleST
 					from p in Parse.Number.SqlToken ()
@@ -488,9 +477,6 @@ namespace ParseProcs
 						)
 						.AtLeastOnce ()
 						.Optional ()
-					//let tp = DatabaseContext.GetTypeForName (t.ToArray ())
-					//where tp != null
-					//let given_as = t.JoinDot () + (array.IsDefined ? "[]" : "")
 					select t
 				;
 
