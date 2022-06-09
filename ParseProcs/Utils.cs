@@ -44,6 +44,11 @@ namespace Utils
 			return Other == null ? ThisColl : ThisColl.Concat (Other);
 		}
 
+		public static T[] ToTrivialArray<T> (this T t)
+		{
+			return new T[] { t };
+		}
+
 		public static string JoinDot (this IEnumerable<string> Fragments)
 		{
 			return string.Join (".", Fragments);

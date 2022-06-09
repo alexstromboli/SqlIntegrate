@@ -288,6 +288,40 @@ namespace ParseProcs
 			}
 		}
 
+		public class WordKeyedType
+		{
+			public string[] Words;
+			public KeyedType Entry;
+		}
+
+		protected static Parser<KeyedType> GroupByWord (IEnumerable<WordKeyedType> Types, Parser<string> PAlphaNumericOrQuotedLST, int Skip = 0)
+		{
+			if (!Types.Any())
+			{
+				return null;
+			}
+
+			// all entries are presumed to carry at least Skip words
+			return new[] { true, false } // first having tails, then ended
+					.Select (has_more => new { has_more, types = Types.Where (t => has_more == t.Words.Length > Skip) })
+					.Select (e =>
+						e.has_more
+							? e.types.ToLookup (t => t.Words[Skip])
+								.Select (gw =>
+									(gw.Key == "[" || gw.Key == "]" || gw.Key == "."
+										? SpracheUtils.SqlToken (gw.Key)
+										: PAlphaNumericOrQuotedLST
+											.Where (s => s == gw.Key)
+									)
+									.Then (_ => GroupByWord (gw, PAlphaNumericOrQuotedLST, Skip + 1))
+								)
+								.Or ()
+							: (e.types.Any () ? Parse.Return (e.types.First ().Entry) : null)
+					)
+					.Or ()
+				;
+		}
+
 		static void Main (string[] args)
 		{
 			string ConnectionString = args[0];
@@ -438,29 +472,21 @@ namespace ParseProcs
 
 			// types
 
-			Parser<KeyedType> PTypeTitleST = null;
-			foreach (var TypeEntry in DatabaseContext.TypeMap.Map.OrderByDescending (p => p.Key.Length))
-			{
-				string[] Fragments = Regex.Matches (TypeEntry.Key, @"\[|\]|\.|[^\s\[\]\.]+").Select (m => m.Value)
-					.ToArray ();
+			// here: provide for
+			// select '1979-12-07'::character varying;
+			// vs
+			// select '1979-12-07'::character "varying";
 
-				// here: provide for
-				// select '1979-12-07'::character varying;
-				// vs
-				// select '1979-12-07'::character "varying";
+			// here: skip quoting for built-in types like 'timestamp with time zone'
 
-				// here: skip quoting for built-in types like 'timestamp with time zone'
-
-				var Items = Fragments.Select (f =>
-						f == "[" || f == "]" || f == "."
-							? SpracheUtils.SqlToken (f)
-							: PAlphaNumericOrQuotedLST.Where (s => s == f))
-					.ToArray ();
-				var Chain = Items.Skip (1).Aggregate (Items[0], (ch, i) => ch.Then (_ => i));
-				Parser<KeyedType> Local = Chain.Return (new KeyedType (TypeEntry.Key, TypeEntry.Value));
-
-				PTypeTitleST = PTypeTitleST == null ? Local : PTypeTitleST.Or (Local);
-			}
+			Parser<KeyedType> PTypeTitleST = GroupByWord (
+				DatabaseContext.TypeMap.Map
+					.Select (p => new WordKeyedType
+					{
+						Words = Regex.Matches (p.Key, @"\[|\]|\.|[^\s\[\]\.]+").Select (m => m.Value).ToArray (),
+						Entry = new KeyedType (p.Key, p.Value)
+					}),
+				PAlphaNumericOrQuotedLST);
 
 			var PTypeST =
 					from t in PTypeTitleST

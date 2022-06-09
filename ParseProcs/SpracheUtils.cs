@@ -13,11 +13,6 @@ namespace ParseProcs
 			return Inner.Select (s => s.ToLower ());
 		}
 
-		public static T[] ToTrivialArray<T> (this T t)
-		{
-			return new T[] { t };
-		}
-
 		public static Parser<T> SqlToken<T> (this Parser<T> Inner)
 		{
 			return Inner
@@ -46,8 +41,23 @@ namespace ParseProcs
 			return Parse
 					.IgnoreCase (Line)
 					.Text ()
-					.Select (l => l.ToLower ())
+					.ToLower ()
 					.SqlToken ()
+				;
+		}
+
+		public static Parser<T> Or<T> (this IEnumerable<Parser<T>> Items)
+		{
+			Items = Items.Where (i => i != null);
+
+			if (!Items.Any ())
+			{
+				return null;
+			}
+
+			return Items
+					.Skip (1)
+					.Aggregate (Items.First (), (ch, i) => ch.Or (i))
 				;
 		}
 
