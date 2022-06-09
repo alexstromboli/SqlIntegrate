@@ -294,32 +294,63 @@ namespace ParseProcs
 			public KeyedType Entry;
 		}
 
-		protected static Parser<KeyedType> GroupByWord (IEnumerable<WordKeyedType> Types, Parser<string> PAlphaNumericOrQuotedLST, int Skip = 0)
+
+		protected static Parser<KeyedType> GroupByWord (
+			IEnumerable<WordKeyedType> Types,
+			Parser<string> PAlphaNumericL,
+			Parser<string> PDoubleQuotedString,
+			int Skip = 0
+			)
 		{
-			if (!Types.Any())
+			Parser<KeyedType> End = Types
+					.Where (t => t.Words.Length == Skip)
+					.Select (t => Parse.Return (t.Entry))
+					.FirstOrDefault ()
+				;
+
+			var Loo = Types
+					.Where (t => t.Words.Length > Skip)
+					.ToLookup (t => t.Words[Skip])
+				;
+
+			Parser<KeyedType> Next = null;
+
+			if (Loo.Count > 0)
 			{
-				return null;
+				Dictionary<string, Parser<KeyedType>> Map = Loo
+					.ToDictionary (
+						p => p.Key,
+						p => GroupByWord (p, PAlphaNumericL, PDoubleQuotedString, Skip + 1)
+					);
+
+				/*
+				Next = (
+					from f in PAlphaNumericL
+						.Or (PDoubleQuotedString)
+						.Or (Parse.Chars ('[', ']', '.').Select (c => c.ToString ()))
+						.SqlToken ()
+					let th = Map.TryGetValue (f, out var p) ? p : null
+					where th != null
+					);
+
+						.Select (s => Map.TryGetValue (s, out var p) ? p : null)
+						.Where (p => p != null)
+						.Select (p => p.Parse (""))
+					;
+					*/
 			}
 
-			// all entries are presumed to carry at least Skip words
-			return new[] { true, false } // first having tails, then ended
-					.Select (has_more => new { has_more, types = Types.Where (t => has_more == t.Words.Length > Skip) })
-					.Select (e =>
-						e.has_more
-							? e.types.ToLookup (t => t.Words[Skip])
-								.Select (gw =>
-									(gw.Key == "[" || gw.Key == "]" || gw.Key == "."
-										? SpracheUtils.SqlToken (gw.Key)
-										: PAlphaNumericOrQuotedLST
-											.Where (s => s == gw.Key)
-									)
-									.Then (_ => GroupByWord (gw, PAlphaNumericOrQuotedLST, Skip + 1))
-								)
-								.Or ()
-							: (e.types.Any () ? Parse.Return (e.types.First ().Entry) : null)
-					)
-					.Or ()
-				;
+			if (Next != null && End != null)
+			{
+				return Next.Or (End);
+			}
+
+			if (Next != null)
+			{
+				return Next;
+			}
+
+			return End;
 		}
 
 		static void Main (string[] args)
@@ -486,7 +517,9 @@ namespace ParseProcs
 						Words = Regex.Matches (p.Key, @"\[|\]|\.|[^\s\[\]\.]+").Select (m => m.Value).ToArray (),
 						Entry = new KeyedType (p.Key, p.Value)
 					}),
-				PAlphaNumericOrQuotedLST);
+				PAlphaNumericL,
+				PDoubleQuotedString
+				);
 
 			var PTypeST =
 					from t in PTypeTitleST
@@ -1280,17 +1313,15 @@ namespace ParseProcs
 				;
 
 			//	DEBUG
-			/*
-			(
-				from _1 in PProcedureST
-				from _2 in SpracheUtils.SqlToken ("~")
-				select 0
-			).Parse (@"
-BEGIN
-END
-~
-");
-*/
+			foreach (var t in new[]
+				         { "char", "character varying", "app_status", "timestamp", "timestamp with time zone" })
+			{
+				var rest = (
+					from _1 in PTypeST
+					from _2 in SpracheUtils.SqlToken ("~")
+					select _1
+				).Parse (t + " ~");
+			}
 
 			// parse all procedures
 			Module ModuleReport = new Module { Procedures = new List<Datasets.Procedure> () };

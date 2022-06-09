@@ -44,27 +44,12 @@ namespace Generated
 			}
 		}
 
-		protected no_proc m_no_proc = null;
-		protected string Name_no_proc = null;
-		public no_proc no_proc
-		{
-			get
-			{
-				if (m_no_proc == null)
-				{
-					m_no_proc = new no_proc (Conn, Name_no_proc);
-				}
-				return m_no_proc;
-			}
-		}
-
 		public DbProc (NpgsqlConnection Conn)
 		{
 			this.Conn = Conn;
 			UseCustomMapping (this.Conn);
 			this.Name_alexey = "alexey";
 			this.Name_ext = "ext";
-			this.Name_no_proc = "no_proc";
 		}
 
 		public static void UseCustomMapping (NpgsqlConnection Conn)
@@ -129,68 +114,13 @@ namespace Generated
 			this.SchemaName = SchemaName;
 		}
 
-		#region get_aggregates
-		public class get_aggregates_Result_result
-		{
-			public string id_agent;
-			public string lastname;
-			public double? input;
-			public long? count;
-			public LocalDate? first;
-		}
-
-		public List<get_aggregates_Result_result> get_aggregates (float? coef)
-		{
-			List<get_aggregates_Result_result> Result = null;
-
-			using (var Tran = Conn.BeginTransaction ())
-			{
-				using (var Cmd = Conn.CreateCommand ())
-				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_aggregates\" (@coef, @result);";
-					Cmd.Parameters.AddWithValue ("@coef", (object)coef ?? DBNull.Value);
-					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
-
-					Cmd.ExecuteNonQuery ();
-
-					using (var ResCmd = Conn.CreateCommand ())
-					{
-						ResCmd.CommandText = "FETCH ALL IN \"result\";";
-						List<get_aggregates_Result_result> Set = new List<get_aggregates_Result_result> ();
-
-						using (var Rdr = ResCmd.ExecuteReader ())
-						{
-							while (Rdr.Read ())
-							{
-								Set.Add (new get_aggregates_Result_result
-								{
-									id_agent = Rdr["id_agent"] as string,
-									lastname = Rdr["lastname"] as string,
-									input = Rdr["input"] as double?,
-									count = Rdr["count"] as long?,
-									first = Rdr["first"] as LocalDate?
-								});
-							}
-						}
-
-						Result = Set;
-					}
-
-					Tran.Commit ();
-				}
-			}
-
-			return Result;
-		}
-		#endregion 
-
 		#region get_array
 		public class get_array_Result_names
 		{
 			public int[] extents;
 			public bool[] array;
 			public string[] names;
-			public int[] order;
+			public int? order;
 			public int[] array_plus_item;
 			public int[] array_plus_array;
 			public int[] item_plus_array;
@@ -246,7 +176,7 @@ namespace Generated
 									extents = Rdr["extents"] as int[],
 									array = Rdr["array"] as bool[],
 									names = Rdr["names"] as string[],
-									order = Rdr["order"] as int[],
+									order = Rdr["order"] as int?,
 									array_plus_item = Rdr["array_plus_item"] as int[],
 									array_plus_array = Rdr["array_plus_array"] as int[],
 									item_plus_array = Rdr["item_plus_array"] as int[]
@@ -350,60 +280,6 @@ namespace Generated
 									amount = Rdr["amount"] as decimal?,
 									last_status = Rdr["last_status"] as string,
 									aux_status = Rdr["aux_status"] as string
-								});
-							}
-						}
-
-						Result = Set;
-					}
-
-					Tran.Commit ();
-				}
-			}
-
-			return Result;
-		}
-		#endregion 
-
-		#region get_db_qualified
-		public class get_db_qualified_Result_own
-		{
-			public Guid? id_person;
-			public int? id_room;
-			public int? id;
-			public string name;
-			public int[] extents;
-		}
-
-		public List<get_db_qualified_Result_own> get_db_qualified ()
-		{
-			List<get_db_qualified_Result_own> Result = null;
-
-			using (var Tran = Conn.BeginTransaction ())
-			{
-				using (var Cmd = Conn.CreateCommand ())
-				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_db_qualified\" (@own);";
-					Cmd.Parameters.Add (new NpgsqlParameter ("@own", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "own" });
-
-					Cmd.ExecuteNonQuery ();
-
-					using (var ResCmd = Conn.CreateCommand ())
-					{
-						ResCmd.CommandText = "FETCH ALL IN \"own\";";
-						List<get_db_qualified_Result_own> Set = new List<get_db_qualified_Result_own> ();
-
-						using (var Rdr = ResCmd.ExecuteReader ())
-						{
-							while (Rdr.Read ())
-							{
-								Set.Add (new get_db_qualified_Result_own
-								{
-									id_person = Rdr["id_person"] as Guid?,
-									id_room = Rdr["id_room"] as int?,
-									id = Rdr["id"] as int?,
-									name = Rdr["name"] as string,
-									extents = Rdr["extents"] as int[]
 								});
 							}
 						}
@@ -1037,205 +913,6 @@ namespace Generated
 		}
 		#endregion 
 
-		#region get_value_types
-		public class get_value_types_Result_result
-		{
-			public int? _int;
-			public decimal? numeric;
-			public decimal? numeric_e_neg;
-			public decimal? numeric_e_pos;
-			public decimal? numeric_e_def;
-			public float? real;
-			public double? _float;
-			public decimal? money;
-			public string varchar;
-			public string given;
-			public LocalDateTime? remote;
-			public bool? _bool;
-			public uint? regtype;
-			public string last_status;
-			public string[] packages;
-			public long? owner_sum;
-			public string full_qual;
-			public string full_qual_quot;
-			public string full_qual_quot_2;
-		}
-
-		public class get_value_types_Result_expressions_2
-		{
-			public Instant? timestamptz;
-			public decimal? money;
-			public LocalDateTime? timestamp_2;
-			public LocalDateTime? timestamp_3;
-			public Period interval;
-			public bool? _bool;
-			public bool? bool_2;
-			public bool? bool_3;
-			public string varchar_1;
-			public string varchar_2;
-			public string varchar_3;
-			public long? bigint;
-			public bool? between_2;
-			public byte[] loop;
-			public decimal? money_2;
-			public long? array_agg;
-			public string array_agg_2;
-			public string _case;
-		}
-
-		public class get_value_types_Result_nulls
-		{
-			public int? _int;
-			public decimal? numeric;
-			public double? _float;
-			public float? real;
-			public long? bigint;
-			public short? smallint;
-			public decimal? money;
-			public string varchar;
-			public Guid? uuid;
-			public LocalDateTime? timestamp;
-			public LocalDate? date;
-			public bool? _bool;
-			public bool? coalesce_first;
-			public decimal? coalesce_second;
-		}
-
-		public class get_value_types_Result
-		{
-			public get_value_types_Result_result result;
-			public get_value_types_Result_expressions_2 expressions_2;
-			public get_value_types_Result_nulls nulls;
-		}
-
-		public get_value_types_Result get_value_types ()
-		{
-			get_value_types_Result Result = new get_value_types_Result ();
-
-			using (var Tran = Conn.BeginTransaction ())
-			{
-				using (var Cmd = Conn.CreateCommand ())
-				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_value_types\" (@result, @expressions_2, @nulls);";
-					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
-					Cmd.Parameters.Add (new NpgsqlParameter ("@expressions_2", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "expressions_2" });
-					Cmd.Parameters.Add (new NpgsqlParameter ("@nulls", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "nulls" });
-
-					Cmd.ExecuteNonQuery ();
-
-					using (var ResCmd = Conn.CreateCommand ())
-					{
-						ResCmd.CommandText = "FETCH ALL IN \"result\";";
-						get_value_types_Result_result Set = null;
-
-						using (var Rdr = ResCmd.ExecuteReader ())
-						{
-							if (Rdr.Read ())
-							{
-								Set = new get_value_types_Result_result
-								{
-									_int = Rdr["int"] as int?,
-									numeric = Rdr["numeric"] as decimal?,
-									numeric_e_neg = Rdr["numeric_e_neg"] as decimal?,
-									numeric_e_pos = Rdr["numeric_e_pos"] as decimal?,
-									numeric_e_def = Rdr["numeric_e_def"] as decimal?,
-									real = Rdr["real"] as float?,
-									_float = Rdr["float"] as double?,
-									money = Rdr["money"] as decimal?,
-									varchar = Rdr["varchar"] as string,
-									given = Rdr["given"] as string,
-									remote = Rdr["remote"] as LocalDateTime?,
-									_bool = Rdr["bool"] as bool?,
-									regtype = Rdr["regtype"] as uint?,
-									last_status = Rdr["last_status"] as string,
-									packages = Rdr["packages"] as string[],
-									owner_sum = Rdr["owner_sum"] as long?,
-									full_qual = Rdr["full_qual"] as string,
-									full_qual_quot = Rdr["full_qual_quot"] as string,
-									full_qual_quot_2 = Rdr["full_qual_quot_2"] as string
-								};
-							}
-						}
-
-						Result.result = Set;
-					}
-
-					using (var ResCmd = Conn.CreateCommand ())
-					{
-						ResCmd.CommandText = "FETCH ALL IN \"expressions_2\";";
-						get_value_types_Result_expressions_2 Set = null;
-
-						using (var Rdr = ResCmd.ExecuteReader ())
-						{
-							if (Rdr.Read ())
-							{
-								Set = new get_value_types_Result_expressions_2
-								{
-									timestamptz = Rdr["timestamptz"] as Instant?,
-									money = Rdr["money"] as decimal?,
-									timestamp_2 = Rdr["timestamp 2"] as LocalDateTime?,
-									timestamp_3 = Rdr["timestamp 3"] as LocalDateTime?,
-									interval = Rdr["interval"] as Period,
-									_bool = Rdr["bool"] as bool?,
-									bool_2 = Rdr["bool 2"] as bool?,
-									bool_3 = Rdr["bool 3"] as bool?,
-									varchar_1 = Rdr["varchar 1"] as string,
-									varchar_2 = Rdr["varchar 2"] as string,
-									varchar_3 = Rdr["varchar 3"] as string,
-									bigint = Rdr["bigint"] as long?,
-									between_2 = Rdr["between 2"] as bool?,
-									loop = Rdr["loop"] as byte[],
-									money_2 = Rdr["money 2"] as decimal?,
-									array_agg = Rdr["array_agg"] as long?,
-									array_agg_2 = Rdr["array_agg_2"] as string,
-									_case = Rdr["case"] as string
-								};
-							}
-						}
-
-						Result.expressions_2 = Set;
-					}
-
-					using (var ResCmd = Conn.CreateCommand ())
-					{
-						ResCmd.CommandText = "FETCH ALL IN \"nulls\";";
-						get_value_types_Result_nulls Set = null;
-
-						using (var Rdr = ResCmd.ExecuteReader ())
-						{
-							if (Rdr.Read ())
-							{
-								Set = new get_value_types_Result_nulls
-								{
-									_int = Rdr["int"] as int?,
-									numeric = Rdr["numeric"] as decimal?,
-									_float = Rdr["float"] as double?,
-									real = Rdr["real"] as float?,
-									bigint = Rdr["bigint"] as long?,
-									smallint = Rdr["smallint"] as short?,
-									money = Rdr["money"] as decimal?,
-									varchar = Rdr["varchar"] as string,
-									uuid = Rdr["uuid"] as Guid?,
-									timestamp = Rdr["timestamp"] as LocalDateTime?,
-									date = Rdr["date"] as LocalDate?,
-									_bool = Rdr["bool"] as bool?,
-									coalesce_first = Rdr["coalesce_first"] as bool?,
-									coalesce_second = Rdr["coalesce_second"] as decimal?
-								};
-							}
-						}
-
-						Result.nulls = Set;
-					}
-
-					Tran.Commit ();
-				}
-			}
-
-			return Result;
-		}
-		#endregion 
-
 		#region getdeptchain
 		public class getdeptchain_Result_res01
 		{
@@ -1284,18 +961,6 @@ namespace Generated
 			}
 
 			return Result;
-		}
-		#endregion 
-
-		#region insert_conflict
-		public void insert_conflict ()
-		{
-			using (var Cmd = Conn.CreateCommand ())
-			{
-				Cmd.CommandText = "call \"" + SchemaName + "\".\"insert_conflict\" ();";
-
-				Cmd.ExecuteNonQuery ();
-			}
 		}
 		#endregion 
 
@@ -1406,7 +1071,7 @@ namespace Generated
 			public string firstname;
 			public LocalDate? dob;
 			public long? tab_num;
-			public int[] them_all;
+			public int? them_all;
 			public int? piece;
 			public int? sample;
 			public int? had_it;
@@ -1418,7 +1083,7 @@ namespace Generated
 			public int? id;
 			public string name;
 			public int[] extents;
-			public int[] ord;
+			public int? ord;
 			public string json;
 		}
 
@@ -1489,7 +1154,7 @@ namespace Generated
 									firstname = Rdr["firstname"] as string,
 									dob = Rdr["dob"] as LocalDate?,
 									tab_num = Rdr["tab_num"] as long?,
-									them_all = Rdr["them_all"] as int[],
+									them_all = Rdr["them_all"] as int?,
 									piece = Rdr["piece"] as int?,
 									sample = Rdr["sample"] as int?,
 									had_it = Rdr["had it"] as int?,
@@ -1515,7 +1180,7 @@ namespace Generated
 									id = Rdr["id"] as int?,
 									name = Rdr["name"] as string,
 									extents = Rdr["extents"] as int[],
-									ord = Rdr["ord"] as int[],
+									ord = Rdr["ord"] as int?,
 									json = Rdr["json"] as string
 								});
 							}
@@ -1788,25 +1453,5 @@ namespace Generated
 			}
 		}
 		#endregion 
-	}
-
-	public class no_proc
-	{
-		public static class package
-		{
-			public const string open = "open";
-			public const string _sealed = "sealed";
-			public const string enclosed = "enclosed";
-		}
-
-		public NpgsqlConnection Conn;
-		public string SchemaName;
-
-		public no_proc (NpgsqlConnection Conn, string SchemaName)
-		{
-			this.Conn = Conn;
-			this.SchemaName = SchemaName;
-		}
-
 	}
 }
