@@ -286,12 +286,22 @@ namespace ParseProcs
 				this.given_as = given_as;
 				this.key = key;
 			}
+
+			public override string ToString ()
+			{
+				return given_as;
+			}
 		}
 
 		public class WordKeyedType
 		{
 			public string[] Words;
 			public KeyedType Entry;
+
+			public override string ToString ()
+			{
+				return Entry?.ToString () ?? "???";
+			}
 		}
 
 
@@ -302,10 +312,12 @@ namespace ParseProcs
 			int Skip = 0
 			)
 		{
+			string NotFoundMessage = "No valid type name found";
 			Parser<KeyedType> End = Types
-					.Where (t => t.Words.Length == Skip)
-					.Select (t => Parse.Return (t.Entry))
-					.FirstOrDefault ()
+				                        .Where (t => t.Words.Length == Skip)
+				                        .Select (t => Parse.Return (t.Entry))
+				                        .FirstOrDefault ()
+			                        ?? SpracheUtils.Failure<KeyedType> (NotFoundMessage)
 				;
 
 			var Loo = Types
@@ -313,44 +325,36 @@ namespace ParseProcs
 					.ToLookup (t => t.Words[Skip])
 				;
 
-			Parser<KeyedType> Next = null;
-
-			if (Loo.Count > 0)
+			if (Loo.Count == 0)
 			{
-				Dictionary<string, Parser<KeyedType>> Map = Loo
-					.ToDictionary (
-						p => p.Key,
-						p => GroupByWord (p, PAlphaNumericL, PDoubleQuotedString, Skip + 1)
-					);
-
-				/*
-				Next = (
-					from f in PAlphaNumericL
-						.Or (PDoubleQuotedString)
-						.Or (Parse.Chars ('[', ']', '.').Select (c => c.ToString ()))
-						.SqlToken ()
-					let th = Map.TryGetValue (f, out var p) ? p : null
-					where th != null
-					);
-
-						.Select (s => Map.TryGetValue (s, out var p) ? p : null)
-						.Where (p => p != null)
-						.Select (p => p.Parse (""))
-					;
-					*/
+				return End;
 			}
 
-			if (Next != null && End != null)
-			{
-				return Next.Or (End);
-			}
+			Dictionary<string, Parser<KeyedType>> Map = Loo
+				.ToDictionary (
+					p => p.Key,
+					p => GroupByWord (p, PAlphaNumericL, PDoubleQuotedString, Skip + 1).Named (p.Key)
+				);
 
-			if (Next != null)
-			{
-				return Next;
-			}
+			var FindWordST = PAlphaNumericL
+					.Or (PDoubleQuotedString)
+					.Or (Parse.Chars ('[', ']', '.').Select (c => c.ToString ()))
+					.SqlToken ()
+				;
 
-			return End;
+			return i =>
+			{
+				var WordResult = FindWordST (i);
+				if (WordResult.WasSuccessful
+				    && !i.Equals (WordResult.Remainder)
+				    && Map.TryGetValue (WordResult.Value, out var Next)
+				   )
+				{
+					return Next (WordResult.Remainder);
+				}
+
+				return End (i); //Result.Failure<KeyedType> (i, NotFoundMessage, Array.Empty<string> ());
+			};
 		}
 
 		static void Main (string[] args)
@@ -536,7 +540,9 @@ namespace ParseProcs
 						)
 						.AtLeastOnce ()
 						.Optional ()
-					select t
+					select array.IsDefined
+						? new KeyedType (t.given_as + "[]", t.key.ArrayType)
+						: t
 				;
 
 			var PSimpleTypeCastST =
@@ -1312,16 +1318,15 @@ namespace ParseProcs
 					select new { vars = declare.GetOrElse (new NamedTyped[0]), body }
 				;
 
-			//	DEBUG
-			foreach (var t in new[]
-				         { "char", "character varying", "app_status", "timestamp", "timestamp with time zone" })
-			{
-				var rest = (
-					from _1 in PTypeST
-					from _2 in SpracheUtils.SqlToken ("~")
-					select _1
-				).Parse (t + " ~");
-			}
+			/*
+			// DEBUG
+			(
+				from _1 in PProcedureST
+				from _2 in SpracheUtils.SqlToken ("~")
+				select _1
+			).Parse (@"
+~");
+*/
 
 			// parse all procedures
 			Module ModuleReport = new Module { Procedures = new List<Datasets.Procedure> () };
