@@ -10,11 +10,16 @@ using ParseProcs.Datasets;
 
 namespace ParseProcs
 {
-	class Analyzer
+	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
+
+	public class Analyzer
 	{
 		protected DatabaseContext DatabaseContext;
 		protected Parser<string> PAlphaNumericL;
 		protected Parser<string> PDoubleQuotedString;
+		protected Ref<SPolynom> PExpressionRefST;
+		protected Parser<SPolynom> PExpressionST => PExpressionRefST.Get;
+		public Parser<SProcedure> PProcedureST { get; protected set; }
 
 		public Parser<string> SqlToken (string LineL)
 		{
@@ -64,7 +69,7 @@ namespace ParseProcs
 			return Result;
 		}
 
-		protected Parser<CaseBase<T>> GetCase<T> (Parser<SPolynom> PExpressionST, Parser<T> Then)
+		protected Parser<CaseBase<T>> GetCase<T> (Parser<T> Then)
 		{
 			return
 				from case_h in SqlToken ("case")
@@ -177,6 +182,7 @@ namespace ParseProcs
 		public Analyzer (DatabaseContext DatabaseContext)
 		{
 			this.DatabaseContext = DatabaseContext;
+			PExpressionRefST = new Ref<SPolynom> ();
 			
 			// any id readable without quotes
 			// lowercase
@@ -197,10 +203,7 @@ namespace ParseProcs
 					from _2 in Parse.Char ('"')
 					select s
 				;
-		}
 
-		public Module Run ()
-		{
 			// postfix ST means that the result is 'SQL token',
 			// i.e. duly processes comments and whitespaces
 
@@ -286,7 +289,6 @@ namespace ParseProcs
 					select res
 				;
 
-			Ref<SPolynom> PExpressionRefST = new Ref<SPolynom> ();
 			Ref<FullSelectStatement> PFullSelectStatementRefST = new Ref<FullSelectStatement> ();
 
 			var PParentsST = PExpressionRefST.Get.InParentsST ();
@@ -398,7 +400,6 @@ namespace ParseProcs
 				;
 
 			//
-
 			var PAsteriskSelectEntryST =
 					from qual in
 					(
@@ -548,7 +549,7 @@ namespace ParseProcs
 						).ProduceType (DatabaseContext.TypeMap.Bool)
 					)
 					.Or (
-						from case_c in GetCase (PExpressionRefST.Get, PExpressionRefST.Get)
+						from case_c in GetCase (PExpressionRefST.Get)
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
 							case_c.ElseC.GetOrDefault ()?.GetResult (rc).Name ?? case_c.CaseH,
 							case_c.Branches.First ().GetResult (rc).Type
@@ -1071,7 +1072,7 @@ namespace ParseProcs
 											from _2 in PExpressionRefST.Get
 											select 0
 										)
-										.Or (GetCase (PExpressionRefST.Get, PInstructionRefST.Get).Return (0))
+										.Or (GetCase (PInstructionRefST.Get).Return (0))
 										.Select (n => DataReturnStatement.Void)
 									)
 							select drs.ToTrivialArray ()
@@ -1081,7 +1082,7 @@ namespace ParseProcs
 							from _1 in SqlToken ("if")
 							from _2 in PExpressionRefST.Get
 							from _3 in SqlToken ("then")
-							from ThenIns in PInstructionRefST.Get.Many () //AtLeastOnce ()
+							from ThenIns in PInstructionRefST.Get.Many ()
 							from ElsifC in
 							(
 								from _1 in AnyTokenST ("elsif", "elseif")
@@ -1112,7 +1113,7 @@ namespace ParseProcs
 			PInstructionRefST.Parser = PInstructionST;
 
 			// procedure
-			var PProcedureST =
+			PProcedureST =
 					from declare in
 					(
 						from _1 in SqlToken ("declare")
@@ -1134,9 +1135,12 @@ namespace ParseProcs
 						select vars.ToArray ()
 					).Optional ()
 					from body in PBeginEndST
-					select new { vars = declare.GetOrElse (new NamedTyped[0]), body }
+					select new SProcedure (declare.GetOrElse (new NamedTyped[0]), body)
 				;
+		}
 
+		public Module Run ()
+		{
 			/*
 			// DEBUG
 			(
