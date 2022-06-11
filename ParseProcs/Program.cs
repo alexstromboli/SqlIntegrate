@@ -357,6 +357,14 @@ namespace ParseProcs
 			};
 		}
 
+		// immediate, i.e. no comments or whitespace
+		protected static Parser<string> ReadKeywordL (Parser<string> PAlphaNumericL, params string[] ValuesL)
+		{
+			return PAlphaNumericL
+					.Where (r => ValuesL.Any (v => v == r))
+				;
+		}
+
 		static void Main (string[] args)
 		{
 			string ConnectionString = args[0];
@@ -367,6 +375,14 @@ namespace ParseProcs
 
 			// postfix ST means that the result is 'SQL token',
 			// i.e. duly processes comments and whitespaces
+
+			// any id readable without quotes
+			// lowercase
+			var PAlphaNumericL =
+					from n in Parse.Char (c => char.IsLetterOrDigit (c) || c == '_', "").AtLeastOnce ()
+					where !char.IsDigit (n.First ())
+					select new string (n.ToArray ()).ToLower ()
+				;
 
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
 			var PDoubleQuotedString =
@@ -391,7 +407,7 @@ namespace ParseProcs
 					select s
 				;
 
-			var PNull = Parse.IgnoreCase ("null").Text ();
+			var PNull = ReadKeywordL (PAlphaNumericL, "null");
 			var PInteger = Parse.Number;
 			var PDecimal =
 					from i in Parse.Number.Optional ()
@@ -414,18 +430,7 @@ namespace ParseProcs
 					                        + exp.GetOrElse ("")
 				;
 
-			var PBooleanLiteral = Parse.IgnoreCase ("true")
-					.Or (Parse.IgnoreCase ("false"))
-					.Text ()
-				;
-
-			// any id readable without quotes
-			// lowercase
-			var PAlphaNumericL =
-					from n in Parse.Char (c => char.IsLetterOrDigit (c) || c == '_', "").AtLeastOnce ()
-					where !char.IsDigit (n.First ())
-					select new string (n.ToArray ()).ToLower ()
-				;
+			var PBooleanLiteral = ReadKeywordL (PAlphaNumericL, "true", "false");
 
 			// valid for column name
 			var PColumnNameLST = PAlphaNumericL
@@ -1103,7 +1108,7 @@ namespace ParseProcs
 					from kw_open in SpracheUtils.SqlToken ("open")
 					from name in PColumnNameLST
 					from _cm1 in SpracheUtils.AllCommentsST ()
-					from kw_for in Parse.IgnoreCase ("for")
+					from kw_for in ReadKeywordL (PAlphaNumericL, "for")
 					from _cm2 in SpracheUtils.AllCommentsST ()
 					select new OpenDataset (name, _cm2.ToArray ())
 				;
