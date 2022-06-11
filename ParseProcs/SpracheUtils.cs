@@ -15,7 +15,7 @@ namespace ParseProcs
 			return i => Result.Failure<T> (i, Message ?? "Parser failed",
 				Expected == null ? Array.Empty<string> () : Expected.ToTrivialArray ());
 		}
-		
+
 		public static Parser<string> ToLower (this Parser<string> Inner)
 		{
 			return Inner.Select (s => s.ToLower ());
@@ -26,31 +26,6 @@ namespace ParseProcs
 			return Inner
 					.Commented (SqlCommentParser.Instance)
 					.Select (p => p.Value)
-				;
-		}
-
-		public static Parser<string> SqlToken (string Line)
-		{
-			if (Line.All (c => char.IsLetterOrDigit (c) || c == '_'))
-			{
-				// to prevent cases like taking 'order' for 'or'
-				// take all the letters, and then check
-				return Parse
-						.LetterOrDigit
-						.Or (Parse.Char ('_'))
-						.Many ()
-						.Text ()
-						.Where (s => string.Equals (s, Line, StringComparison.InvariantCultureIgnoreCase))
-						.Select (l => l.ToLower ())
-						.SqlToken ()
-					;
-			}
-
-			return Parse
-					.IgnoreCase (Line)
-					.Text ()
-					.ToLower ()
-					.SqlToken ()
 				;
 		}
 
@@ -73,16 +48,16 @@ namespace ParseProcs
 		public static Parser<T> InParentsST<T> (this Parser<T> Inner)
 		{
 			return Inner.Contained (
-				SqlToken ("("),
-				SqlToken (")")
+				Parse.Char ('(').SqlToken (),
+				Parse.Char (')').SqlToken ()
 			);
 		}
 
 		public static Parser<T> InBracketsST<T> (this Parser<T> Inner)
 		{
 			return Inner.Contained (
-				SqlToken ("["),
-				SqlToken ("]")
+				Parse.Char ('[').SqlToken (),
+				Parse.Char (']').SqlToken ()
 			);
 		}
 
@@ -92,7 +67,7 @@ namespace ParseProcs
 
 			if (CanBeEmpty)
 			{
-				Result = Result.Optional ().Select (seq => seq.GetOrElse (new T[0]));
+				Result = Result.Optional ().Select (seq => seq.GetOrElse (Array.Empty<T> ()));
 			}
 
 			return Result;
@@ -105,34 +80,6 @@ namespace ParseProcs
 					.Many ()
 					.Select (seq => seq.Where (l => l != null))
 				;
-		}
-
-		// postfix ST means that the result is 'SQL token',
-		// i.e. duly processes comments and whitespaces
-		public static Parser<string> AnyTokenST (params string[] Options)
-		{
-			Parser<string> Result = null;
-			foreach (string[] Tokens in Options.Select (s => s.Split (' ', StringSplitOptions.RemoveEmptyEntries)))
-			{
-				Parser<string> Line = null;
-				foreach (string Token in Tokens)
-				{
-					var PT = SqlToken (Token);
-					Line = Line == null
-							? PT
-							: (from f in Line
-								from n in PT
-								select f + " " + n)
-						;
-				}
-
-				Result = Result == null
-						? Line
-						: Result.Or (Line)
-					;
-			}
-
-			return Result;
 		}
 
 		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
