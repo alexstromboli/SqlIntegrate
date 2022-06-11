@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 using Sprache;
 using Newtonsoft.Json;
@@ -275,6 +276,87 @@ namespace ParseProcs
 				;
 		}
 
+		public class KeyedType
+		{
+			public string given_as;
+			public PSqlType key;
+
+			public KeyedType (string given_as, PSqlType key)
+			{
+				this.given_as = given_as;
+				this.key = key;
+			}
+
+			public override string ToString ()
+			{
+				return given_as;
+			}
+		}
+
+		public class WordKeyedType
+		{
+			public string[] Words;
+			public KeyedType Entry;
+
+			public override string ToString ()
+			{
+				return Entry?.ToString () ?? "???";
+			}
+		}
+
+
+		protected static Parser<KeyedType> GroupByWord (
+			IEnumerable<WordKeyedType> Types,
+			Parser<string> PAlphaNumericL,
+			Parser<string> PDoubleQuotedString,
+			int Skip = 0
+			)
+		{
+			string NotFoundMessage = "No valid type name found";
+			Parser<KeyedType> End = Types
+				                        .Where (t => t.Words.Length == Skip)
+				                        .Select (t => Parse.Return (t.Entry))
+				                        .FirstOrDefault ()
+			                        ?? SpracheUtils.Failure<KeyedType> (NotFoundMessage)
+				;
+
+			var Loo = Types
+					.Where (t => t.Words.Length > Skip)
+					.ToLookup (t => t.Words[Skip])
+				;
+
+			if (Loo.Count == 0)
+			{
+				return End;
+			}
+
+			Dictionary<string, Parser<KeyedType>> Map = Loo
+				.ToDictionary (
+					p => p.Key,
+					p => GroupByWord (p, PAlphaNumericL, PDoubleQuotedString, Skip + 1).Named (p.Key)
+				);
+
+			var FindWordST = PAlphaNumericL
+					.Or (PDoubleQuotedString)
+					.Or (Parse.Chars ('[', ']', '.').Select (c => c.ToString ()))
+					.SqlToken ()
+				;
+
+			return i =>
+			{
+				var WordResult = FindWordST (i);
+				if (WordResult.WasSuccessful
+				    && !i.Equals (WordResult.Remainder)
+				    && Map.TryGetValue (WordResult.Value, out var Next)
+				   )
+				{
+					return Next (WordResult.Remainder);
+				}
+
+				return End (i); //Result.Failure<KeyedType> (i, NotFoundMessage, Array.Empty<string> ());
+			};
+		}
+
 		static void Main (string[] args)
 		{
 			string ConnectionString = args[0];
@@ -353,10 +435,12 @@ namespace ParseProcs
 					.SqlToken ()
 				;
 
-			var PAsColumnAliasLST = PAlphaNumericL
+			var PAlphaNumericOrQuotedLST = PAlphaNumericL
 					.Or (PDoubleQuotedString.ToLower ())
 					.SqlToken ()
 				;
+
+			var PAsColumnAliasLST = PAlphaNumericOrQuotedLST;
 
 			// direct or 'as'
 			var PTableAliasLST = PColumnNameLST;
@@ -367,7 +451,7 @@ namespace ParseProcs
 					from kn in
 					(
 						from d in SpracheUtils.SqlToken (".")
-						from n in PAlphaNumericL.Or (PDoubleQuotedString.ToLower ()).SqlToken ()
+						from n in PAlphaNumericOrQuotedLST
 						select n
 					).Many ()
 					select k1.ToTrivialArray ().Concat (kn).ToArray ()
@@ -421,8 +505,28 @@ namespace ParseProcs
 			var PBinaryConjunctionST = SpracheUtils.AnyTokenST ("and");
 			var PBinaryDisjunctionST = SpracheUtils.AnyTokenST ("or");
 
+			// types
+
+			// here: provide for
+			// select '1979-12-07'::character varying;
+			// vs
+			// select '1979-12-07'::character "varying";
+
+			// here: skip quoting for built-in types like 'timestamp with time zone'
+
+			Parser<KeyedType> PTypeTitleST = GroupByWord (
+				DatabaseContext.TypeMap.Map
+					.Select (p => new WordKeyedType
+					{
+						Words = Regex.Matches (p.Key, @"\[|\]|\.|[^\s\[\]\.]+").Select (m => m.Value).ToArray (),
+						Entry = new KeyedType (p.Key, p.Value)
+					}),
+				PAlphaNumericL,
+				PDoubleQuotedString
+				);
+
 			var PTypeST =
-					from t in PAlphaNumericL.SqlToken ().DelimitedBy (Parse.Char ('.').SqlToken ())
+					from t in PTypeTitleST
 					from p in Parse.Number.SqlToken ()
 						.CommaDelimitedST ()
 						.InParentsST ()
@@ -436,10 +540,9 @@ namespace ParseProcs
 						)
 						.AtLeastOnce ()
 						.Optional ()
-					let tp = DatabaseContext.GetTypeForName (t.ToArray ())
-					where tp != null
-					let given_as = t.JoinDot () + (array.IsDefined ? "[]" : "")
-					select new { given_as = given_as, key = array.IsDefined ? tp.ArrayType : tp }
+					select array.IsDefined
+						? new KeyedType (t.given_as + "[]", t.key.ArrayType)
+						: t
 				;
 
 			var PSimpleTypeCastST =
@@ -639,8 +742,7 @@ namespace ParseProcs
 					.Or (	// interval '90 days'
 						(
 							from t in PTypeST
-							from v in PExpressionRefST.Get
-							// here: restrict type of value to text?
+							from v in PSingleQuotedString.SqlToken ()
 							select t.key
 						).ProduceType () // here: get default column name
 					)
@@ -1216,17 +1318,14 @@ namespace ParseProcs
 					select new { vars = declare.GetOrElse (new NamedTyped[0]), body }
 				;
 
-			//	DEBUG
 			/*
+			// DEBUG
 			(
 				from _1 in PProcedureST
 				from _2 in SpracheUtils.SqlToken ("~")
-				select 0
+				select _1
 			).Parse (@"
-BEGIN
-END
-~
-");
+~");
 */
 
 			// parse all procedures

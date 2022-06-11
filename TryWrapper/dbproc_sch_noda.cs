@@ -1049,11 +1049,16 @@ namespace Generated
 			public double? _float;
 			public decimal? money;
 			public string varchar;
+			public string given;
+			public LocalDateTime? remote;
 			public bool? _bool;
 			public uint? regtype;
 			public string last_status;
 			public string[] packages;
 			public long? owner_sum;
+			public string full_qual;
+			public string full_qual_quot;
+			public string full_qual_quot_2;
 		}
 
 		public class get_value_types_Result_expressions_2
@@ -1138,11 +1143,16 @@ namespace Generated
 									_float = Rdr["float"] as double?,
 									money = Rdr["money"] as decimal?,
 									varchar = Rdr["varchar"] as string,
+									given = Rdr["given"] as string,
+									remote = Rdr["remote"] as LocalDateTime?,
 									_bool = Rdr["bool"] as bool?,
 									regtype = Rdr["regtype"] as uint?,
 									last_status = Rdr["last_status"] as string,
 									packages = Rdr["packages"] as string[],
-									owner_sum = Rdr["owner_sum"] as long?
+									owner_sum = Rdr["owner_sum"] as long?,
+									full_qual = Rdr["full_qual"] as string,
+									full_qual_quot = Rdr["full_qual_quot"] as string,
+									full_qual_quot_2 = Rdr["full_qual_quot_2"] as string
 								};
 							}
 						}

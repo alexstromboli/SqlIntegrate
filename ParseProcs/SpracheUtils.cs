@@ -4,18 +4,21 @@ using System.Collections.Generic;
 
 using Sprache;
 
+using Utils;
+
 namespace ParseProcs
 {
 	public static class SpracheUtils
 	{
+		public static Parser<T> Failure<T> (string Message = null, string Expected = null)
+		{
+			return i => Result.Failure<T> (i, Message ?? "Parser failed",
+				Expected == null ? Array.Empty<string> () : Expected.ToTrivialArray ());
+		}
+		
 		public static Parser<string> ToLower (this Parser<string> Inner)
 		{
 			return Inner.Select (s => s.ToLower ());
-		}
-
-		public static T[] ToTrivialArray<T> (this T t)
-		{
-			return new T[] { t };
 		}
 
 		public static Parser<T> SqlToken<T> (this Parser<T> Inner)
@@ -46,8 +49,24 @@ namespace ParseProcs
 			return Parse
 					.IgnoreCase (Line)
 					.Text ()
-					.Select (l => l.ToLower ())
+					.ToLower ()
 					.SqlToken ()
+				;
+		}
+
+		// generally, use of this is a red flag of bad design
+		public static Parser<T> Or<T> (this IEnumerable<Parser<T>> Items)
+		{
+			Items = Items.Where (i => i != null);
+
+			if (!Items.Any ())
+			{
+				return null;
+			}
+
+			return Items
+					.Skip (1)
+					.Aggregate (Items.First (), (ch, i) => ch.Or (i))
 				;
 		}
 

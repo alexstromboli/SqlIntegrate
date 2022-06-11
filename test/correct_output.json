@@ -963,6 +963,14 @@
               "Type": "varchar"
             },
             {
+              "Name": "given",
+              "Type": "char"
+            },
+            {
+              "Name": "remote",
+              "Type": "timestamp"
+            },
+            {
               "Name": "bool",
               "Type": "bool"
             },
@@ -981,6 +989,18 @@
             {
               "Name": "owner_sum",
               "Type": "bigint"
+            },
+            {
+              "Name": "full_qual",
+              "Type": "no_proc.package"
+            },
+            {
+              "Name": "full_qual_quot",
+              "Type": "no_proc.package"
+            },
+            {
+              "Name": "full_qual_quot_2",
+              "Type": "no_proc.package"
             }
           ]
         },

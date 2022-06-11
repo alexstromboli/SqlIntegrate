@@ -18,7 +18,8 @@ namespace ParseProcs
 
 		public PSqlType GetTypeForName (params string[] TypeName)
 		{
-			return TypeMap.GetTypeForName (SchemaOrder, TypeName);
+			return TypeMap.GetTypeForName (//SchemaOrder,
+                                  TypeName);
 		}
 	}
 
@@ -310,6 +311,9 @@ ORDER BY routines.routine_schema, routines.routine_name;
 					}
 				}
 			}
+
+			//
+			Result.TypeMap.AdoptSchemaOrder (Result.SchemaOrder);
 
 			return Result;
 		}
