@@ -371,16 +371,24 @@ namespace ParseProcs
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
 			var PDoubleQuotedString =
 					from _1 in Parse.Char ('"')
-					from s in Parse.CharExcept ("\"\\").Or (Parse.Char ('\\').Then (c => Parse.AnyChar)).Many ()
+					from s in Parse.CharExcept ('"')
+						//.Or (Parse.Char ('\\').Then (c => Parse.AnyChar))
+						.Or (Parse.String ("\"\"").Return ('"'))
+						.Many ()
+						.Text ()
 					from _2 in Parse.Char ('"')
-					select new string (s.ToArray ())
+					select s
 				;
 
 			var PSingleQuotedString =
 					from _1 in Parse.Char ('\'')
-					from s in Parse.CharExcept ("'\\").Or (Parse.Char ('\\').Then (c => Parse.AnyChar)).Many ()
+					from s in Parse.CharExcept ('\'')
+						//.Or (Parse.Char ('\\').Then (c => Parse.AnyChar))
+						.Or (Parse.String ("''").Return ('\''))
+						.Many ()
+						.Text ()
 					from _2 in Parse.Char ('\'')
-					select new string (s.ToArray ())
+					select s
 				;
 
 			var PNull = Parse.IgnoreCase ("null").Text ();

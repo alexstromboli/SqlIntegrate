@@ -137,6 +137,7 @@ namespace Generated
 			public double? input;
 			public long? count;
 			public LocalDate? first;
+			public string use_quotes;
 		}
 
 		public List<get_aggregates_Result_result> get_aggregates (float? coef)
@@ -168,7 +169,8 @@ namespace Generated
 									lastname = Rdr["lastname"] as string,
 									input = Rdr["input"] as double?,
 									count = Rdr["count"] as long?,
-									first = Rdr["first"] as LocalDate?
+									first = Rdr["first"] as LocalDate?,
+									use_quotes = Rdr["use_quotes"] as string
 								});
 							}
 						}

@@ -120,6 +120,10 @@
             {
               "Name": "first",
               "Type": "date"
+            },
+            {
+              "Name": "use_quotes",
+              "Type": "varchar"
             }
           ]
         }
