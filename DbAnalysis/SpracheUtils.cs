@@ -6,7 +6,7 @@ using Sprache;
 
 using Utils;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public static class SpracheUtils
 	{

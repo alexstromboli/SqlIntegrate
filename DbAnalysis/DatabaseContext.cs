@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public class DatabaseContext
 	{

@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 using Utils;
-using ParseProcs;
-using ParseProcs.Datasets;
+using DbAnalysis;
+using DbAnalysis.Datasets;
 using Utils.CodeGeneration;
 
 namespace Wrapper

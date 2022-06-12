@@ -6,9 +6,9 @@ using System.Text.RegularExpressions;
 using Sprache;
 
 using Utils;
-using ParseProcs.Datasets;
+using DbAnalysis.Datasets;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
 

@@ -1,6 +1,6 @@
 using Sprache;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public class SqlCommentParser : CommentParser
 	{

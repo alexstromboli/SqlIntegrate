@@ -1,4 +1,4 @@
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public enum PSqlOperatorPriority
 	{

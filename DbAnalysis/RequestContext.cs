@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 using Utils;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public class RequestContext
 	{

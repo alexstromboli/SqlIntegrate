@@ -2,7 +2,8 @@
 
 using Newtonsoft.Json;
 
-using ParseProcs.Datasets;
+using DbAnalysis;
+using DbAnalysis.Datasets;
 
 namespace ParseProcs
 {
@@ -14,7 +15,7 @@ namespace ParseProcs
 			string OutputFileName = args[1];
 
 			//
-			var DatabaseContext = ReadDatabase (ConnectionString);
+			var DatabaseContext = ReadDatabase.LoadContext (ConnectionString);
 			Analyzer Analyzer = new Analyzer (DatabaseContext);
 			Module ModuleReport = Analyzer.Run ();
 

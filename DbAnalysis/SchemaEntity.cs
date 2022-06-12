@@ -1,4 +1,4 @@
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public abstract class SchemaEntity
 	{

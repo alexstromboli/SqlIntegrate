@@ -1,6 +1,6 @@
 using Utils;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public class ValuesBlock : ITableRetriever
 	{

@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Collections.Generic;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public interface ITable
 	{

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 using Sprache;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public class CaseBase<T>
 	{

@@ -1,6 +1,6 @@
 using System;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public class OperatorProcessor
 	{

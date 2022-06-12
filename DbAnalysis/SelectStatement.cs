@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public class SelectStatement : ITableRetriever
 	{

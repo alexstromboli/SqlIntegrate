@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 using Newtonsoft.Json;
 
-namespace ParseProcs.Datasets
+namespace DbAnalysis.Datasets
 {
 	public class SqlType
 	{

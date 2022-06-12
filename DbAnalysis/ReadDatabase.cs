@@ -5,11 +5,11 @@ using Npgsql;
 
 using Utils;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
-	partial class Program
+	public class ReadDatabase
 	{
-		private static DatabaseContext ReadDatabase (string ConnectionString)
+		public static DatabaseContext LoadContext (string ConnectionString)
 		{
 			DatabaseContext Result = new DatabaseContext
 			{

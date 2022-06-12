@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-using ParseProcs.Datasets;
+using DbAnalysis.Datasets;
 
 namespace Wrapper
 {
@@ -43,7 +43,7 @@ namespace Wrapper
 			{
 				public class Argument
 				{
-					public ParseProcs.Datasets.Argument Origin;
+					public DbAnalysis.Datasets.Argument Origin;
 					public string NativeName;
 					public string CsName;
 					public string CallParamName;
@@ -67,7 +67,7 @@ namespace Wrapper
 					}
 				}
 
-				public ParseProcs.Datasets.Procedure Origin;
+				public DbAnalysis.Datasets.Procedure Origin;
 				public string NativeName;
 				public string CsName;
 				public Database.Schema.Procedure.Argument[] Arguments;

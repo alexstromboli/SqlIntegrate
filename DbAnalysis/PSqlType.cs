@@ -3,9 +3,9 @@ using System.Linq;
 using System.Collections.Generic;
 
 using Utils;
-using ParseProcs.Datasets;
+using DbAnalysis.Datasets;
 
-namespace ParseProcs
+namespace DbAnalysis
 {
 	public class PgTypeEntry
 	{
