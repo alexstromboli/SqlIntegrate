@@ -15,11 +15,28 @@ namespace DbAnalysis
 	public class Analyzer
 	{
 		protected DatabaseContext DatabaseContext;
-		protected Parser<string> PAlphaNumericL;
+		protected Dictionary<int, string> WordsCache;
 		protected Parser<string> PDoubleQuotedString;
 		protected Ref<SPolynom> PExpressionRefST;
 		protected Parser<SPolynom> PExpressionST => PExpressionRefST.Get;
-		public Parser<SProcedure> PProcedureST { get; protected set; }
+		public Parser<SProcedure> PProcedureST { get; }
+
+		protected Parser<string> PAlphaNumericL
+		{
+			get
+			{
+				return i =>
+				{
+					if (WordsCache.TryGetValue (i.Position, out string Word))
+					{
+						int Len = Word.Length;
+						return Result.Success (Word, new CustomInput (i.Source, i.Position + Len, i.Line, i.Column + Len));
+					}
+
+					return Result.Failure<string> (i, "No word found", Array.Empty<string> ());
+				};
+			}
+		}
 
 		public Parser<string> SqlToken (string LineL)
 		{
@@ -167,7 +184,7 @@ namespace DbAnalysis
 					return Next (WordResult.Remainder);
 				}
 
-				return End (i); //Result.Failure<KeyedType> (i, NotFoundMessage, Array.Empty<string> ());
+				return End (i);
 			};
 		}
 
@@ -184,14 +201,6 @@ namespace DbAnalysis
 			this.DatabaseContext = DatabaseContext;
 			PExpressionRefST = new Ref<SPolynom> ();
 			
-			// any id readable without quotes
-			// lowercase
-			PAlphaNumericL =
-				from n in Parse.Char (c => char.IsLetterOrDigit (c) || c == '_', "").AtLeastOnce ()
-				where !char.IsDigit (n.First ())
-				select new string (n.ToArray ()).ToLower ()
-				;
-
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
 			PDoubleQuotedString =
 					from _1 in Parse.Char ('"')
@@ -712,7 +721,7 @@ namespace DbAnalysis
 			var PValuesClauseST =
 					from _1 in SqlToken ("values")
 					from v in PExpressionRefST.Get
-						.Or (SqlToken ("default").Return (PExpressionRefST.Get.Parse ("0")))
+						.Or (SqlToken ("default").Return (new SPolynom ()))
 						.CommaDelimitedST ()
 						.InParentsST ()
 						.CommaDelimitedST ()
@@ -1180,6 +1189,59 @@ namespace DbAnalysis
 
 				try
 				{
+					// build word cache
+					WordsCache = new Dictionary<int, string> ();
+					{
+						int Pos = -1;
+						int WordStartPos = -1;
+						bool IsWord = false;
+						bool IsStartedWithDigit = false;
+						bool HasUppercase = false;
+
+						foreach (var c in proc.SourceCode.Concat (' '.ToTrivialArray ()))
+						{
+							++Pos;
+							bool IsCapital = c >= 'A' && c <= 'Z';
+							bool IsLowercaseOrSymbol = c >= 'a' && c <= 'z' || c == '_';
+							bool IsDigit = c >= '0' && c <= '9';
+
+							if (IsCapital || IsLowercaseOrSymbol || IsDigit)
+							{
+								if (!IsWord)
+								{
+									IsWord = true;
+									WordStartPos = Pos;
+									IsStartedWithDigit = IsDigit;
+									HasUppercase = false;
+								}
+
+								HasUppercase |= IsCapital;
+							}
+							else
+							{
+								if (IsWord)
+								{
+									if (!IsStartedWithDigit)
+									{
+										string Word = proc.SourceCode[WordStartPos..Pos];
+										if (HasUppercase)
+										{
+											Word = Word.ToLower ();
+										}
+
+										WordsCache[WordStartPos] = Word;
+									}
+
+									WordStartPos = -1;
+									IsWord = false;
+									IsStartedWithDigit = false;
+									HasUppercase = false;
+								}
+							}
+						}
+					}
+
+					//
 					var Parse = PProcedureST.Parse (proc.SourceCode);
 
 					ModuleContext mcProc = new ModuleContext (

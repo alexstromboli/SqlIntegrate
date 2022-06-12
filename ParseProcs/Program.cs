@@ -7,7 +7,7 @@ using DbAnalysis.Datasets;
 
 namespace ParseProcs
 {
-	partial class Program
+	public class Program
 	{
 		static void Main (string[] args)
 		{
