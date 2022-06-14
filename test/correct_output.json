@@ -1478,6 +1478,12 @@
     },
     {
       "Schema": "USER",
+      "Name": "test_exception",
+      "Arguments": [],
+      "ResultSets": []
+    },
+    {
+      "Schema": "USER",
       "Name": "test_from_select",
       "Arguments": [
         {

@@ -29,6 +29,15 @@ namespace TryWrapper
 				var DbProc = new Generated.DbProc (Conn//, "alexey", "ext", "no_proc"
 					);
 
+				try
+				{
+					DbProc.alexey.test_exception ();
+				}
+				catch (PostgresException e)
+				{
+					var M = e.Message;
+				}
+
 				//
 				var r01 = DbProc.alexey.get_composite ();
 

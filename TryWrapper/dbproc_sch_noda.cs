@@ -1606,6 +1606,18 @@ namespace Generated
 		}
 		#endregion 
 
+		#region test_exception
+		public void test_exception ()
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"" + SchemaName + "\".\"test_exception\" ();";
+
+				Cmd.ExecuteNonQuery ();
+			}
+		}
+		#endregion 
+
 		#region test_from_select
 		public class test_from_select_Result_result
 		{

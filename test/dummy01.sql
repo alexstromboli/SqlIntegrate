@@ -212,6 +212,10 @@ BEGIN
             p_id as float
     FROM R
     ORDER BY R.order;
+
+    SELECT name,
+           'literal ''''' literal
+    FROM shifts, unions u;      -- join through comma
 END;
 $$;
 
@@ -228,9 +232,6 @@ AS $$
         dt := now();
         --SELECT 6 as done;
         --SELECT 't' as over;
-
-        SELECT name
-        FROM shifts, unions u;      -- join through comma
     END;
 $$;
 
@@ -446,8 +447,7 @@ BEGIN
     OPEN inserted FOR
     INSERT INTO Own (id_person, id_room)
     SELECT  P.id,
-            R.id,
-            'literal ''''' literal
+            R.id
     FROM ext.Persons AS P
         CROSS JOIN Rooms AS R
     WHERE P.lastname = 'Pevshitz'
@@ -1058,5 +1058,15 @@ BEGIN
         SELECT  5 AS id,
                 'name' AS name;
     END IF;
+END;
+$$;
+
+-- DROP PROCEDURE test_exception;
+CREATE PROCEDURE test_exception ()
+LANGUAGE 'plpgsql'
+AS $$
+DECLARE -- test empty declare section
+BEGIN
+    RAISE EXCEPTION '%', 'test';
 END;
 $$;

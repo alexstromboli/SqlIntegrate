@@ -1062,6 +1062,11 @@ namespace DbAnalysis
 											from _6 in PWhereClauseOptionalST
 											select 0
 										)
+										.Or (
+											from _r in AnyTokenST ("raise exception")
+											from _p in PExpressionRefST.Get.CommaDelimitedST ()
+											select 0
+										)
 										.Or
 										(
 											from _1 in SqlToken ("return")
@@ -1140,7 +1145,7 @@ namespace DbAnalysis
 							select type.key != null
 								? new NamedTyped (name, type.key)
 								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.given_as + ") is not supported")
-						).AtLeastOnce ()
+						).Many ()
 						select vars.ToArray ()
 					).Optional ()
 					from body in PBeginEndST
