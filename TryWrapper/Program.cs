@@ -1,19 +1,9 @@
 ﻿using System;
-using System.Data;
 using Npgsql;
 using NodaTime;
-using Npgsql.NodaTime;
-using NpgsqlTypes;
 
 namespace TryWrapper
 {
-	public enum EStatus
-	{
-		r_pending = 1,
-		r_active,
-		r_hold
-	}
-
 	class Program
 	{
 		static void Main (string[] args)
@@ -31,7 +21,7 @@ namespace TryWrapper
 
 				try
 				{
-					DbProc.alexey.test_exception ();
+					DbProc.alexey.test_exception ("Check exception", 42);
 				}
 				catch (PostgresException e)
 				{

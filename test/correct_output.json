@@ -1479,7 +1479,16 @@
     {
       "Schema": "USER",
       "Name": "test_exception",
-      "Arguments": [],
+      "Arguments": [
+        {
+          "Name": "message",
+          "Type": "varchar"
+        },
+        {
+          "Name": "retry",
+          "Type": "int"
+        }
+      ],
       "ResultSets": []
     },
     {

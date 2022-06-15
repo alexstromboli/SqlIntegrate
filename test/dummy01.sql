@@ -1062,11 +1062,11 @@ END;
 $$;
 
 -- DROP PROCEDURE test_exception;
-CREATE PROCEDURE test_exception ()
+CREATE PROCEDURE test_exception (message varchar(50), retry int)   -- only IN arguments
 LANGUAGE 'plpgsql'
 AS $$
 DECLARE -- test empty declare section
 BEGIN
-    RAISE EXCEPTION '%', 'test';
+    RAISE EXCEPTION '%', message;
 END;
 $$;

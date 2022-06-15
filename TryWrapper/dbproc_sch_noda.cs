@@ -1607,11 +1607,13 @@ namespace Generated
 		#endregion 
 
 		#region test_exception
-		public void test_exception ()
+		public void test_exception (string message, int? retry)
 		{
 			using (var Cmd = Conn.CreateCommand ())
 			{
-				Cmd.CommandText = "call \"" + SchemaName + "\".\"test_exception\" ();";
+				Cmd.CommandText = "call \"" + SchemaName + "\".\"test_exception\" (@message, @retry);";
+				Cmd.Parameters.AddWithValue ("@message", (object)message ?? DBNull.Value);
+				Cmd.Parameters.AddWithValue ("@retry", (object)retry ?? DBNull.Value);
 
 				Cmd.ExecuteNonQuery ();
 			}

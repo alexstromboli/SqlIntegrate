@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -196,6 +197,7 @@ SELECT  n.nspname as schema,
         p.proargmodes,
         p.proargnames,
         p.proallargtypes,
+        p.proargtypes,
         p.prosrc
 FROM pg_catalog.pg_namespace n
         INNER JOIN pg_catalog.pg_proc p ON pronamespace = n.oid
@@ -215,21 +217,25 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 
 							Procedure p = new Procedure (Schema, Name, Oid, SourceCode);
 
+							// no arguments if null
+							string[] ArgNames = (rdr["proargnames"] as string[]) ?? Array.Empty<string> ();
+							// all INs if null
 							char[] ArgModes = rdr["proargmodes"] as char[];
-							if (ArgModes != null)
+							// proallargtypes is null for all INs, take proargtypes then
+							uint[] ArgTypeCodes = (rdr["proallargtypes"] as uint[]) ?? (rdr["proargtypes"] as uint[]);
+
+							Argument.DirectionType[] ArgDirections =
+								ArgModes == null
+									? ArgNames.Select (a => Argument.DirectionType.In).ToArray ()
+									: ArgModes.Select (c =>
+											c == 'b' ? Argument.DirectionType.InOut : Argument.DirectionType.In)
+										.ToArray ();
+							PSqlType[] ArgTypes = ArgTypeCodes.Select (n => Result.TypeMap.MapByOid[n]).ToArray ();
+
+							foreach (var arg in ArgNames.Indexed ())
 							{
-								string[] ArgNames = (string[])rdr["proargnames"];
-								uint[] ArgTypeCodes = (uint[])rdr["proallargtypes"];
-
-								Argument.DirectionType[] ArgDirections = ArgModes.Select (c =>
-									c == 'b' ? Argument.DirectionType.InOut : Argument.DirectionType.In).ToArray ();
-								PSqlType[] ArgTypes = ArgTypeCodes.Select (n => Result.TypeMap.MapByOid[n]).ToArray ();
-
-								foreach (var arg in ArgNames.Indexed ())
-								{
-									Argument c = new Argument (arg.Value, ArgTypes[arg.Index], ArgDirections[arg.Index]);
-									p.AddArgument (c);
-								}
+								Argument c = new Argument (arg.Value, ArgTypes[arg.Index], ArgDirections[arg.Index]);
+								p.AddArgument (c);
 							}
 
 							//
