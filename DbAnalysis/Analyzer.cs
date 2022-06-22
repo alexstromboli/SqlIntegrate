@@ -1003,6 +1003,7 @@ namespace DbAnalysis
 					from _blocks in
 					(
 						from _when in SqlToken ("when")
+						from _stat in SqlToken ("sqlstate").Optional ()
 						from _cond in PExpressionRefST.Get
 						from _then in SqlToken ("then")
 						from _inst in PInstructionRefST.Get.AtLeastOnce ()
@@ -1063,8 +1064,23 @@ namespace DbAnalysis
 											select 0
 										)
 										.Or (
-											from _r in AnyTokenST ("raise exception")
-											from _p in PExpressionRefST.Get.CommaDelimitedST ()
+											// https://www.postgresql.org/docs/current/plpgsql-errors-and-messages.html
+											from _r in SqlToken ("raise")
+											from _l in AnyTokenST ("debug", "log", "info", "notice", "warning",
+												"exception").Optional ()
+											from _p in PExpressionRefST.Get.CommaDelimitedST (true)
+											from _u in
+											(
+												from kw in SqlToken ("using")
+												from opts in
+												(
+													from _n in PAlphaNumericOrQuotedLST
+													from _eq in SqlToken ("=")
+													from _p in PExpressionRefST.Get
+													select 0
+												).CommaDelimitedST ()
+												select 0
+											).Optional ()
 											select 0
 										)
 										.Or
@@ -1078,12 +1094,6 @@ namespace DbAnalysis
 											from _1 in SqlToken ("call")
 											from _2 in PQualifiedIdentifierLST
 											from _3 in PExpressionRefST.Get.CommaDelimitedST (true).InParentsST ()
-											select 0
-										)
-										.Or
-										(
-											from _1 in AnyTokenST ("raise exception")
-											from _2 in PExpressionRefST.Get
 											select 0
 										)
 										.Or (GetCase (PInstructionRefST.Get).Return (0))
@@ -1153,17 +1163,71 @@ namespace DbAnalysis
 				;
 		}
 
+		protected void BuildWordCache (string SourceCode)
+		{
+			WordsCache = new Dictionary<int, string> ();
+
+			int Pos = -1;
+			int WordStartPos = -1;
+			bool IsWord = false;
+			bool IsStartedWithDigit = false;
+			bool HasUppercase = false;
+
+			foreach (var c in SourceCode.Concat (' '.ToTrivialArray ()))
+			{
+				++Pos;
+				bool IsCapital = c >= 'A' && c <= 'Z';
+				bool IsLowercaseOrSymbol = c >= 'a' && c <= 'z' || c == '_';
+				bool IsDigit = c >= '0' && c <= '9';
+
+				if (IsCapital || IsLowercaseOrSymbol || IsDigit)
+				{
+					if (!IsWord)
+					{
+						IsWord = true;
+						WordStartPos = Pos;
+						IsStartedWithDigit = IsDigit;
+						HasUppercase = false;
+					}
+
+					HasUppercase |= IsCapital;
+				}
+				else
+				{
+					if (IsWord)
+					{
+						if (!IsStartedWithDigit)
+						{
+							string Word = SourceCode[WordStartPos..Pos];
+							if (HasUppercase)
+							{
+								Word = Word.ToLower ();
+							}
+
+							WordsCache[WordStartPos] = Word;
+						}
+
+						WordStartPos = -1;
+						IsWord = false;
+						IsStartedWithDigit = false;
+						HasUppercase = false;
+					}
+				}
+			}
+		}
+
 		public Module Run ()
 		{
-			/*
 			// DEBUG
+			/*
+			string TestProc = @"BEGIN END";
+			BuildWordCache (TestProc);
 			(
 				from _1 in PProcedureST
 				from _2 in SqlToken ("~")
 				select _1
-			).Parse (@"
-~");
-*/
+			).Parse (TestProc + "~");
+			*/
 
 			// parse all procedures
 			Module ModuleReport = new Module { Procedures = new List<Datasets.Procedure> () };
@@ -1195,56 +1259,7 @@ namespace DbAnalysis
 				try
 				{
 					// build word cache
-					WordsCache = new Dictionary<int, string> ();
-					{
-						int Pos = -1;
-						int WordStartPos = -1;
-						bool IsWord = false;
-						bool IsStartedWithDigit = false;
-						bool HasUppercase = false;
-
-						foreach (var c in proc.SourceCode.Concat (' '.ToTrivialArray ()))
-						{
-							++Pos;
-							bool IsCapital = c >= 'A' && c <= 'Z';
-							bool IsLowercaseOrSymbol = c >= 'a' && c <= 'z' || c == '_';
-							bool IsDigit = c >= '0' && c <= '9';
-
-							if (IsCapital || IsLowercaseOrSymbol || IsDigit)
-							{
-								if (!IsWord)
-								{
-									IsWord = true;
-									WordStartPos = Pos;
-									IsStartedWithDigit = IsDigit;
-									HasUppercase = false;
-								}
-
-								HasUppercase |= IsCapital;
-							}
-							else
-							{
-								if (IsWord)
-								{
-									if (!IsStartedWithDigit)
-									{
-										string Word = proc.SourceCode[WordStartPos..Pos];
-										if (HasUppercase)
-										{
-											Word = Word.ToLower ();
-										}
-
-										WordsCache[WordStartPos] = Word;
-									}
-
-									WordStartPos = -1;
-									IsWord = false;
-									IsStartedWithDigit = false;
-									HasUppercase = false;
-								}
-							}
-						}
-					}
+					BuildWordCache (proc.SourceCode);
 
 					//
 					var Parse = PProcedureST.Parse (proc.SourceCode);

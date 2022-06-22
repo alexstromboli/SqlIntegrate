@@ -1067,6 +1067,11 @@ LANGUAGE 'plpgsql'
 AS $$
 DECLARE -- test empty declare section
 BEGIN
+    RAISE NOTICE 'test';
+    RAISE DEBUG 'test';
     RAISE EXCEPTION '%', message;
+    RAISE 'test';
+    RAISE NOTICE 'after';
+    raise exception using errcode = 50001;
 END;
 $$;
