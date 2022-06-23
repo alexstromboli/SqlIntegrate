@@ -5,6 +5,39 @@ using DbAnalysis.Datasets;
 
 namespace Wrapper
 {
+	public class TypeMapping
+	{
+		// here: store PSqlType?
+		public string SqlTypeName;
+		public string CsTypeName;
+		public Func<string, string> ValueConverter;
+	}
+
+	public static class TypeMappingUtils
+	{
+		public static Dictionary<string, TypeMapping> Add (this Dictionary<string, TypeMapping> TypeMap, string SqlTypeName, string CsTypeName, string CsNullableName, bool AddArray = true)
+		{
+			TypeMap[SqlTypeName] = new TypeMapping
+			{
+				SqlTypeName = SqlTypeName,
+				CsTypeName = CsNullableName,
+				ValueConverter = v => $"{v} as {CsNullableName}"
+			};
+
+			if (AddArray)
+			{
+				TypeMap[SqlTypeName + "[]"] = new TypeMapping
+				{
+					SqlTypeName = SqlTypeName + "[]",
+					CsTypeName = CsTypeName + "[]",
+					ValueConverter = v => $"{v} as {CsTypeName}[]"
+				};
+			}
+
+			return TypeMap;
+		}
+	}
+
 	public class Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
 		where TColumn : Column, new()
 		where TArgument : Argument, new()
@@ -102,6 +135,6 @@ namespace Wrapper
 		public List<string> Usings;
 		public string CsNamespace;
 		public string CsClassName;
-		public Dictionary<string, string> TypeMap;
+		public Dictionary<string, TypeMapping> TypeMap;
 	}
 }

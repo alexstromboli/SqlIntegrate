@@ -66,23 +66,21 @@ namespace Wrapper
 			// build type map
 			// Postgres type name to C# type name
 			// including arrays
-			Dictionary<string, string> TypeMap = new Dictionary<string, string> ();
+			Dictionary<string, TypeMapping> TypeMap = new Dictionary<string, TypeMapping> ();
 			foreach (var p in DbTypeMap.Map.Where (p => !p.Value.IsArray))
 			{
 				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
 				{
-					TypeMap[p.Key] = ct.CsNullableName;
-					TypeMap[p.Key + "[]"] = ct.CsName + "[]";
+					TypeMap.Add (p.Key, ct.CsName, ct.CsNullableName);
 
 					if (p.Value.ShortName != null)
 					{
-						TypeMap[p.Value.ShortName] = ct.CsNullableName;
-						TypeMap[p.Value.ShortName + "[]"] = ct.CsName + "[]";
+						TypeMap.Add (p.Value.ShortName, ct.CsName, ct.CsNullableName);
 					}
 				}
 			}
-			TypeMap["bytea"] = "byte[]";
-			TypeMap["pg_catalog.bytea"] = "byte[]";
+			TypeMap.Add ("bytea", "byte[]", "byte[]", false);
+			TypeMap.Add ("pg_catalog.bytea", "byte[]", "byte[]", false);
 
 			foreach (var t in Module.Types.Where (ct => ct.Properties != null
 			         || ct.Enum != null && ct.GenerateEnum))
@@ -91,10 +89,10 @@ namespace Wrapper
 				// must match names filled in Wrapper below
 				string ClrKey = t.Schema.ValidCsName () + "." + t.Name.ValidCsName ();
 
-				TypeMap[PsqlKey] = ClrKey;
-				TypeMap[PsqlKey + "[]"] = ClrKey + "[]";
+				TypeMap.Add (PsqlKey, ClrKey, ClrKey);
 			}
-
+			
+			//
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
 			//
@@ -150,7 +148,7 @@ namespace Wrapper
 											NativeName = p.Name,
 											ClrType = TypeMap.TryGetValue (p.Type,
 												out var t)
-												? t
+												? t.CsTypeName
 												: null,
 											CsName = p.Name.ValidCsName ()
 										})
@@ -173,7 +171,7 @@ namespace Wrapper
 											CallParamName = "@" + a.Name,
 											CsName = a.Name.ValidCsName (),
 											ClrType = TypeMap.TryGetValue (a.Type, out var t)
-												? t
+												? t.CsTypeName
 												: null,
 											IsOut = a.IsOut,
 											IsCursor = a.Type == "refcursor"
@@ -204,7 +202,7 @@ namespace Wrapper
 															NativeName = c.Name,
 															ClrType = TypeMap.TryGetValue (c.Type,
 																out var t)
-																? t
+																? t.CsTypeName
 																: null,
 															CsName = c.Name.ValidCsName ()
 														};
@@ -521,6 +519,7 @@ namespace Wrapper
 										sb.AppendLine ()
 											.AppendLine ("Cmd.ExecuteNonQuery ();");
 
+										// read OUT parameters returned
 										foreach (var oa in p.Arguments.Where (a => !a.IsCursor && a.IsOut).Indexed ())
 										{
 											if (oa.IsFirst)
@@ -531,6 +530,7 @@ namespace Wrapper
 											sb.AppendLine ($"{oa.Value.CsName} = Cmd.Parameters[{oa.Value.CallParamName.ToDoubleQuotes ()}].Value as {oa.Value.ClrType};");
 										}
 
+										// read result sets
 										foreach (var Set in p.ResultSets)
 										{
 											sb.AppendLine ();
