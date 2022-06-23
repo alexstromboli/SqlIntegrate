@@ -242,13 +242,12 @@ namespace DbAnalysis
 		public PSqlType CString { get; protected set; }
 		public PSqlType RegType { get; protected set; }
 
-		public SqlTypeMap (Module Module)
+		public static SqlTypeMap FromTypes<TColumn> (IEnumerable<GSqlType<TColumn>> Types)
+			where TColumn : Column, new()
 		{
-			_Map = new Dictionary<string, PSqlType> ();
+			SqlTypeMap This = new SqlTypeMap (null);
 
-			InitStandardProperties ();
-
-			foreach (var t in Module.Types)
+			foreach (var t in Types)
 			{
 				PSqlType BaseType = new PSqlType { Schema = t.Schema, OwnName = t.Name, Display = t.Schema + "." + t.Name };
 				PSqlType ArrayType = new PSqlType { Schema = t.Schema, OwnName = t.Name + "[]", Display = t.Schema + "." + t.Name + "[]", IsArray = true};
@@ -256,8 +255,8 @@ namespace DbAnalysis
 				ArrayType.BaseType = BaseType;
 				BaseType.ArrayType = ArrayType;
 				ArrayType.ArrayType = ArrayType;
-				_Map[BaseType.Display] = BaseType;
-				_Map[ArrayType.Display] = ArrayType;
+				This._Map[BaseType.Display] = BaseType;
+				This._Map[ArrayType.Display] = ArrayType;
 
 				if (t.Enum != null && t.Enum.Length > 0)
 				{
@@ -268,13 +267,14 @@ namespace DbAnalysis
 
 				if (t.Properties != null && t.Properties.Length > 0)
 				{
-					//SqlType.EnumValues = t.Enum;
 					BaseType.ClrType = typeof(object);
 				}
 			}
+
+			return This;
 		}
 
-		public SqlTypeMap (Dictionary<uint, PgTypeEntry> PgTypeEntriesDict = null)
+		public SqlTypeMap (Dictionary<uint, PgTypeEntry> PgTypeEntriesDict)		// can be null
 		{
 			_Map = new Dictionary<string, PSqlType> ();
 

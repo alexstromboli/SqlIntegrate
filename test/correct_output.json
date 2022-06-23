@@ -41,7 +41,7 @@
     },
     {
       "Schema": "USER",
-      "Name": "monetary",
+      "Name": "monetary", "Tag": "financial",
       "Properties": [
         {
           "Name": "amount",

@@ -5,7 +5,13 @@ using DbAnalysis.Datasets;
 
 namespace Wrapper
 {
-	public class Database
+	public class Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
+		where TColumn : Column, new()
+		where TArgument : Argument, new()
+		where TResultSet : GResultSet<TColumn>, new()
+		where TProcedure : GProcedure<TColumn, TArgument, TResultSet>, new()
+		where TSqlType : GSqlType<TColumn>, new()
+		where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
 	{
 		public class Schema
 		{
@@ -31,10 +37,9 @@ namespace Wrapper
 				public List<Property> Properties;
 			}
 
-			public class CustomType : Set<SqlType, Column>
+			public class CustomType : Set<TSqlType, TColumn>
 			{
 				public string NativeName;
-				//public string CsName;
 
 				public string[] EnumValues;
 			}
@@ -43,7 +48,7 @@ namespace Wrapper
 			{
 				public class Argument
 				{
-					public DbAnalysis.Datasets.Argument Origin;
+					public TArgument Origin;
 					public string NativeName;
 					public string CsName;
 					public string CallParamName;
@@ -52,7 +57,7 @@ namespace Wrapper
 					public bool IsOut;
 				}
 
-				public class Set : Set<ResultSet, Column>
+				public class Set : Set<TResultSet, TColumn>
 				{
 					public string CursorName;
 					public string SetCsTypeName;
@@ -67,10 +72,10 @@ namespace Wrapper
 					}
 				}
 
-				public DbAnalysis.Datasets.Procedure Origin;
+				public TProcedure Origin;
 				public string NativeName;
 				public string CsName;
-				public Database.Schema.Procedure.Argument[] Arguments;
+				public Argument[] Arguments;
 				public string ResultClassName;
 				public List<Set> ResultSets;
 				public bool HasResults => ResultSets.Count > 0;
@@ -90,7 +95,7 @@ namespace Wrapper
 			public Procedure[] Procedures;
 		}
 
-		public Module Origin;
+		public TModule Origin;
 		public Schema[] Schemata;
 
 		public string TitleComment;

@@ -12,7 +12,13 @@ namespace Wrapper
 {
 	static class ProcessorUtils
 	{
-		public static CodeProcessor[] Act (this CodeProcessor[] Processors, Action<CodeProcessor> Action)
+		public static GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>[] Act<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> (this GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>[] Processors, Action<GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>> Action)
+			where TColumn : Column, new()
+			where TArgument : Argument, new()
+			where TResultSet : GResultSet<TColumn>, new()
+			where TProcedure : GProcedure<TColumn, TArgument, TResultSet>, new()
+			where TSqlType : GSqlType<TColumn>, new()
+			where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
 		{
 			foreach (var p in Processors)
 			{
@@ -27,10 +33,21 @@ namespace Wrapper
 	{
 		public static string GenerateCode (Module Module, params CodeProcessor[] Processors)
 		{
+			return GGenerateCode (Module, Processors);
+		}
+
+		public static string GGenerateCode<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> (TModule Module, params GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>[] Processors)
+			where TColumn : Column, new()
+			where TArgument : Argument, new()
+			where TResultSet : GResultSet<TColumn>, new()
+			where TProcedure : GProcedure<TColumn, TArgument, TResultSet>, new()
+			where TSqlType : GSqlType<TColumn>, new()
+			where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
+		{
 			bool UseSchemaSettings = false;
 
 			//
-			SqlTypeMap DbTypeMap = new SqlTypeMap (Module);
+			SqlTypeMap DbTypeMap = SqlTypeMap.FromTypes (Module.Types);
 
 			// origins
 			foreach (var a in Module.Procedures.SelectMany (p => p.Arguments))
@@ -81,7 +98,7 @@ namespace Wrapper
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
 			//
-			Database Database = new Database
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database = new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
 			{
 				Origin = Module,
 				TitleComment = CodeGenerationUtils.AutomaticWarning,
@@ -103,14 +120,14 @@ namespace Wrapper
 					.OrderBy (ns => ns)
 					.Select (s =>
 					{
-						return new Database.Schema
+						return new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema
 						{
 							NativeName = s,
 							CsClassName = s.ValidCsName (),
 							NameHolderVar = "Name_" + s.ValidCsNamePart (),
 							EnumTypes = Module.Types
 								.Where (t => t.Schema == s && t.Enum != null && t.Enum.Length > 0)
-								.Select (t => new Database.Schema.CustomType
+								.Select (t => new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.CustomType
 								{
 									Origin = t,
 									NativeName = t.Name,
@@ -121,13 +138,13 @@ namespace Wrapper
 								.ToArray (),
 							CompositeTypes = Module.Types
 								.Where (t => t.Schema == s && t.Properties != null && t.Properties.Length > 0)
-								.Select (t => new Database.Schema.CustomType
+								.Select (t => new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.CustomType
 								{
 									Origin = t,
 									NativeName = t.Name,
 									RowCsClassName = t.Name.ValidCsName (),
 									Properties = t.Properties
-										.Select (p => new Database.Schema.Set<SqlType, Column>.Property
+										.Select (p => new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Set<TSqlType, TColumn>.Property
 										{
 											Origin = p,
 											NativeName = p.Name,
@@ -143,13 +160,13 @@ namespace Wrapper
 							Procedures = Module.Procedures
 								.Where (p => p.Schema == s)
 								.OrderBy (p => p.Name)
-								.Select (p => new Database.Schema.Procedure
+								.Select (p => new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure
 								{
 									Origin = p,
 									NativeName = p.Name,
 									CsName = p.Name.ValidCsName (),
 									Arguments = p.Arguments
-										.Select (a => new Database.Schema.Procedure.Argument
+										.Select (a => new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Argument
 										{
 											Origin = a,
 											NativeName = a.Name,
@@ -168,7 +185,7 @@ namespace Wrapper
 									ResultSets = p.ResultSets
 										.Select (s =>
 										{
-											var Set = new Database.Schema.Procedure.Set
+											var Set = new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Set
 											{
 												Origin = s,
 												CursorName = s.Name,
@@ -181,7 +198,7 @@ namespace Wrapper
 												Properties = s.Columns
 													.Select (c =>
 													{
-														var Property = new Database.Schema.Procedure.Set.Property
+														var Property = new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Set.Property
 														{
 															Origin = c,
 															NativeName = c.Name,

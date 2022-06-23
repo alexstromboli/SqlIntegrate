@@ -5,9 +5,15 @@ using DbAnalysis.Datasets;
 
 namespace Wrapper
 {
-	public class CodeProcessor
+	public class GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
+			where TColumn : Column, new()
+			where TArgument : Argument, new()
+			where TResultSet : GResultSet<TColumn>, new()
+			where TProcedure : GProcedure<TColumn, TArgument, TResultSet>, new()
+			where TSqlType : GSqlType<TColumn>, new()
+			where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
 	{
-		public virtual void OnHaveModule (Module Module)
+		public virtual void OnHaveModule (TModule Module)
 		{
 		}
 
@@ -15,12 +21,22 @@ namespace Wrapper
 		{
 		}
 
-		public virtual void OnHaveWrapper (Database Database)
+		public virtual void OnHaveWrapper (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database)
 		{
 		}
 	}
 
-	public class NodaTimeCodeProcessor : CodeProcessor
+	public class CodeProcessor : GCodeProcessor<SqlType, Procedure, Column, Argument, ResultSet, Module>
+	{
+	}
+
+	public class GNodaTimeCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> : GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
+		where TColumn : Column, new()
+		where TArgument : Argument, new()
+		where TResultSet : GResultSet<TColumn>, new()
+		where TProcedure : GProcedure<TColumn, TArgument, TResultSet>, new()
+		where TSqlType : GSqlType<TColumn>, new()
+		where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
 	{
 		public override void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, string> TypeMap)
 		{
@@ -48,9 +64,13 @@ namespace Wrapper
 			}
 		}
 
-		public override void OnHaveWrapper (Database Database)
+		public override void OnHaveWrapper (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database)
 		{
 			Database.Usings.Add ("using NodaTime;");
 		}
+	}
+
+	public class NodaTimeCodeProcessor : GNodaTimeCodeProcessor<SqlType, Procedure, Column, Argument, ResultSet, Module>
+	{
 	}
 }
