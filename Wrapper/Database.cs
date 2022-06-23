@@ -55,12 +55,12 @@ namespace Wrapper
 					public TColumn Origin;
 					public string NativeName;
 					public string CsName;
-					public string ClrType;
+					public TypeMapping TypeMapping;
 					public Func<string, string> ReaderExpression;
 
 					public override string ToString ()
 					{
-						return (CsName ?? NativeName) + " " + ClrType;
+						return (CsName ?? NativeName) + " " + (TypeMapping?.CsTypeName ?? "???");
 					}
 				}
 
@@ -85,7 +85,7 @@ namespace Wrapper
 					public string NativeName;
 					public string CsName;
 					public string CallParamName;
-					public string ClrType;
+					public TypeMapping TypeMapping;
 					public bool IsCursor;
 					public bool IsOut;
 				}

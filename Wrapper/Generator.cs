@@ -146,10 +146,7 @@ namespace Wrapper
 										{
 											Origin = p,
 											NativeName = p.Name,
-											ClrType = TypeMap.TryGetValue (p.Type,
-												out var t)
-												? t.CsTypeName
-												: null,
+											TypeMapping = TypeMap[p.Type],
 											CsName = p.Name.ValidCsName ()
 										})
 										.ToList ()
@@ -170,9 +167,7 @@ namespace Wrapper
 											NativeName = a.Name,
 											CallParamName = "@" + a.Name,
 											CsName = a.Name.ValidCsName (),
-											ClrType = TypeMap.TryGetValue (a.Type, out var t)
-												? t.CsTypeName
-												: null,
+											TypeMapping = TypeMap[a.Type],
 											IsOut = a.IsOut,
 											IsCursor = a.Type == "refcursor"
 											           || a.Type ==
@@ -200,15 +195,13 @@ namespace Wrapper
 														{
 															Origin = c,
 															NativeName = c.Name,
-															ClrType = TypeMap.TryGetValue (c.Type,
-																out var t)
-																? t.CsTypeName
-																: null,
-															CsName = c.Name.ValidCsName ()
+															CsName = c.Name.ValidCsName (),
+															TypeMapping = TypeMap[c.Type]
 														};
 
 														Property.ReaderExpression = rdr =>
-															$"{rdr}[{Property.NativeName.ToDoubleQuotes ()}] as {Property.ClrType}";
+															Property.TypeMapping.ValueConverter (
+																$"{rdr}[{Property.NativeName.ToDoubleQuotes ()}]");
 
 														return Property;
 													})
@@ -217,7 +210,7 @@ namespace Wrapper
 
 											if (Set.IsSingleColumn)
 											{
-												Set.RowCsClassName = Set.Properties[0].ClrType;
+												Set.RowCsClassName = Set.Properties[0].TypeMapping.CsTypeName;
 											}
 
 											Set.SetCsTypeName = Set.IsSingleRow
@@ -373,7 +366,7 @@ namespace Wrapper
 							{
 								foreach (var p in ct.Properties)
 								{
-									sb.AppendLine ($"public {p.ClrType} {p.CsName};");
+									sb.AppendLine ($"public {p.TypeMapping.CsTypeName} {p.CsName};");
 								}
 							}
 
@@ -417,7 +410,7 @@ namespace Wrapper
 
 							string[] Args = p.Arguments
 									.Where (a => !a.IsCursor)
-									.Select (a => (a.IsOut ? "ref " : "") + $"{a.ClrType} {a.CsName}")
+									.Select (a => (a.IsOut ? "ref " : "") + $"{a.TypeMapping.CsTypeName} {a.CsName}")
 									.ToArray ()
 								;
 
@@ -427,7 +420,7 @@ namespace Wrapper
 								{
 									foreach (var P in Set.Properties)
 									{
-										sb.AppendLine ($"public {P.ClrType} {P.CsName};");
+										sb.AppendLine ($"public {P.TypeMapping.CsTypeName} {P.CsName};");
 									}
 								}
 
@@ -527,7 +520,9 @@ namespace Wrapper
 												sb.AppendLine ();
 											}
 
-											sb.AppendLine ($"{oa.Value.CsName} = Cmd.Parameters[{oa.Value.CallParamName.ToDoubleQuotes ()}].Value as {oa.Value.ClrType};");
+											string ValueRep = oa.Value.TypeMapping.ValueConverter (
+												$"Cmd.Parameters[{oa.Value.CallParamName.ToDoubleQuotes ()}].Value");
+											sb.AppendLine ($"{oa.Value.CsName} = {ValueRep};");
 										}
 
 										// read result sets
