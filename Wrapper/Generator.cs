@@ -189,22 +189,13 @@ namespace Wrapper
 													.SelectMany (c => c.Split ('\n'))
 													.Any (c => Regex.IsMatch (c, @"\s*#\s+1(\s|$)")),
 												Properties = s.Columns
-													.Select (c =>
-													{
-														var Property = new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Set.Property
+													.Select (c => new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Set.Property
 														{
 															Origin = c,
 															NativeName = c.Name,
 															CsName = c.Name.ValidCsName (),
 															TypeMapping = TypeMap[c.Type]
-														};
-
-														Property.ReaderExpression = rdr =>
-															Property.TypeMapping.ValueConverter (
-																$"{rdr}[{Property.NativeName.ToDoubleQuotes ()}]");
-
-														return Property;
-													})
+														})
 													.ToList ()
 											};
 
@@ -555,7 +546,7 @@ namespace Wrapper
 
 														if (Set.IsSingleColumn)
 														{
-															sb.TypeText (Set.Properties[0].ReaderExpression ("Rdr"));
+															sb.TypeText (Set.Properties[0].GetReaderExpression ("Rdr"));
 														}
 														else
 														{
@@ -567,7 +558,7 @@ namespace Wrapper
 																foreach (var c in Set.Properties.Indexed ())
 																{
 																	sb.AppendLine (
-																		$"{c.Value.CsName} = {c.Value.ReaderExpression ("Rdr")}{(c.IsLast ? "" : ",")}");
+																		$"{c.Value.CsName} = {c.Value.GetReaderExpression ("Rdr")}{(c.IsLast ? "" : ",")}");
 																}
 															}
 

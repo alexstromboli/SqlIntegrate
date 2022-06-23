@@ -1,18 +1,11 @@
 using System;
 using System.Collections.Generic;
 
+using Utils;
 using DbAnalysis.Datasets;
 
 namespace Wrapper
 {
-	public class TypeMapping
-	{
-		// here: store PSqlType?
-		public string SqlTypeName;
-		public string CsTypeName;
-		public Func<string, string> ValueConverter;
-	}
-
 	public static class TypeMappingUtils
 	{
 		public static Dictionary<string, TypeMapping> Add (this Dictionary<string, TypeMapping> TypeMap, string SqlTypeName, string CsTypeName, string CsNullableName, bool AddArray = true)
@@ -26,9 +19,10 @@ namespace Wrapper
 
 			if (AddArray)
 			{
-				TypeMap[SqlTypeName + "[]"] = new TypeMapping
+				string ArrKey = SqlTypeName + "[]";
+				TypeMap[ArrKey] = new TypeMapping
 				{
-					SqlTypeName = SqlTypeName + "[]",
+					SqlTypeName = ArrKey,
 					CsTypeName = CsTypeName + "[]",
 					ValueConverter = v => $"{v} as {CsTypeName}[]"
 				};
@@ -36,6 +30,25 @@ namespace Wrapper
 
 			return TypeMap;
 		}
+
+		public static string GetReaderExpression<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule, A, B> (this Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Set<A, B>.Property Property, string rdr)
+			where TColumn : Column, new()
+			where TArgument : Argument, new()
+			where TResultSet : GResultSet<TColumn>, new()
+			where TProcedure : GProcedure<TColumn, TArgument, TResultSet>, new()
+			where TSqlType : GSqlType<TColumn>, new()
+			where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
+		{
+			return Property.TypeMapping.ValueConverter ($"{rdr}[{Property.NativeName.ToDoubleQuotes ()}]");
+		}
+	}
+
+	public class TypeMapping
+	{
+		// here: store PSqlType?
+		public string SqlTypeName;
+		public string CsTypeName;
+		public Func<string, string> ValueConverter;
 	}
 
 	public class Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
@@ -56,7 +69,6 @@ namespace Wrapper
 					public string NativeName;
 					public string CsName;
 					public TypeMapping TypeMapping;
-					public Func<string, string> ReaderExpression;
 
 					public override string ToString ()
 					{
