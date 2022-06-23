@@ -492,7 +492,7 @@ namespace Wrapper
 											}
 											else
 											{
-												sb.AppendLine ($"Cmd.Parameters.AddWithValue ({a.CallParamName.ToDoubleQuotes ()}, (object){a.CsName} ?? DBNull.Value)"
+												sb.AppendLine ($"Cmd.Parameters.AddWithValue ({a.CallParamName.ToDoubleQuotes ()}, (object){a.TypeMapping.SetValue (a.CsName)} ?? DBNull.Value)"
 												               + (a.IsOut
 													               ? ".Direction = ParameterDirection.InputOutput"
 													               : "")
@@ -511,7 +511,7 @@ namespace Wrapper
 												sb.AppendLine ();
 											}
 
-											string ValueRep = oa.Value.TypeMapping.ValueConverter (
+											string ValueRep = oa.Value.TypeMapping.GetValue (
 												$"Cmd.Parameters[{oa.Value.CallParamName.ToDoubleQuotes ()}].Value");
 											sb.AppendLine ($"{oa.Value.CsName} = {ValueRep};");
 										}

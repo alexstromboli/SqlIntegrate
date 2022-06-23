@@ -14,7 +14,7 @@ namespace Wrapper
 			{
 				SqlTypeName = SqlTypeName,
 				CsTypeName = CsNullableName,
-				ValueConverter = v => $"{v} as {CsNullableName}"
+				GetValue = v => $"{v} as {CsNullableName}"
 			};
 
 			if (AddArray)
@@ -24,7 +24,7 @@ namespace Wrapper
 				{
 					SqlTypeName = ArrKey,
 					CsTypeName = CsTypeName + "[]",
-					ValueConverter = v => $"{v} as {CsTypeName}[]"
+					GetValue = v => $"{v} as {CsTypeName}[]"
 				};
 			}
 
@@ -39,7 +39,7 @@ namespace Wrapper
 			where TSqlType : GSqlType<TColumn>, new()
 			where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
 		{
-			return Property.TypeMapping.ValueConverter ($"{rdr}[{Property.NativeName.ToDoubleQuotes ()}]");
+			return Property.TypeMapping.GetValue ($"{rdr}[{Property.NativeName.ToDoubleQuotes ()}]");
 		}
 	}
 
@@ -48,7 +48,8 @@ namespace Wrapper
 		// here: store PSqlType?
 		public string SqlTypeName;
 		public string CsTypeName;
-		public Func<string, string> ValueConverter;
+		public Func<string, string> SetValue = v => v;
+		public Func<string, string> GetValue;
 	}
 
 	public class Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
