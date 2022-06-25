@@ -17,7 +17,7 @@ namespace Wrapper
 		{
 		}
 
-		public virtual void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, TypeMapping> TypeMap)
+		public virtual void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap)
 		{
 		}
 
@@ -38,7 +38,7 @@ namespace Wrapper
 		where TSqlType : GSqlType<TColumn>, new()
 		where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
 	{
-		public override void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, TypeMapping> TypeMap)
+		public override void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap)
 		{
 			string PgCatalogPrefix = "pg_catalog.";
 

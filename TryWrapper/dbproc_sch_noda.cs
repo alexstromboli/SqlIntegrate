@@ -348,7 +348,7 @@ namespace Generated
 									id = Rdr["id"] as int?,
 									as_block = Rdr["as_block"] as alexey.payment,
 									date = Rdr["date"] as LocalDate?,
-									paid = Rdr["paid"] as alexey.monetary,
+									paid = Rdr["paid"] as alexey.monetary /* financial */,
 									amount = Rdr["amount"] as decimal?,
 									last_status = Rdr["last_status"] as string,
 									aux_status = Rdr["aux_status"] as string

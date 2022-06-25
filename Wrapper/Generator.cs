@@ -66,7 +66,7 @@ namespace Wrapper
 			// build type map
 			// Postgres type name to C# type name
 			// including arrays
-			Dictionary<string, TypeMapping> TypeMap = new Dictionary<string, TypeMapping> ();
+			Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap = new Dictionary<string, TypeMapping<TSqlType, TColumn>> ();
 			foreach (var p in DbTypeMap.Map.Where (p => !p.Value.IsArray))
 			{
 				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
@@ -90,6 +90,7 @@ namespace Wrapper
 				string ClrKey = t.Schema.ValidCsName () + "." + t.Name.ValidCsName ();
 
 				TypeMap.Add (PsqlKey, ClrKey, ClrKey);
+				TypeMap[PsqlKey].ReportedType = t;
 			}
 			
 			//

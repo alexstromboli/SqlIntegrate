@@ -1,7 +1,10 @@
 ﻿using System.IO;
+using System.Collections.Generic;
+
 using Newtonsoft.Json;
 
 using Wrapper;
+using DbAnalysis;
 using DbAnalysis.Datasets;
 using Utils.CodeGeneration;
 
@@ -16,19 +19,28 @@ namespace TestWrapper
 	{
 	}
 
-	class GChangeNameCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> : GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
-		where TColumn : Column, new()
-		where TArgument : Argument, new()
-		where TResultSet : GResultSet<TColumn>, new()
-		where TProcedure : GProcedure<TColumn, TArgument, TResultSet>, new()
-		where TSqlType : GSqlType<TColumn>, new()
-		where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
+	class ChangeNameCodeProcessor : GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>
 	{
-		public override void OnHaveWrapper (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database)
+		public override void OnHaveWrapper (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database)
 		{
 			base.OnHaveWrapper (Database);
 			Database.CsNamespace = "FirstSolution";
 			Database.CsClassName = "Proxy";
+		}
+	}
+
+	class TaggerCodeProcessor : GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>
+	{
+		public override void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, TypeMapping<AugType, Column>> TypeMap)
+		{
+			foreach (var t in TypeMap)
+			{
+				if (t.Value.ReportedType?.Tag != null)
+				{
+					var Prev = t.Value.GetValue;
+					t.Value.GetValue = v => $"{Prev (v)} /* {t.Value.ReportedType.Tag} */";
+				}
+			}
 		}
 	}
 
@@ -43,8 +55,8 @@ namespace TestWrapper
 			//
 			foreach (var run in new[]
 			         {
-				         new { target = "dbproc.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new GChangeNameCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> () } },
-				         new { target = "dbproc_sch_noda.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new GNodaTimeCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> () } }
+				         new { target = "dbproc.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new ChangeNameCodeProcessor () } },
+				         new { target = "dbproc_sch_noda.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new GNodaTimeCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> (), new TaggerCodeProcessor () } }
 			         }
 			        )
 			{

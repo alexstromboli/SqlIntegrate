@@ -8,9 +8,11 @@ namespace Wrapper
 {
 	public static class TypeMappingUtils
 	{
-		public static Dictionary<string, TypeMapping> Add (this Dictionary<string, TypeMapping> TypeMap, string SqlTypeName, string CsTypeName, string CsNullableName, bool AddArray = true)
+		public static Dictionary<string, TypeMapping<TSqlType, TColumn>> Add<TSqlType, TColumn> (this Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap, string SqlTypeName, string CsTypeName, string CsNullableName, bool AddArray = true)
+			where TColumn : Column, new()
+			where TSqlType : GSqlType<TColumn>, new()
 		{
-			TypeMap[SqlTypeName] = new TypeMapping
+			TypeMap[SqlTypeName] = new TypeMapping<TSqlType, TColumn>
 			{
 				SqlTypeName = SqlTypeName,
 				CsTypeName = CsNullableName,
@@ -20,7 +22,7 @@ namespace Wrapper
 			if (AddArray)
 			{
 				string ArrKey = SqlTypeName + "[]";
-				TypeMap[ArrKey] = new TypeMapping
+				TypeMap[ArrKey] = new TypeMapping<TSqlType, TColumn>
 				{
 					SqlTypeName = ArrKey,
 					CsTypeName = CsTypeName + "[]",
@@ -43,11 +45,14 @@ namespace Wrapper
 		}
 	}
 
-	public class TypeMapping
+	public class TypeMapping<TSqlType, TColumn>
+		where TColumn : Column, new()
+		where TSqlType : GSqlType<TColumn>, new()
 	{
 		// here: store PSqlType?
 		public string SqlTypeName;
 		public string CsTypeName;
+		public TSqlType ReportedType;
 		public Func<string, string> SetValue = v => v;
 		public Func<string, string> GetValue;
 	}
@@ -62,14 +67,14 @@ namespace Wrapper
 	{
 		public class Schema
 		{
-			public class Set<TResultSet, TColumn>
+			public class Set<TResultSet, TColumnI>
 			{
 				public class Property
 				{
-					public TColumn Origin;
+					public TColumnI Origin;
 					public string NativeName;
 					public string CsName;
-					public TypeMapping TypeMapping;
+					public TypeMapping<TSqlType, TColumn> TypeMapping;
 
 					public override string ToString ()
 					{
@@ -98,7 +103,7 @@ namespace Wrapper
 					public string NativeName;
 					public string CsName;
 					public string CallParamName;
-					public TypeMapping TypeMapping;
+					public TypeMapping<TSqlType, TColumn> TypeMapping;
 					public bool IsCursor;
 					public bool IsOut;
 				}
@@ -148,6 +153,6 @@ namespace Wrapper
 		public List<string> Usings;
 		public string CsNamespace;
 		public string CsClassName;
-		public Dictionary<string, TypeMapping> TypeMap;
+		public Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap;
 	}
 }
