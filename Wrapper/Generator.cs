@@ -93,6 +93,15 @@ namespace Wrapper
 				TypeMap[PsqlKey].ReportedType = t;
 			}
 			
+			// pre-matched types
+			foreach (var t in TypeMap)
+			{
+				if (t.Value.ReportedType?.MapTo != null)
+				{
+					t.Value.GetValue = v => $"{v} as {t.Value.ReportedType.MapTo}";
+				}
+			}
+			
 			//
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
@@ -202,7 +211,9 @@ namespace Wrapper
 
 											if (Set.IsSingleColumn)
 											{
-												Set.RowCsClassName = Set.Properties[0].TypeMapping.CsTypeName;
+												Set.RowCsClassName =
+													Set.Properties[0].TypeMapping.ReportedType?.MapTo
+													?? Set.Properties[0].TypeMapping.CsTypeName;
 											}
 
 											Set.SetCsTypeName = Set.IsSingleRow
@@ -305,12 +316,14 @@ namespace Wrapper
 							{
 								foreach (var t in s.EnumTypes.Where (et => et.Origin.GenerateEnum))
 								{
-									sb.AppendLine ($"Conn.TypeMapper.MapEnum<{s.CsClassName}.{t.RowCsClassName}> (\"{s.NativeName}.{t.NativeName}\");");
+									string MapTo = t.Origin.MapTo ?? $"{s.CsClassName}.{t.RowCsClassName}";
+									sb.AppendLine ($"Conn.TypeMapper.MapEnum<{MapTo}> (\"{s.NativeName}.{t.NativeName}\");");
 								}
 
 								foreach (var t in s.CompositeTypes.Where (ct => ct.Properties != null))
 								{
-									sb.AppendLine ($"Conn.TypeMapper.MapComposite<{s.CsClassName}.{t.RowCsClassName}> (\"{s.NativeName}.{t.NativeName}\");");
+									string MapTo = t.Origin.MapTo ?? $"{s.CsClassName}.{t.RowCsClassName}";
+									sb.AppendLine ($"Conn.TypeMapper.MapComposite<{MapTo}> (\"{s.NativeName}.{t.NativeName}\");");
 								}
 							}
 						}
@@ -324,7 +337,7 @@ namespace Wrapper
 					using (sb.UseCurlyBraces ($"public class {ns.CsClassName}"))
 					{
 						// enum types
-						foreach (var e in ns.EnumTypes)
+						foreach (var e in ns.EnumTypes.Where (e => e.Origin.MapTo == null))
 						{
 							if (e.GenerateEnum)
 							{
@@ -352,7 +365,7 @@ namespace Wrapper
 						}
 
 						// composite types
-						foreach (var ct in ns.CompositeTypes)
+						foreach (var ct in ns.CompositeTypes.Where (ct => ct.Origin.MapTo == null))
 						{
 							using (sb.UseCurlyBraces ($"public class {ct.RowCsClassName}"))
 							{
@@ -412,7 +425,7 @@ namespace Wrapper
 								{
 									foreach (var P in Set.Properties)
 									{
-										sb.AppendLine ($"public {P.TypeMapping.CsTypeName} {P.CsName};");
+										sb.AppendLine ($"public {P.TypeMapping.ReportedType?.MapTo ?? P.TypeMapping.CsTypeName} {P.CsName};");
 									}
 								}
 

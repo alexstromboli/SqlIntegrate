@@ -48,6 +48,12 @@ CREATE TYPE useless_struct AS
     name varchar(50)
 );
 
+CREATE TYPE city_locale AS      -- matched by specified .NET class, not to be generated
+(
+    city varchar(50),
+    province varchar(50)
+);
+
 CREATE TABLE ext.Persons
 (
     id uuid PRIMARY KEY,
@@ -996,7 +1002,8 @@ $$;
 -- DROP PROCEDURE get_composite;
 CREATE PROCEDURE get_composite
 (
-    INOUT result refcursor
+    INOUT result refcursor,
+    INOUT matched refcursor
 )
 LANGUAGE 'plpgsql'
 AS $$
@@ -1021,10 +1028,15 @@ BEGIN
             (diff).paid,
             (diff).paid.amount,
             'hold'::app_status as last_status,
-            null::app_status as aux_status
+            null::app_status as aux_status,
+            ('Montreal', 'Quebec')::city_locale town
     FROM financial_history
     ORDER BY (diff).date DESC
     ;
+
+    OPEN matched FOR
+    -- # 1
+    SELECT ('Toronto', 'Ontario')::city_locale AS town;
 END;
 $$;
 

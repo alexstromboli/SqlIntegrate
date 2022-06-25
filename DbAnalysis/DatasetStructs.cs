@@ -32,6 +32,8 @@ namespace DbAnalysis.Datasets
 		public string[] Enum;
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public bool GenerateEnum = false;
+		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
+		public string MapTo;
 
 		[JsonProperty (DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public TColumn[] Properties;

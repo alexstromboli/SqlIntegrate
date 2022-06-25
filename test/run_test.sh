@@ -21,6 +21,7 @@ export OUTPUT_JSON_FILE="$(realpath temp_"$(tr -dc a-f0-9 </dev/urandom | dd bs=
 if [ -f "$OUTPUT_JSON_FILE" ]; then
     sed -i "s/\"Name\": \"indirectly_used_enum\",/\"Name\": \"indirectly_used_enum\", \"GenerateEnum\": true,/g" "$OUTPUT_JSON_FILE"
     sed -i "s/\"Name\": \"monetary\",/\"Name\": \"monetary\", \"Tag\": \"financial\",/g" "$OUTPUT_JSON_FILE"
+    sed -i "s/\"Name\": \"city_locale\",/\"Name\": \"city_locale\", \"MapTo\": \"TryWrapper.Town\",/g" "$OUTPUT_JSON_FILE"
 
     pushd ../TestWrapper/bin/Debug/net5.0 >/dev/null
     ./TestWrapper "$OUTPUT_JSON_FILE"

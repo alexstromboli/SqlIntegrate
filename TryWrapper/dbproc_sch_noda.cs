@@ -75,6 +75,7 @@ namespace Generated
 			}
 
 			Conn.TypeMapper.MapEnum<alexey.indirectly_used_enum> ("alexey.indirectly_used_enum");
+			Conn.TypeMapper.MapComposite<TryWrapper.Town> ("alexey.city_locale");
 			Conn.TypeMapper.MapComposite<alexey.indirectly_used_type> ("alexey.indirectly_used_type");
 			Conn.TypeMapper.MapComposite<alexey.monetary> ("alexey.monetary");
 			Conn.TypeMapper.MapComposite<alexey.payment> ("alexey.payment");
@@ -319,18 +320,26 @@ namespace Generated
 			public decimal? amount;
 			public string last_status;
 			public string aux_status;
+			public TryWrapper.Town town;
 		}
 
-		public List<get_composite_Result_result> get_composite ()
+		public class get_composite_Result
 		{
-			List<get_composite_Result_result> Result = null;
+			public List<get_composite_Result_result> result;
+			public TryWrapper.Town matched;
+		}
+
+		public get_composite_Result get_composite ()
+		{
+			get_composite_Result Result = new get_composite_Result ();
 
 			using (var Tran = Conn.BeginTransaction ())
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_composite\" (@result);";
+					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_composite\" (@result, @matched);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@matched", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "matched" });
 
 					Cmd.ExecuteNonQuery ();
 
@@ -351,12 +360,29 @@ namespace Generated
 									paid = Rdr["paid"] as alexey.monetary /* financial */,
 									amount = Rdr["amount"] as decimal?,
 									last_status = Rdr["last_status"] as string,
-									aux_status = Rdr["aux_status"] as string
+									aux_status = Rdr["aux_status"] as string,
+									town = Rdr["town"] as TryWrapper.Town
 								});
 							}
 						}
 
-						Result = Set;
+						Result.result = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"matched\";";
+						TryWrapper.Town Set = null;
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = Rdr["town"] as TryWrapper.Town;
+							}
+						}
+
+						Result.matched = Set;
 					}
 
 					Tran.Commit ();

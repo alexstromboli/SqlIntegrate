@@ -13,6 +13,20 @@
     },
     {
       "Schema": "USER",
+      "Name": "city_locale", "MapTo": "TryWrapper.Town",
+      "Properties": [
+        {
+          "Name": "city",
+          "Type": "varchar"
+        },
+        {
+          "Name": "province",
+          "Type": "varchar"
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "indirectly_used_enum", "GenerateEnum": true,
       "Enum": [
         "first",
@@ -230,6 +244,11 @@
           "Name": "result",
           "Type": "refcursor",
           "IsOut": true
+        },
+        {
+          "Name": "matched",
+          "Type": "refcursor",
+          "IsOut": true
         }
       ],
       "ResultSets": [
@@ -264,6 +283,22 @@
             {
               "Name": "aux_status",
               "Type": "USER.app_status"
+            },
+            {
+              "Name": "town",
+              "Type": "USER.city_locale"
+            }
+          ]
+        },
+        {
+          "Name": "matched",
+          "Comments": [
+            " # 1"
+          ],
+          "Columns": [
+            {
+              "Name": "town",
+              "Type": "USER.city_locale"
             }
           ]
         }

@@ -1,9 +1,23 @@
 ﻿using System;
+
 using Npgsql;
 using NodaTime;
+using NpgsqlTypes;
 
 namespace TryWrapper
 {
+	public class Town
+	{
+		public string city;
+		[PgName("province")]
+		public string region;
+
+		public override string ToString ()
+		{
+			return $"{city ?? "???"}, {region ?? "???"}";
+		}
+	}
+
 	class Program
 	{
 		static void Main (string[] args)
