@@ -1002,6 +1002,7 @@ $$;
 -- DROP PROCEDURE get_composite;
 CREATE PROCEDURE get_composite
 (
+    destination city_locale,
     INOUT result refcursor,
     INOUT matched refcursor
 )
@@ -1029,7 +1030,8 @@ BEGIN
             (diff).paid.amount,
             'hold'::app_status as last_status,
             null::app_status as aux_status,
-            ('Montreal', 'Quebec')::city_locale town
+            ('Montreal', 'Quebec')::city_locale town,
+            array[('Vancouver', 'British Columbia')]::city_locale[] locations
     FROM financial_history
     ORDER BY (diff).date DESC
     ;

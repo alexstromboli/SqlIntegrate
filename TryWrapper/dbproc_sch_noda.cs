@@ -74,8 +74,8 @@ namespace Generated
 				return;
 			}
 
-			Conn.TypeMapper.MapEnum<alexey.indirectly_used_enum> ("alexey.indirectly_used_enum");
 			Conn.TypeMapper.MapComposite<TryWrapper.Town> ("alexey.city_locale");
+			Conn.TypeMapper.MapEnum<alexey.indirectly_used_enum> ("alexey.indirectly_used_enum");
 			Conn.TypeMapper.MapComposite<alexey.indirectly_used_type> ("alexey.indirectly_used_type");
 			Conn.TypeMapper.MapComposite<alexey.monetary> ("alexey.monetary");
 			Conn.TypeMapper.MapComposite<alexey.payment> ("alexey.payment");
@@ -321,6 +321,7 @@ namespace Generated
 			public string last_status;
 			public string aux_status;
 			public TryWrapper.Town town;
+			public TryWrapper.Town[] locations;
 		}
 
 		public class get_composite_Result
@@ -329,7 +330,7 @@ namespace Generated
 			public TryWrapper.Town matched;
 		}
 
-		public get_composite_Result get_composite ()
+		public get_composite_Result get_composite (TryWrapper.Town destination)
 		{
 			get_composite_Result Result = new get_composite_Result ();
 
@@ -337,7 +338,8 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_composite\" (@result, @matched);";
+					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_composite\" (@destination, @result, @matched);";
+					Cmd.Parameters.AddWithValue ("@destination", (object)destination ?? DBNull.Value);
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@matched", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "matched" });
 
@@ -361,7 +363,8 @@ namespace Generated
 									amount = Rdr["amount"] as decimal?,
 									last_status = Rdr["last_status"] as string,
 									aux_status = Rdr["aux_status"] as string,
-									town = Rdr["town"] as TryWrapper.Town
+									town = Rdr["town"] as TryWrapper.Town,
+									locations = Rdr["locations"] as TryWrapper.Town[]
 								});
 							}
 						}

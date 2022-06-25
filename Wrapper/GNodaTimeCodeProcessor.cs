@@ -33,7 +33,7 @@ namespace Wrapper
 			{
 				foreach (var prefix in new[] { "", PgCatalogPrefix })
 				{
-					TypeMap.Add (prefix + cm.sql_type, cm.clr_type.Trim ('?'), cm.clr_type);
+					TypeMap[prefix + cm.sql_type].CsTypeName = () => cm.clr_type;
 				}
 			}
 		}

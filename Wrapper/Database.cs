@@ -2,32 +2,59 @@ using System;
 using System.Collections.Generic;
 
 using Utils;
+using DbAnalysis;
 using DbAnalysis.Datasets;
 
 namespace Wrapper
 {
 	public static class TypeMappingUtils
 	{
-		public static Dictionary<string, TypeMapping<TSqlType, TColumn>> Add<TSqlType, TColumn> (this Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap, string SqlTypeName, string CsTypeName, string CsNullableName, bool AddArray = true)
+		public static Dictionary<string, TypeMapping<TSqlType, TColumn>> AddSynonym<TSqlType, TColumn> (this Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap,
+				string SourceName,
+				string Synonym
+				)
 			where TColumn : Column, new()
 			where TSqlType : GSqlType<TColumn>, new()
 		{
-			TypeMap[SqlTypeName] = new TypeMapping<TSqlType, TColumn>
+			TypeMap[Synonym] = TypeMap[SourceName];
+
+			if (TypeMap[Synonym].PSqlType.ArrayType != null)
+			{
+				TypeMap[Synonym + "[]"] = TypeMap[SourceName + "[]"];
+			}
+			
+			return TypeMap;
+		}
+
+		public static Dictionary<string, TypeMapping<TSqlType, TColumn>> Add<TSqlType, TColumn> (this Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap,
+				string SqlTypeName,
+				string CsNullableName,	// can have '?' in the end
+				PSqlType PSqlType
+				)
+			where TColumn : Column, new()
+			where TSqlType : GSqlType<TColumn>, new()
+		{
+			var Single = new TypeMapping<TSqlType, TColumn>
 			{
 				SqlTypeName = SqlTypeName,
-				CsTypeName = CsNullableName,
-				GetValue = v => $"{v} as {CsNullableName}"
+				CsTypeName = () => CsNullableName,
+				PSqlType = PSqlType
 			};
+			Single.GetValue = v => $"{v} as {Single.CsTypeName ()}";		// use closure
+			TypeMap[SqlTypeName] = Single;
 
-			if (AddArray)
+			if (PSqlType.ArrayType != null)
 			{
+				// refer to 'single' type
 				string ArrKey = SqlTypeName + "[]";
-				TypeMap[ArrKey] = new TypeMapping<TSqlType, TColumn>
+				var Array = new TypeMapping<TSqlType, TColumn>
 				{
 					SqlTypeName = ArrKey,
-					CsTypeName = CsTypeName + "[]",
-					GetValue = v => $"{v} as {CsTypeName}[]"
+					CsTypeName = () => Single.CsTypeName ().TrimEnd ('?') + "[]",
+					PSqlType = PSqlType.ArrayType
 				};
+				Array.GetValue = v => $"{v} as {Single.CsTypeName ().TrimEnd ('?')}[]";
+				TypeMap[ArrKey] = Array;
 			}
 
 			return TypeMap;
@@ -51,7 +78,8 @@ namespace Wrapper
 	{
 		// here: store PSqlType?
 		public string SqlTypeName;
-		public string CsTypeName;
+		public Func<string> CsTypeName;
+		public PSqlType PSqlType;
 		public TSqlType ReportedType;
 		public Func<string, string> SetValue = v => v;
 		public Func<string, string> GetValue;
@@ -78,7 +106,7 @@ namespace Wrapper
 
 					public override string ToString ()
 					{
-						return (CsName ?? NativeName) + " " + (TypeMapping?.CsTypeName ?? "???");
+						return (CsName ?? NativeName) + " " + (TypeMapping?.CsTypeName () ?? "???");
 					}
 				}
 

@@ -65,22 +65,23 @@ namespace Wrapper
 
 			// build type map
 			// Postgres type name to C# type name
-			// including arrays
+			// including arrays;
+			// synonyms must go to the same entries
 			Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap = new Dictionary<string, TypeMapping<TSqlType, TColumn>> ();
 			foreach (var p in DbTypeMap.Map.Where (p => !p.Value.IsArray))
 			{
 				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
 				{
-					TypeMap.Add (p.Key, ct.CsName, ct.CsNullableName);
+					TypeMap.Add (p.Key, ct.CsNullableName, p.Value);
 
 					if (p.Value.ShortName != null)
 					{
-						TypeMap.Add (p.Value.ShortName, ct.CsName, ct.CsNullableName);
+						TypeMap.AddSynonym (p.Key, p.Value.ShortName);
 					}
 				}
 			}
-			TypeMap.Add ("bytea", "byte[]", "byte[]", false);
-			TypeMap.Add ("pg_catalog.bytea", "byte[]", "byte[]", false);
+			TypeMap.Add ("bytea", "byte[]", DbTypeMap.GetTypeForName ("bytea"));
+			TypeMap.AddSynonym ("bytea", "pg_catalog.bytea");
 
 			foreach (var t in Module.Types.Where (ct => ct.Properties != null
 			         || ct.Enum != null && ct.GenerateEnum))
@@ -89,7 +90,7 @@ namespace Wrapper
 				// must match names filled in Wrapper below
 				string ClrKey = t.Schema.ValidCsName () + "." + t.Name.ValidCsName ();
 
-				TypeMap.Add (PsqlKey, ClrKey, ClrKey);
+				TypeMap.Add (PsqlKey, ClrKey, DbTypeMap.GetTypeForName (PsqlKey));
 				TypeMap[PsqlKey].ReportedType = t;
 			}
 			
@@ -98,7 +99,7 @@ namespace Wrapper
 			{
 				if (t.Value.ReportedType?.MapTo != null)
 				{
-					t.Value.GetValue = v => $"{v} as {t.Value.ReportedType.MapTo}";
+					t.Value.CsTypeName = () => t.Value.ReportedType.MapTo;
 				}
 			}
 			
@@ -211,9 +212,7 @@ namespace Wrapper
 
 											if (Set.IsSingleColumn)
 											{
-												Set.RowCsClassName =
-													Set.Properties[0].TypeMapping.ReportedType?.MapTo
-													?? Set.Properties[0].TypeMapping.CsTypeName;
+												Set.RowCsClassName = Set.Properties[0].TypeMapping.CsTypeName ();
 											}
 
 											Set.SetCsTypeName = Set.IsSingleRow
@@ -312,18 +311,22 @@ namespace Wrapper
 
 							sb.AppendLine ();
 
-							foreach (var s in Database.Schemata)
+							foreach (var t in Module.Types.OrderBy (t => t.Schema).ThenBy (t => t.Name))
 							{
-								foreach (var t in s.EnumTypes.Where (et => et.Origin.GenerateEnum))
+								string MapMethod = null;
+								if (t.Enum != null && t.GenerateEnum)
 								{
-									string MapTo = t.Origin.MapTo ?? $"{s.CsClassName}.{t.RowCsClassName}";
-									sb.AppendLine ($"Conn.TypeMapper.MapEnum<{MapTo}> (\"{s.NativeName}.{t.NativeName}\");");
+									MapMethod = "MapEnum";
+								}
+								else if (t.Properties != null)
+								{
+									MapMethod = "MapComposite";
 								}
 
-								foreach (var t in s.CompositeTypes.Where (ct => ct.Properties != null))
+								if (MapMethod != null)
 								{
-									string MapTo = t.Origin.MapTo ?? $"{s.CsClassName}.{t.RowCsClassName}";
-									sb.AppendLine ($"Conn.TypeMapper.MapComposite<{MapTo}> (\"{s.NativeName}.{t.NativeName}\");");
+									sb.AppendLine (
+										$"Conn.TypeMapper.{MapMethod}<{TypeMap[$"{t.Schema}.{t.Name}"].CsTypeName ()}> (\"{t.Schema}.{t.Name}\");");
 								}
 							}
 						}
@@ -371,7 +374,7 @@ namespace Wrapper
 							{
 								foreach (var p in ct.Properties)
 								{
-									sb.AppendLine ($"public {p.TypeMapping.CsTypeName} {p.CsName};");
+									sb.AppendLine ($"public {p.TypeMapping.CsTypeName ()} {p.CsName};");
 								}
 							}
 
@@ -415,7 +418,7 @@ namespace Wrapper
 
 							string[] Args = p.Arguments
 									.Where (a => !a.IsCursor)
-									.Select (a => (a.IsOut ? "ref " : "") + $"{a.TypeMapping.CsTypeName} {a.CsName}")
+									.Select (a => (a.IsOut ? "ref " : "") + $"{a.TypeMapping.CsTypeName ()} {a.CsName}")
 									.ToArray ()
 								;
 
@@ -425,7 +428,7 @@ namespace Wrapper
 								{
 									foreach (var P in Set.Properties)
 									{
-										sb.AppendLine ($"public {P.TypeMapping.ReportedType?.MapTo ?? P.TypeMapping.CsTypeName} {P.CsName};");
+										sb.AppendLine ($"public {P.TypeMapping.CsTypeName ()} {P.CsName};");
 									}
 								}
 

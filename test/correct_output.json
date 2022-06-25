@@ -241,6 +241,10 @@
       "Name": "get_composite",
       "Arguments": [
         {
+          "Name": "destination",
+          "Type": "USER.city_locale"
+        },
+        {
           "Name": "result",
           "Type": "refcursor",
           "IsOut": true
@@ -287,6 +291,10 @@
             {
               "Name": "town",
               "Type": "USER.city_locale"
+            },
+            {
+              "Name": "locations",
+              "Type": "USER.city_locale[]"
             }
           ]
         },

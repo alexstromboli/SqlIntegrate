@@ -43,7 +43,7 @@ namespace TryWrapper
 				}
 
 				//
-				var r01 = DbProc.alexey.get_composite ();
+				var r01 = DbProc.alexey.get_composite (new Town { city = "Ottawa", region = "Ontario" });
 
 				//
 				int? t_int = 10;
