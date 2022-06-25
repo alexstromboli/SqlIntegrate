@@ -23,7 +23,7 @@ namespace Generated
 			{
 				if (m_alexey == null)
 				{
-					m_alexey = new alexey (Conn);
+					m_alexey = new alexey (this);
 				}
 				return m_alexey;
 			}
@@ -36,7 +36,7 @@ namespace Generated
 			{
 				if (m_ext == null)
 				{
-					m_ext = new ext (Conn);
+					m_ext = new ext (this);
 				}
 				return m_ext;
 			}
@@ -49,7 +49,7 @@ namespace Generated
 			{
 				if (m_no_proc == null)
 				{
-					m_no_proc = new no_proc (Conn);
+					m_no_proc = new no_proc (this);
 				}
 				return m_no_proc;
 			}
@@ -115,11 +115,12 @@ namespace Generated
 			public alexey.indirectly_used_type[] indi;
 		}
 
-		public NpgsqlConnection Conn;
+		public DbProc DbProc;
+		public NpgsqlConnection Conn => DbProc.Conn;
 
-		public alexey (NpgsqlConnection Conn)
+		public alexey (DbProc DbProc)
 		{
-			this.Conn = Conn;
+			this.DbProc = DbProc;
 		}
 
 		#region get_aggregates
@@ -1793,11 +1794,12 @@ namespace Generated
 
 	public class ext
 	{
-		public NpgsqlConnection Conn;
+		public DbProc DbProc;
+		public NpgsqlConnection Conn => DbProc.Conn;
 
-		public ext (NpgsqlConnection Conn)
+		public ext (DbProc DbProc)
 		{
-			this.Conn = Conn;
+			this.DbProc = DbProc;
 		}
 
 		#region calc
@@ -1834,11 +1836,12 @@ namespace Generated
 			public const string enclosed = "enclosed";
 		}
 
-		public NpgsqlConnection Conn;
+		public DbProc DbProc;
+		public NpgsqlConnection Conn => DbProc.Conn;
 
-		public no_proc (NpgsqlConnection Conn)
+		public no_proc (DbProc DbProc)
 		{
-			this.Conn = Conn;
+			this.DbProc = DbProc;
 		}
 
 	}

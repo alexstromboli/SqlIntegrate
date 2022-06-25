@@ -267,7 +267,7 @@ namespace Wrapper
 							{
 								using (sb.UseCurlyBraces ($"if ({ValueHolderName} == null)"))
 								{
-									sb.AppendLine ($"{ValueHolderName} = new {ns.CsClassName} (Conn);");
+									sb.AppendLine ($"{ValueHolderName} = new {ns.CsClassName} (this);");
 								}
 
 								sb.AppendLine ($"return {ValueHolderName};");
@@ -374,12 +374,13 @@ namespace Wrapper
 						}
 
 						// properties
-						sb.AppendLine ("public NpgsqlConnection Conn;")
+						sb.AppendLine ("public DbProc DbProc;")
+							.AppendLine ("public NpgsqlConnection Conn => DbProc.Conn;")
 							.AppendLine ();
 
-						using (sb.UseCurlyBraces ($"public {ns.CsClassName} (NpgsqlConnection Conn)"))
+						using (sb.UseCurlyBraces ($"public {ns.CsClassName} (DbProc DbProc)"))
 						{
-							sb.AppendLine ("this.Conn = Conn;");
+							sb.AppendLine ("this.DbProc = DbProc;");
 						}
 
 						sb.AppendLine ();
