@@ -44,8 +44,6 @@ namespace Wrapper
 			where TSqlType : GSqlType<TColumn>, new()
 			where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
 		{
-			bool UseSchemaSettings = false;
-
 			//
 			SqlTypeMap DbTypeMap = SqlTypeMap.FromTypes (Module.Types);
 
@@ -263,14 +261,13 @@ namespace Wrapper
 
 						sb.AppendLine ();
 						sb.AppendLine ($"protected {ns.CsClassName} {ValueHolderName} = null;");
-						sb.AppendLine ($"protected string {ns.NameHolderVar} = null;");
 						using (sb.UseCurlyBraces ($"public {ns.CsClassName} {ns.CsClassName}"))
 						{
 							using (sb.UseCurlyBraces ("get"))
 							{
 								using (sb.UseCurlyBraces ($"if ({ValueHolderName} == null)"))
 								{
-									sb.AppendLine ($"{ValueHolderName} = new {ns.CsClassName} (Conn, {ns.NameHolderVar});");
+									sb.AppendLine ($"{ValueHolderName} = new {ns.CsClassName} (Conn);");
 								}
 
 								sb.AppendLine ($"return {ValueHolderName};");
@@ -281,18 +278,13 @@ namespace Wrapper
 					sb.AppendLine ();
 
 					// constructor
-					using (sb.UseCurlyBraces ($"public {Database.CsClassName} (NpgsqlConnection Conn{(UseSchemaSettings ? string.Join ("", Database.Schemata.Select (s => ", string " + s.NameHolderVar)) : "")})"))
+					using (sb.UseCurlyBraces ($"public {Database.CsClassName} (NpgsqlConnection Conn)"))
 					{
 						sb.AppendLine ("this.Conn = Conn;");
 
 						if (HasCustomMapping)
 						{
 							sb.AppendLine ("UseCustomMapping (this.Conn);");
-						}
-
-						foreach (var ns in Database.Schemata)
-						{
-							sb.AppendLine ($"this.{ns.NameHolderVar} = {(UseSchemaSettings ? ns.NameHolderVar : ns.NativeName.ToDoubleQuotes ())};");
 						}
 					}
 
@@ -383,14 +375,11 @@ namespace Wrapper
 
 						// properties
 						sb.AppendLine ("public NpgsqlConnection Conn;")
-							.AppendLine ("public string SchemaName;")
 							.AppendLine ();
 
-						using (sb.UseCurlyBraces ($"public {ns.CsClassName} (NpgsqlConnection Conn, string SchemaName)"))
+						using (sb.UseCurlyBraces ($"public {ns.CsClassName} (NpgsqlConnection Conn)"))
 						{
-							sb.AppendLine ("this.Conn = Conn;")
-								.AppendLine ("this.SchemaName = SchemaName;")
-								;
+							sb.AppendLine ("this.Conn = Conn;");
 						}
 
 						sb.AppendLine ();
@@ -489,13 +478,12 @@ namespace Wrapper
 									using (sb.UseCurlyBraces ("using (var Cmd = Conn.CreateCommand ())"))
 									{
 										string Params = string.Join (", ", p.Arguments.Select (a => a.CallParamName
-												// here: schema hard-coded, not using SchemaName
 											+ (a.Origin.PSqlType?.BaseType.EnumValues == null ? "" : ($"::{a.Origin.PSqlType.BaseType.Schema.ToDoubleQuotes ()}.{a.Origin.PSqlType.BaseType.OwnName.ToDoubleQuotes ()}"
 											+ (a.Origin.PSqlType.IsArray ? "[]" : "")))
 										));
 										string Call =
-											"call \"".ToDoubleQuotes () + " + SchemaName + " +
-											$"\".{pi.Value.NativeName.ToDoubleQuotes ()} ({Params});".ToDoubleQuotes ();
+											$"call {ns.NativeName.ToDoubleQuotes ()}.{pi.Value.NativeName.ToDoubleQuotes ()} ({Params});"
+												.ToDoubleQuotes ();
 										sb.AppendLine ($"Cmd.CommandText = {Call};");
 
 										foreach (var a in p.Arguments)

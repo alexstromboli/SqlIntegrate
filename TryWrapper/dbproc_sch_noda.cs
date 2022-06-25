@@ -17,42 +17,39 @@ namespace Generated
 		public NpgsqlConnection Conn;
 
 		protected alexey m_alexey = null;
-		protected string Name_alexey = null;
 		public alexey alexey
 		{
 			get
 			{
 				if (m_alexey == null)
 				{
-					m_alexey = new alexey (Conn, Name_alexey);
+					m_alexey = new alexey (Conn);
 				}
 				return m_alexey;
 			}
 		}
 
 		protected ext m_ext = null;
-		protected string Name_ext = null;
 		public ext ext
 		{
 			get
 			{
 				if (m_ext == null)
 				{
-					m_ext = new ext (Conn, Name_ext);
+					m_ext = new ext (Conn);
 				}
 				return m_ext;
 			}
 		}
 
 		protected no_proc m_no_proc = null;
-		protected string Name_no_proc = null;
 		public no_proc no_proc
 		{
 			get
 			{
 				if (m_no_proc == null)
 				{
-					m_no_proc = new no_proc (Conn, Name_no_proc);
+					m_no_proc = new no_proc (Conn);
 				}
 				return m_no_proc;
 			}
@@ -62,9 +59,6 @@ namespace Generated
 		{
 			this.Conn = Conn;
 			UseCustomMapping (this.Conn);
-			this.Name_alexey = "alexey";
-			this.Name_ext = "ext";
-			this.Name_no_proc = "no_proc";
 		}
 
 		public static void UseCustomMapping (NpgsqlConnection Conn)
@@ -122,12 +116,10 @@ namespace Generated
 		}
 
 		public NpgsqlConnection Conn;
-		public string SchemaName;
 
-		public alexey (NpgsqlConnection Conn, string SchemaName)
+		public alexey (NpgsqlConnection Conn)
 		{
 			this.Conn = Conn;
-			this.SchemaName = SchemaName;
 		}
 
 		#region get_aggregates
@@ -149,7 +141,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_aggregates\" (@coef, @result);";
+					Cmd.CommandText = "call \"alexey\".\"get_aggregates\" (@coef, @result);";
 					Cmd.Parameters.AddWithValue ("@coef", (object)coef ?? DBNull.Value);
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
 
@@ -228,7 +220,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_array\" (@names, @by_person, @unnest);";
+					Cmd.CommandText = "call \"alexey\".\"get_array\" (@names, @by_person, @unnest);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@names", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "names" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@by_person", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "by_person" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@unnest", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "unnest" });
@@ -338,7 +330,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_composite\" (@destination, @result, @matched);";
+					Cmd.CommandText = "call \"alexey\".\"get_composite\" (@destination, @result, @matched);";
 					Cmd.Parameters.AddWithValue ("@destination", (object)destination ?? DBNull.Value);
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@matched", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "matched" });
@@ -414,7 +406,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_db_qualified\" (@own);";
+					Cmd.CommandText = "call \"alexey\".\"get_db_qualified\" (@own);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@own", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "own" });
 
 					Cmd.ExecuteNonQuery ();
@@ -465,7 +457,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_inserted\" (@inserted);";
+					Cmd.CommandText = "call \"alexey\".\"get_inserted\" (@inserted);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@inserted", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "inserted" });
 
 					Cmd.ExecuteNonQuery ();
@@ -514,7 +506,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_join_single\" (@joined);";
+					Cmd.CommandText = "call \"alexey\".\"get_join_single\" (@joined);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@joined", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "joined" });
 
 					Cmd.ExecuteNonQuery ();
@@ -633,7 +625,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_numeric_types_math\" (@result);";
+					Cmd.CommandText = "call \"alexey\".\"get_numeric_types_math\" (@result);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
 
 					Cmd.ExecuteNonQuery ();
@@ -753,7 +745,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_operators\" (@result);";
+					Cmd.CommandText = "call \"alexey\".\"get_operators\" (@result);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
 
 					Cmd.ExecuteNonQuery ();
@@ -824,7 +816,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_returning\" (@insert_result_1, @insert_result_2, @delete_result_1);";
+					Cmd.CommandText = "call \"alexey\".\"get_returning\" (@insert_result_1, @insert_result_2, @delete_result_1);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@insert_result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "insert_result_1" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@insert_result_2", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "insert_result_2" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@delete_result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "delete_result_1" });
@@ -910,7 +902,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_scalar\" (@partial);";
+					Cmd.CommandText = "call \"alexey\".\"get_scalar\" (@partial);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@partial", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "partial" });
 
 					Cmd.ExecuteNonQuery ();
@@ -955,7 +947,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_single_row\" (@partial);";
+					Cmd.CommandText = "call \"alexey\".\"get_single_row\" (@partial);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@partial", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "partial" });
 
 					Cmd.ExecuteNonQuery ();
@@ -1014,7 +1006,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_user_and_details\" (@user, @details);";
+					Cmd.CommandText = "call \"alexey\".\"get_user_and_details\" (@user, @details);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@user", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "user" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@details", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "details" });
 
@@ -1147,7 +1139,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"get_value_types\" (@result, @expressions_2, @nulls);";
+					Cmd.CommandText = "call \"alexey\".\"get_value_types\" (@result, @expressions_2, @nulls);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@expressions_2", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "expressions_2" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@nulls", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "nulls" });
@@ -1283,7 +1275,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"getdeptchain\" (@p_id, @res01);";
+					Cmd.CommandText = "call \"alexey\".\"getdeptchain\" (@p_id, @res01);";
 					Cmd.Parameters.AddWithValue ("@p_id", (object)p_id ?? DBNull.Value);
 					Cmd.Parameters.Add (new NpgsqlParameter ("@res01", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "res01" });
 
@@ -1323,7 +1315,7 @@ namespace Generated
 		{
 			using (var Cmd = Conn.CreateCommand ())
 			{
-				Cmd.CommandText = "call \"" + SchemaName + "\".\"insert_conflict\" ();";
+				Cmd.CommandText = "call \"alexey\".\"insert_conflict\" ();";
 
 				Cmd.ExecuteNonQuery ();
 			}
@@ -1366,7 +1358,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"persons_getall\" (@users, @ownership);";
+					Cmd.CommandText = "call \"alexey\".\"persons_getall\" (@users, @ownership);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@users", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "users" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@ownership", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "ownership" });
 
@@ -1481,7 +1473,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"roomsforperson\" (@id_person, @res01, @res02, @bwahaha, @get_array, @name, @over, @dt01, @dt02, @dt03, @dt04, @txt, @amount, @came, @done);";
+					Cmd.CommandText = "call \"alexey\".\"roomsforperson\" (@id_person, @res01, @res02, @bwahaha, @get_array, @name, @over, @dt01, @dt02, @dt03, @dt04, @txt, @amount, @came, @done);";
 					Cmd.Parameters.AddWithValue ("@id_person", (object)id_person ?? DBNull.Value);
 					Cmd.Parameters.Add (new NpgsqlParameter ("@res01", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "res01" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@res02", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "res02" });
@@ -1584,7 +1576,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"test_duplicate_open\" (@i, @scalar, @single);";
+					Cmd.CommandText = "call \"alexey\".\"test_duplicate_open\" (@i, @scalar, @single);";
 					Cmd.Parameters.AddWithValue ("@i", (object)i ?? DBNull.Value);
 					Cmd.Parameters.Add (new NpgsqlParameter ("@scalar", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "scalar" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@single", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "single" });
@@ -1640,7 +1632,7 @@ namespace Generated
 		{
 			using (var Cmd = Conn.CreateCommand ())
 			{
-				Cmd.CommandText = "call \"" + SchemaName + "\".\"test_exception\" (@message, @retry);";
+				Cmd.CommandText = "call \"alexey\".\"test_exception\" (@message, @retry);";
 				Cmd.Parameters.AddWithValue ("@message", (object)message ?? DBNull.Value);
 				Cmd.Parameters.AddWithValue ("@retry", (object)retry ?? DBNull.Value);
 
@@ -1665,7 +1657,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"test_from_select\" (@result);";
+					Cmd.CommandText = "call \"alexey\".\"test_from_select\" (@result);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
 
 					Cmd.ExecuteNonQuery ();
@@ -1704,7 +1696,7 @@ namespace Generated
 		{
 			using (var Cmd = Conn.CreateCommand ())
 			{
-				Cmd.CommandText = "call \"" + SchemaName + "\".\"test_loops\" ();";
+				Cmd.CommandText = "call \"alexey\".\"test_loops\" ();";
 
 				Cmd.ExecuteNonQuery ();
 			}
@@ -1738,7 +1730,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"" + SchemaName + "\".\"test_out\" (@p_int, @p_int_arr, @p_bool, @p_bool_arr, @p_date, @p_date_arr, @p_instant, @p_instant_arr, @p_datetime, @p_datetime_arr, @p_varchar, @p_varchar_arr, @p_bytea, @p_status::\"alexey\".\"app_status\", @p_valid_statuses::\"alexey\".\"app_status\"[], @result_1);";
+					Cmd.CommandText = "call \"alexey\".\"test_out\" (@p_int, @p_int_arr, @p_bool, @p_bool_arr, @p_date, @p_date_arr, @p_instant, @p_instant_arr, @p_datetime, @p_datetime_arr, @p_varchar, @p_varchar_arr, @p_bytea, @p_status::\"alexey\".\"app_status\", @p_valid_statuses::\"alexey\".\"app_status\"[], @result_1);";
 					Cmd.Parameters.AddWithValue ("@p_int", (object)p_int ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_int_arr", (object)p_int_arr ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_bool", (object)p_bool ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
@@ -1802,12 +1794,10 @@ namespace Generated
 	public class ext
 	{
 		public NpgsqlConnection Conn;
-		public string SchemaName;
 
-		public ext (NpgsqlConnection Conn, string SchemaName)
+		public ext (NpgsqlConnection Conn)
 		{
 			this.Conn = Conn;
-			this.SchemaName = SchemaName;
 		}
 
 		#region calc
@@ -1815,7 +1805,7 @@ namespace Generated
 		{
 			using (var Cmd = Conn.CreateCommand ())
 			{
-				Cmd.CommandText = "call \"" + SchemaName + "\".\"calc\" ();";
+				Cmd.CommandText = "call \"ext\".\"calc\" ();";
 
 				Cmd.ExecuteNonQuery ();
 			}
@@ -1827,7 +1817,7 @@ namespace Generated
 		{
 			using (var Cmd = Conn.CreateCommand ())
 			{
-				Cmd.CommandText = "call \"" + SchemaName + "\".\"empty\" ();";
+				Cmd.CommandText = "call \"ext\".\"empty\" ();";
 
 				Cmd.ExecuteNonQuery ();
 			}
@@ -1845,12 +1835,10 @@ namespace Generated
 		}
 
 		public NpgsqlConnection Conn;
-		public string SchemaName;
 
-		public no_proc (NpgsqlConnection Conn, string SchemaName)
+		public no_proc (NpgsqlConnection Conn)
 		{
 			this.Conn = Conn;
-			this.SchemaName = SchemaName;
 		}
 
 	}
