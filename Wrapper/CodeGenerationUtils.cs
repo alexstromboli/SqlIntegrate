@@ -51,7 +51,7 @@ namespace Utils.CodeGeneration
 		}
 	}
 
-	class IndentedTextBuilder
+	public class IndentedTextBuilder
 	{
 		class Block : IDisposable
 		{

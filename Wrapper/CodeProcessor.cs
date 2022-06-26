@@ -2,9 +2,16 @@ using System.Collections.Generic;
 
 using DbAnalysis;
 using DbAnalysis.Datasets;
+using Utils.CodeGeneration;
 
 namespace Wrapper
 {
+	public class DbProcProperty
+	{
+		public string Type;
+		public string Name;
+	}
+	
 	public class GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
 			where TColumn : Column, new()
 			where TArgument : Argument, new()
@@ -22,6 +29,11 @@ namespace Wrapper
 		}
 
 		public virtual void OnHaveWrapper (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database)
+		{
+		}
+
+		public virtual void OnCodeGenerationStarted (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
+			IndentedTextBuilder Builder, List<DbProcProperty> DbProcProperties)
 		{
 		}
 	}

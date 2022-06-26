@@ -15,6 +15,8 @@ namespace Generated
 	public class DbProc
 	{
 		public NpgsqlConnection Conn;
+		public Func<byte[], byte[]> Encryptor;
+		public Func<byte[], byte[]> Decryptor;
 
 		protected alexey m_alexey = null;
 		public alexey alexey
@@ -55,9 +57,11 @@ namespace Generated
 			}
 		}
 
-		public DbProc (NpgsqlConnection Conn)
+		public DbProc (NpgsqlConnection Conn, Func<byte[], byte[]> Encryptor, Func<byte[], byte[]> Decryptor)
 		{
 			this.Conn = Conn;
+			this.Encryptor = Encryptor;
+			this.Decryptor = Decryptor;
 			UseCustomMapping (this.Conn);
 		}
 
@@ -1722,7 +1726,9 @@ namespace Generated
 				ref string[] p_varchar_arr,
 				ref byte[] p_bytea,
 				ref string p_status,
-				ref string[] p_valid_statuses 
+				ref string[] p_valid_statuses,
+				ref TryWrapper.Town p_city,
+				ref byte[] p_enc_pi_payer 
 			)
 		{
 			int? Result = null;
@@ -1731,7 +1737,7 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"test_out\" (@p_int, @p_int_arr, @p_bool, @p_bool_arr, @p_date, @p_date_arr, @p_instant, @p_instant_arr, @p_datetime, @p_datetime_arr, @p_varchar, @p_varchar_arr, @p_bytea, @p_status::\"alexey\".\"app_status\", @p_valid_statuses::\"alexey\".\"app_status\"[], @result_1);";
+					Cmd.CommandText = "call \"alexey\".\"test_out\" (@p_int, @p_int_arr, @p_bool, @p_bool_arr, @p_date, @p_date_arr, @p_instant, @p_instant_arr, @p_datetime, @p_datetime_arr, @p_varchar, @p_varchar_arr, @p_bytea, @p_status::\"alexey\".\"app_status\", @p_valid_statuses::\"alexey\".\"app_status\"[], @p_city, @p_enc_pi_payer, @result_1);";
 					Cmd.Parameters.AddWithValue ("@p_int", (object)p_int ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_int_arr", (object)p_int_arr ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_bool", (object)p_bool ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
@@ -1747,6 +1753,8 @@ namespace Generated
 					Cmd.Parameters.AddWithValue ("@p_bytea", (object)p_bytea ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_status", (object)p_status ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_valid_statuses", (object)p_valid_statuses ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
+					Cmd.Parameters.AddWithValue ("@p_city", (object)p_city ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
+					Cmd.Parameters.AddWithValue ("@p_enc_pi_payer", (object)p_enc_pi_payer ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result_1" });
 
 					Cmd.ExecuteNonQuery ();
@@ -1766,6 +1774,8 @@ namespace Generated
 					p_bytea = Cmd.Parameters["@p_bytea"].Value as byte[];
 					p_status = Cmd.Parameters["@p_status"].Value as string;
 					p_valid_statuses = Cmd.Parameters["@p_valid_statuses"].Value as string[];
+					p_city = Cmd.Parameters["@p_city"].Value as TryWrapper.Town;
+					p_enc_pi_payer = Cmd.Parameters["@p_enc_pi_payer"].Value as byte[];
 
 					using (var ResCmd = Conn.CreateCommand ())
 					{
@@ -1788,6 +1798,70 @@ namespace Generated
 			}
 
 			return Result;
+		}
+		#endregion 
+
+		#region test_read_encrypted
+		public class test_read_encrypted_Result_sample
+		{
+			public int? id;
+			public byte[] hash;
+			public byte[] enc_pi_payer;
+		}
+
+		public test_read_encrypted_Result_sample test_read_encrypted ()
+		{
+			test_read_encrypted_Result_sample Result = null;
+
+			using (var Tran = Conn.BeginTransaction ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_read_encrypted\" (@sample);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@sample", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "sample" });
+
+					Cmd.ExecuteNonQuery ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"sample\";";
+						test_read_encrypted_Result_sample Set = null;
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new test_read_encrypted_Result_sample
+								{
+									id = Rdr["id"] as int?,
+									hash = Rdr["hash"] as byte[],
+									enc_pi_payer = Rdr["enc_pi_payer"] as byte[]
+								};
+							}
+						}
+
+						Result = Set;
+					}
+
+					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+		#endregion 
+
+		#region test_write_encrypted
+		public void test_write_encrypted (byte[] p_hash, byte[] p_enc_pi_payer)
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"alexey\".\"test_write_encrypted\" (@p_hash, @p_enc_pi_payer);";
+				Cmd.Parameters.AddWithValue ("@p_hash", (object)p_hash ?? DBNull.Value);
+				Cmd.Parameters.AddWithValue ("@p_enc_pi_payer", (object)p_enc_pi_payer ?? DBNull.Value);
+
+				Cmd.ExecuteNonQuery ();
+			}
 		}
 		#endregion 
 	}

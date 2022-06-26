@@ -1651,6 +1651,16 @@
           "IsOut": true
         },
         {
+          "Name": "p_city",
+          "Type": "USER.city_locale",
+          "IsOut": true
+        },
+        {
+          "Name": "p_enc_pi_payer",
+          "Type": "bytea",
+          "IsOut": true
+        },
+        {
           "Name": "result_1",
           "Type": "refcursor",
           "IsOut": true
@@ -1670,6 +1680,54 @@
           ]
         }
       ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "test_read_encrypted",
+      "Arguments": [
+        {
+          "Name": "sample",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "sample",
+          "Comments": [
+            " # 1"
+          ],
+          "Columns": [
+            {
+              "Name": "id",
+              "Type": "int"
+            },
+            {
+              "Name": "hash",
+              "Type": "bytea"
+            },
+            {
+              "Name": "enc_pi_payer",
+              "Type": "bytea"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "test_write_encrypted",
+      "Arguments": [
+        {
+          "Name": "p_hash",
+          "Type": "bytea"
+        },
+        {
+          "Name": "p_enc_pi_payer",
+          "Type": "bytea"
+        }
+      ],
+      "ResultSets": []
     },
     {
       "Schema": "ext",

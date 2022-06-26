@@ -112,6 +112,13 @@ CREATE TABLE financial_history
     diff payment
 );
 
+CREATE TABLE sensitive
+(
+    id serial PRIMARY KEY,
+    hash bytea,     -- no encryption
+    enc_pi_payer bytea     -- encrypted
+);
+
 INSERT INTO financial_history VALUES
 (
     76,
@@ -963,6 +970,8 @@ CREATE PROCEDURE test_out
     INOUT p_bytea bytea,
     INOUT p_status app_status,
     INOUT p_valid_statuses app_status[],
+    INOUT p_city city_locale,
+    INOUT p_enc_pi_payer bytea,
     INOUT result_1 refcursor
 )
 LANGUAGE 'plpgsql'
@@ -988,6 +997,8 @@ BEGIN
     p_bytea := p_bytea || '123'::bytea;
     p_status := 'hold';
     p_valid_statuses := p_valid_statuses || 'pending'::app_status;
+    p_city := ('Hamilton', 'Ontario')::city_locale;
+    p_enc_pi_payer := (SELECT enc_pi_payer FROM sensitive LIMIT 1);
 
     /*
     -- for INOUT values, nulls in arrays don't come through
@@ -1087,5 +1098,31 @@ BEGIN
     RAISE 'test';
     RAISE NOTICE 'after';
     raise exception using errcode = 50001;
+END;
+$$;
+
+-- DROP PROCEDURE test_write_encrypted;
+CREATE PROCEDURE test_write_encrypted (p_hash bytea, p_enc_pi_payer bytea)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO sensitive (hash, enc_pi_payer)
+    VALUES (p_hash, p_enc_pi_payer);
+END;
+$$;
+
+-- DROP PROCEDURE test_read_encrypted;
+CREATE PROCEDURE test_read_encrypted (INOUT sample refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN sample FOR
+    -- # 1
+    SELECT  id,
+            hash,
+            enc_pi_payer
+    FROM sensitive
+    LIMIT 1
+    ;
 END;
 $$;

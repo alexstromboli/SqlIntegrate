@@ -19,7 +19,11 @@ namespace TestWrapper
 	{
 	}
 
-	class ChangeNameCodeProcessor : GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>
+	class AugCodeProcessor : GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>
+	{
+	}
+
+	class ChangeNameCodeProcessor : AugCodeProcessor
 	{
 		public override void OnHaveWrapper (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database)
 		{
@@ -29,7 +33,7 @@ namespace TestWrapper
 		}
 	}
 
-	class TaggerCodeProcessor : GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>
+	class TaggerCodeProcessor : AugCodeProcessor
 	{
 		public override void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, TypeMapping<AugType, Column>> TypeMap)
 		{
@@ -41,6 +45,15 @@ namespace TestWrapper
 					t.Value.GetValue = v => $"{Prev (v)} /* {t.Value.ReportedType.Tag} */";
 				}
 			}
+		}
+	}
+
+	class EncryptionCodeProcessor : AugCodeProcessor
+	{
+		public override void OnCodeGenerationStarted (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database, IndentedTextBuilder Builder, List<DbProcProperty> DbProcProperties)
+		{
+			DbProcProperties.Add (new DbProcProperty { Type = "Func<byte[], byte[]>", Name = "Encryptor" });
+			DbProcProperties.Add (new DbProcProperty { Type = "Func<byte[], byte[]>", Name = "Decryptor" });
 		}
 	}
 
@@ -56,7 +69,12 @@ namespace TestWrapper
 			foreach (var run in new[]
 			         {
 				         new { target = "dbproc.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new ChangeNameCodeProcessor () } },
-				         new { target = "dbproc_sch_noda.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new GNodaTimeCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> (), new TaggerCodeProcessor () } }
+				         new { target = "dbproc_sch_noda.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[]
+				         {
+					         new GNodaTimeCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> (),
+					         new TaggerCodeProcessor (),
+					         new EncryptionCodeProcessor ()
+				         } }
 			         }
 			        )
 			{

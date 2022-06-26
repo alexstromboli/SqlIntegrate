@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 using Npgsql;
 using NodaTime;
@@ -30,8 +31,8 @@ namespace TryWrapper
 				//Conn.TypeMapper.MapComposite<Generated.alexey.monetary> ("alexey.monetary");
 				//Conn.TypeMapper.MapComposite<Generated.alexey.payment> ("alexey.payment");
 				//Conn.TypeMapper.MapComposite<Generated.alexey.indirectly_used_type> ("alexey.indirectly_used_type");
-				var DbProc = new Generated.DbProc (Conn//, "alexey", "ext", "no_proc"
-					);
+				Func<byte[], byte[]> XorCryptor = buf => buf.Select (b => (byte)(b ^ 0x53)).ToArray ();
+				var DbProc = new Generated.DbProc (Conn, XorCryptor, XorCryptor);
 
 				try
 				{
@@ -61,14 +62,16 @@ namespace TryWrapper
 				byte[] t_bytea = { 4, 8, 1 };
 				string t_status = Generated.alexey.app_status.active;
 				string[] t_valid_statuses = new[] { Generated.alexey.app_status.active };
-				//EStatus? t_status = EStatus.r_active;
+				Town t_town = new Town { city = "Oakville", region = "Ontario" };
+				byte[] t_payer = new byte[0];
 
 				var Result = DbProc.alexey.test_out (ref t_int, ref t_int_arr, ref t_bool, ref t_bool_arr,
 					ref t_date, ref t_date_arr,
 					ref t_instant, ref t_instant_arr,
 					ref t_datetime, ref t_datetime_arr,
 					ref t_string, ref t_string_arr,
-					ref t_bytea, ref t_status, ref t_valid_statuses);
+					ref t_bytea, ref t_status, ref t_valid_statuses,
+					ref t_town, ref t_payer);
 
 				//
 				var test_from_select = DbProc.alexey.test_from_select ();

@@ -231,6 +231,8 @@ namespace Wrapper
 
 			//
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
+			List<DbProcProperty> DbProcProperties = new List<DbProcProperty> ();
+			Processors.Act (p => p.OnCodeGenerationStarted (Database, sb, DbProcProperties));
 
 			if (!string.IsNullOrWhiteSpace (Database.TitleComment))
 			{
@@ -254,6 +256,10 @@ namespace Wrapper
 				using (sb.UseCurlyBraces ($"public class {Database.CsClassName}"))
 				{
 					sb.AppendLine ("public NpgsqlConnection Conn;");
+					foreach (var p in DbProcProperties)
+					{
+						sb.AppendLine ($"public {p.Type} {p.Name};");
+					}
 
 					foreach (var ns in Database.Schemata)
 					{
@@ -278,9 +284,13 @@ namespace Wrapper
 					sb.AppendLine ();
 
 					// constructor
-					using (sb.UseCurlyBraces ($"public {Database.CsClassName} (NpgsqlConnection Conn)"))
+					using (sb.UseCurlyBraces ($"public {Database.CsClassName} (NpgsqlConnection Conn{string.Join ("", DbProcProperties.Select (p => $", {p.Type} {p.Name}"))})"))
 					{
 						sb.AppendLine ("this.Conn = Conn;");
+						foreach (var p in DbProcProperties)
+						{
+							sb.AppendLine ($"this.{p.Name} = {p.Name};");
+						}
 
 						if (HasCustomMapping)
 						{
