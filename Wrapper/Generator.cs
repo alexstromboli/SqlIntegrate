@@ -441,7 +441,13 @@ namespace Wrapper
 								{
 									foreach (var P in Set.Properties)
 									{
-										sb.AppendLine ($"public {P.TypeMapping.CsTypeName ()} {P.CsName};");
+										string ColumnCsType = P.TypeMapping.CsTypeName ();
+										Processors.Act (p => p.OnEncodingResultSetColumn (Database, ns, pi.Value, Set, P, ref ColumnCsType));
+
+										if (ColumnCsType != null)
+										{
+											sb.AppendLine ($"public {ColumnCsType} {P.CsName};");
+										}
 									}
 								}
 
@@ -582,9 +588,26 @@ namespace Wrapper
 															sb.TypeText ("Set.Add (");
 														}
 
+														var ReadProps = Set.Properties
+																.Select (prop =>
+																{
+																	string Value = prop.GetReaderExpression ("Rdr");
+																	Processors.Act (p =>
+																		p.OnReadingResultSetColumn (Database, ns,
+																			pi.Value, Set, prop, ref Value));
+
+																	return Value == null
+																			? null
+																			: new { Property = prop, Value }
+																		;
+																})
+																.Where (p => p != null)
+																.ToArray ()
+															;
+
 														if (Set.IsSingleColumn)
 														{
-															sb.TypeText (Set.Properties[0].GetReaderExpression ("Rdr"));
+															sb.TypeText (ReadProps[0].Value);
 														}
 														else
 														{
@@ -593,10 +616,10 @@ namespace Wrapper
 
 															using (sb.UseBlock ())
 															{
-																foreach (var c in Set.Properties.Indexed ())
+																foreach (var c in ReadProps.Indexed ())
 																{
 																	sb.AppendLine (
-																		$"{c.Value.CsName} = {c.Value.GetReaderExpression ("Rdr")}{(c.IsLast ? "" : ",")}");
+																		$"{c.Value.Property.CsName} = {c.Value.Value}{(c.IsLast ? "" : ",")}");
 																}
 															}
 
@@ -642,7 +665,7 @@ namespace Wrapper
 								}
 							}
 
-							sb.AppendLine ("#endregion ");
+							sb.AppendLine ("#endregion");
 						}
 					}
 				}

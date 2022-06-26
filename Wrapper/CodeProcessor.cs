@@ -42,7 +42,8 @@ namespace Wrapper
 		{
 		}
 
-		public virtual void OnEncodingParameter (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
+		public virtual void OnEncodingParameter (
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema Schema,
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure Procedure,
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Argument Argument,
@@ -50,7 +51,8 @@ namespace Wrapper
 		{
 		}
 
-		public virtual void OnPassingParameter (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
+		public virtual void OnPassingParameter (
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema Schema,
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure Procedure,
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Argument Argument,
@@ -58,11 +60,32 @@ namespace Wrapper
 		{
 		}
 
-		public virtual void OnReadingParameter (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
+		public virtual void OnReadingParameter (
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema Schema,
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure Procedure,
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Argument Argument,
 			ref string ArgumentValue)
+		{
+		}
+
+		public virtual void OnEncodingResultSetColumn (
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema Schema,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure Procedure,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Set ResultSet,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Set.Property Property,
+			ref string ColumnCsType)
+		{
+		}
+
+		public virtual void OnReadingResultSetColumn (
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema Schema,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure Procedure,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Set ResultSet,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Set.Property Property,
+			ref string ColumnValue)
 		{
 		}
 	}

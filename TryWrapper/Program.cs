@@ -39,7 +39,13 @@ namespace TryWrapper
 				//Conn.TypeMapper.MapComposite<Generated.alexey.indirectly_used_type> ("alexey.indirectly_used_type");
 				Func<byte[], byte[]> XorCryptor = buf => buf.Select (b => (byte)(b ^ 0x53)).ToArray ();
 				var DbProc = new Generated.DbProc (Conn, XorCryptor, XorCryptor);
+				
+				// encryption
+				Payer Customer = new Payer { Last4 = "1502", PostalCode = "X3W" };
+				DbProc.alexey.test_write_encrypted (new byte[] { 8, 9, 1, 3 }, Customer);
+				var rc01 = DbProc.alexey.test_read_encrypted ();
 
+				// exceptions
 				try
 				{
 					DbProc.alexey.test_exception ("Check exception", 42);

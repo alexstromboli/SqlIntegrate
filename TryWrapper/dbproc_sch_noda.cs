@@ -204,7 +204,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_array
 		public class get_array_Result_names
@@ -327,7 +327,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_composite
 		public class get_composite_Result_result
@@ -413,7 +413,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_db_qualified
 		public class get_db_qualified_Result_own
@@ -467,7 +467,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_inserted
 		public class get_inserted_Result_inserted
@@ -515,7 +515,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_join_single
 		public class get_join_single_Result_joined
@@ -565,7 +565,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_numeric_types_math
 		public class get_numeric_types_math_Result_result
@@ -753,7 +753,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_operators
 		public class get_operators_Result_result
@@ -805,7 +805,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_returning
 		public class get_returning_Result_insert_result_1
@@ -918,7 +918,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_scalar
 		public string get_scalar ()
@@ -956,7 +956,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_single_row
 		public class get_single_row_Result_partial
@@ -1006,7 +1006,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_user_and_details
 		public class get_user_and_details_Result_details
@@ -1085,7 +1085,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region get_value_types
 		public class get_value_types_Result_result
@@ -1284,7 +1284,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region getdeptchain
 		public class getdeptchain_Result_res01
@@ -1335,7 +1335,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region insert_conflict
 		public void insert_conflict ()
@@ -1347,7 +1347,7 @@ namespace Generated
 				Cmd.ExecuteNonQuery ();
 			}
 		}
-		#endregion 
+		#endregion
 
 		#region persons_getall
 		public class persons_getall_Result_users
@@ -1446,7 +1446,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region roomsforperson
 		public class roomsforperson_Result_res01
@@ -1580,7 +1580,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region test_duplicate_open
 		public class test_duplicate_open_Result_single
@@ -1652,7 +1652,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region test_exception
 		public void test_exception (string message, int? retry)
@@ -1666,7 +1666,7 @@ namespace Generated
 				Cmd.ExecuteNonQuery ();
 			}
 		}
-		#endregion 
+		#endregion
 
 		#region test_from_select
 		public class test_from_select_Result_result
@@ -1716,7 +1716,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region test_loops
 		public void test_loops ()
@@ -1728,7 +1728,7 @@ namespace Generated
 				Cmd.ExecuteNonQuery ();
 			}
 		}
-		#endregion 
+		#endregion
 
 		#region test_out
 		/// <param name="p_status">Value from alexey.app_status</param>
@@ -1821,14 +1821,14 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region test_read_encrypted
 		public class test_read_encrypted_Result_sample
 		{
 			public int? id;
 			public byte[] hash;
-			public byte[] enc_pi_payer;
+			public TryWrapper.Payer enc_pi_payer;
 		}
 
 		public test_read_encrypted_Result_sample test_read_encrypted ()
@@ -1857,7 +1857,7 @@ namespace Generated
 								{
 									id = Rdr["id"] as int?,
 									hash = Rdr["hash"] as byte[],
-									enc_pi_payer = Rdr["enc_pi_payer"] as byte[]
+									enc_pi_payer = DbProc.ReadEncrypted<TryWrapper.Payer> (Rdr["enc_pi_payer"] as byte[])
 								};
 							}
 						}
@@ -1871,7 +1871,7 @@ namespace Generated
 
 			return Result;
 		}
-		#endregion 
+		#endregion
 
 		#region test_write_encrypted
 		public void test_write_encrypted (byte[] p_hash, TryWrapper.Payer p_enc_pi_payer)
@@ -1885,7 +1885,7 @@ namespace Generated
 				Cmd.ExecuteNonQuery ();
 			}
 		}
-		#endregion 
+		#endregion
 	}
 
 	public class ext
@@ -1908,7 +1908,7 @@ namespace Generated
 				Cmd.ExecuteNonQuery ();
 			}
 		}
-		#endregion 
+		#endregion
 
 		#region empty
 		public void empty ()
@@ -1920,7 +1920,7 @@ namespace Generated
 				Cmd.ExecuteNonQuery ();
 			}
 		}
-		#endregion 
+		#endregion
 	}
 
 	public class no_proc
