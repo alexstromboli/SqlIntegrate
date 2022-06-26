@@ -549,6 +549,8 @@ namespace Wrapper
 
 											string ValueRep = oa.Value.TypeMapping.GetValue (
 												$"Cmd.Parameters[{oa.Value.CallParamName.ToDoubleQuotes ()}].Value");
+											Processors.Act (p => p.OnReadingParameter (Database, ns, pi.Value, oa.Value, ref ValueRep));
+
 											sb.AppendLine ($"{oa.Value.CsName} = {ValueRep};");
 										}
 

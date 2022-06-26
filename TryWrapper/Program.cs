@@ -69,7 +69,7 @@ namespace TryWrapper
 				string t_status = Generated.alexey.app_status.active;
 				string[] t_valid_statuses = new[] { Generated.alexey.app_status.active };
 				Town t_town = new Town { city = "Oakville", region = "Ontario" };
-				byte[] t_payer = new byte[0];
+				Payer t_payer = new Payer { Last4 = "4578", PostalCode = "10001" };
 
 				var Result = DbProc.alexey.test_out (ref t_int, ref t_int_arr, ref t_bool, ref t_bool_arr,
 					ref t_date, ref t_date_arr,

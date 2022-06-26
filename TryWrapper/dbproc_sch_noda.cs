@@ -1797,7 +1797,7 @@ namespace Generated
 					p_status = Cmd.Parameters["@p_status"].Value as string;
 					p_valid_statuses = Cmd.Parameters["@p_valid_statuses"].Value as string[];
 					p_city = Cmd.Parameters["@p_city"].Value as TryWrapper.Town;
-					p_enc_pi_payer = Cmd.Parameters["@p_enc_pi_payer"].Value as byte[];
+					p_enc_pi_payer = DbProc.ReadEncrypted<TryWrapper.Payer> (Cmd.Parameters["@p_enc_pi_payer"].Value as byte[]);
 
 					using (var ResCmd = Conn.CreateCommand ())
 					{

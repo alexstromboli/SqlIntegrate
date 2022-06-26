@@ -51,6 +51,8 @@ namespace TestWrapper
 
 	class EncryptionCodeProcessor : AugCodeProcessor
 	{
+		public const string TargetCsTypeName = "TryWrapper.Payer";
+		
 		public override void OnHaveWrapper (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database)
 		{
 			// here: check if not added yet
@@ -104,7 +106,7 @@ namespace TestWrapper
 		{
 			if (NameMatches (Argument.NativeName))
 			{
-				ArgumentCsType = "TryWrapper.Payer";
+				ArgumentCsType = TargetCsTypeName;
 			}
 		}
 
@@ -117,6 +119,18 @@ namespace TestWrapper
 			if (NameMatches (Argument.NativeName))
 			{
 				ArgumentValue = $"DbProc.WriteEncrypted ({ArgumentValue})";
+			}
+		}
+
+		public override void OnReadingParameter (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database,
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule>.Schema Schema,
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule>.Schema.Procedure Procedure,
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule>.Schema.Procedure.Argument Argument,
+			ref string ArgumentValue)
+		{
+			if (NameMatches (Argument.NativeName))
+			{
+				ArgumentValue = $"DbProc.ReadEncrypted<{TargetCsTypeName}> ({ArgumentValue})";
 			}
 		}
 	}
