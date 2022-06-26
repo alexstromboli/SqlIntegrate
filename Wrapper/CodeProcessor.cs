@@ -36,6 +36,11 @@ namespace Wrapper
 			IndentedTextBuilder Builder, List<DbProcProperty> DbProcProperties)
 		{
 		}
+
+		public virtual void OnCodeGeneratingDbProc (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
+			IndentedTextBuilder Builder)
+		{
+		}
 	}
 
 	public class CodeProcessor : GCodeProcessor<SqlType, Procedure, Column, Argument, ResultSet, Module>

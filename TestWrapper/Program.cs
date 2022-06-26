@@ -50,10 +50,44 @@ namespace TestWrapper
 
 	class EncryptionCodeProcessor : AugCodeProcessor
 	{
+		public override void OnHaveWrapper (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database)
+		{
+			// here: check if not added yet
+			Database.Usings.Add ("using System.Text;");
+			Database.Usings.Add ("using Newtonsoft.Json;");
+		}
+
 		public override void OnCodeGenerationStarted (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database, IndentedTextBuilder Builder, List<DbProcProperty> DbProcProperties)
 		{
 			DbProcProperties.Add (new DbProcProperty { Type = "Func<byte[], byte[]>", Name = "Encryptor" });
 			DbProcProperties.Add (new DbProcProperty { Type = "Func<byte[], byte[]>", Name = "Decryptor" });
+		}
+
+		public override void OnCodeGeneratingDbProc (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database, IndentedTextBuilder sb)
+		{
+			sb.AppendLine ();
+			using (sb.UseCurlyBraces ("public T ReadEncrypted<T> (object Input)"))
+			{
+				using (sb.UseCurlyBraces ("if (Input == null || Input == DBNull.Value)"))
+				{
+					sb.AppendLine ("return default (T);");
+				}
+				
+				sb.AppendLine ()
+					.AppendLine ("return JsonConvert.DeserializeObject<T> (Encoding.UTF8.GetString (Decryptor ((byte[])Input)));");
+			}
+
+			sb.AppendLine ();
+			using (sb.UseCurlyBraces ("public byte[] WriteEncrypted<T> (T Input)"))
+			{
+				using (sb.UseCurlyBraces ("if (Input == null)"))
+				{
+					sb.AppendLine ("return null;");
+				}
+				
+				sb.AppendLine ()
+					.AppendLine ("return Encryptor (Encoding.UTF8.GetBytes (JsonConvert.SerializeObject (Input)));");
+			}
 		}
 	}
 

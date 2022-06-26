@@ -333,6 +333,9 @@ namespace Wrapper
 							}
 						}
 					}
+					
+					//
+					Processors.Act (p => p.OnCodeGeneratingDbProc (Database, sb));
 				}
 
 				foreach (var ns in Database.Schemata)

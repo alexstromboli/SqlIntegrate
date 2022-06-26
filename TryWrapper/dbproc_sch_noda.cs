@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using Npgsql;
 using NpgsqlTypes;
 using NodaTime;
+using System.Text;
+using Newtonsoft.Json;
 
 namespace Generated
 {
@@ -77,6 +79,26 @@ namespace Generated
 			Conn.TypeMapper.MapComposite<alexey.indirectly_used_type> ("alexey.indirectly_used_type");
 			Conn.TypeMapper.MapComposite<alexey.monetary> ("alexey.monetary");
 			Conn.TypeMapper.MapComposite<alexey.payment> ("alexey.payment");
+		}
+
+		public T ReadEncrypted<T> (object Input)
+		{
+			if (Input == null || Input == DBNull.Value)
+			{
+				return default (T);
+			}
+
+			return JsonConvert.DeserializeObject<T> (Encoding.UTF8.GetString (Decryptor ((byte[])Input)));
+		}
+
+		public byte[] WriteEncrypted<T> (T Input)
+		{
+			if (Input == null)
+			{
+				return null;
+			}
+
+			return Encryptor (Encoding.UTF8.GetBytes (JsonConvert.SerializeObject (Input)));
 		}
 	}
 

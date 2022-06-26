@@ -19,6 +19,12 @@ namespace TryWrapper
 		}
 	}
 
+	public class Payer
+	{
+		public string PostalCode;
+		public string Last4;
+	}
+
 	class Program
 	{
 		static void Main (string[] args)
