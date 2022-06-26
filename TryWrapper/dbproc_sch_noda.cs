@@ -1750,7 +1750,7 @@ namespace Generated
 				ref string p_status,
 				ref string[] p_valid_statuses,
 				ref TryWrapper.Town p_city,
-				ref byte[] p_enc_pi_payer 
+				ref TryWrapper.Payer p_enc_pi_payer 
 			)
 		{
 			int? Result = null;
@@ -1776,7 +1776,7 @@ namespace Generated
 					Cmd.Parameters.AddWithValue ("@p_status", (object)p_status ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_valid_statuses", (object)p_valid_statuses ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.AddWithValue ("@p_city", (object)p_city ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
-					Cmd.Parameters.AddWithValue ("@p_enc_pi_payer", (object)p_enc_pi_payer ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
+					Cmd.Parameters.AddWithValue ("@p_enc_pi_payer", (object)DbProc.WriteEncrypted (p_enc_pi_payer) ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result_1" });
 
 					Cmd.ExecuteNonQuery ();
@@ -1874,13 +1874,13 @@ namespace Generated
 		#endregion 
 
 		#region test_write_encrypted
-		public void test_write_encrypted (byte[] p_hash, byte[] p_enc_pi_payer)
+		public void test_write_encrypted (byte[] p_hash, TryWrapper.Payer p_enc_pi_payer)
 		{
 			using (var Cmd = Conn.CreateCommand ())
 			{
 				Cmd.CommandText = "call \"alexey\".\"test_write_encrypted\" (@p_hash, @p_enc_pi_payer);";
 				Cmd.Parameters.AddWithValue ("@p_hash", (object)p_hash ?? DBNull.Value);
-				Cmd.Parameters.AddWithValue ("@p_enc_pi_payer", (object)p_enc_pi_payer ?? DBNull.Value);
+				Cmd.Parameters.AddWithValue ("@p_enc_pi_payer", (object)DbProc.WriteEncrypted (p_enc_pi_payer) ?? DBNull.Value);
 
 				Cmd.ExecuteNonQuery ();
 			}

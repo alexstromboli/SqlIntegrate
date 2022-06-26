@@ -421,7 +421,17 @@ namespace Wrapper
 
 							string[] Args = p.Arguments
 									.Where (a => !a.IsCursor)
-									.Select (a => (a.IsOut ? "ref " : "") + $"{a.TypeMapping.CsTypeName ()} {a.CsName}")
+									.Select (a =>
+									{
+										string ArgumentType = a.TypeMapping.CsTypeName ();
+										Processors.Act (p => p.OnEncodingParameter (Database, ns, pi.Value, a, ref ArgumentType));
+
+										return ArgumentType == null
+											? null
+											: (a.IsOut ? "ref " : "") +
+											  $"{ArgumentType} {a.CsName}";
+									})
+									.Where (a => a != null)
 									.ToArray ()
 								;
 
@@ -511,11 +521,18 @@ namespace Wrapper
 											}
 											else
 											{
-												sb.AppendLine ($"Cmd.Parameters.AddWithValue ({a.CallParamName.ToDoubleQuotes ()}, (object){a.TypeMapping.SetValue (a.CsName)} ?? DBNull.Value)"
-												               + (a.IsOut
-													               ? ".Direction = ParameterDirection.InputOutput"
-													               : "")
-												               + ";");
+												string Value = a.TypeMapping.SetValue (a.CsName);
+												Processors.Act (p => p.OnPassingParameter (Database, ns, pi.Value, a, ref Value));
+
+												if (Value != null)
+												{
+													sb.AppendLine (
+														$"Cmd.Parameters.AddWithValue ({a.CallParamName.ToDoubleQuotes ()}, (object){Value} ?? DBNull.Value)"
+														+ (a.IsOut
+															? ".Direction = ParameterDirection.InputOutput"
+															: "")
+														+ ";");
+												}
 											}
 										}
 

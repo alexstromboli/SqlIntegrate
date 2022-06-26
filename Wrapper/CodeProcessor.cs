@@ -41,6 +41,22 @@ namespace Wrapper
 			IndentedTextBuilder Builder)
 		{
 		}
+
+		public virtual void OnEncodingParameter (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema Schema,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure Procedure,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Argument Argument,
+			ref string ArgumentCsType)
+		{
+		}
+
+		public virtual void OnPassingParameter (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema Schema,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure Procedure,
+			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>.Schema.Procedure.Argument Argument,
+			ref string ArgumentValue)
+		{
+		}
 	}
 
 	public class CodeProcessor : GCodeProcessor<SqlType, Procedure, Column, Argument, ResultSet, Module>

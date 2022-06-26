@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 using Newtonsoft.Json;
 
@@ -87,6 +88,35 @@ namespace TestWrapper
 				
 				sb.AppendLine ()
 					.AppendLine ("return Encryptor (Encoding.UTF8.GetBytes (JsonConvert.SerializeObject (Input)));");
+			}
+		}
+
+		protected static bool NameMatches (string ArgumentName)
+		{
+			return Regex.IsMatch (ArgumentName, @"^(p_)?enc_pi_");
+		}
+
+		public override void OnEncodingParameter (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database,
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule>.Schema Schema,
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule>.Schema.Procedure Procedure,
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule>.Schema.Procedure.Argument Argument,
+			ref string ArgumentCsType)
+		{
+			if (NameMatches (Argument.NativeName))
+			{
+				ArgumentCsType = "TryWrapper.Payer";
+			}
+		}
+
+		public override void OnPassingParameter (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database,
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule>.Schema Schema,
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule>.Schema.Procedure Procedure,
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule>.Schema.Procedure.Argument Argument,
+			ref string ArgumentValue)
+		{
+			if (NameMatches (Argument.NativeName))
+			{
+				ArgumentValue = $"DbProc.WriteEncrypted ({ArgumentValue})";
 			}
 		}
 	}
