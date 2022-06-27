@@ -236,7 +236,7 @@ namespace Wrapper
 
 			if (!string.IsNullOrWhiteSpace (Database.TitleComment))
 			{
-				sb.AppendLine (CodeGenerationUtils.AutomaticWarning);
+				sb.AppendLine (Database.TitleComment);
 			}
 
 			foreach (var u in Database.Usings)

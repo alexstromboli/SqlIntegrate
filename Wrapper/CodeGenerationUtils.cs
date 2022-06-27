@@ -162,7 +162,8 @@ namespace Utils.CodeGeneration
 			return this;
 		}
 
-		public IndentedTextBuilder AppendLine (string Line = null, int AddedDepth = 0)
+		// no check that Line is indeed just 1 line
+		protected IndentedTextBuilder AppendSingleLine (string Line, int AddedDepth)
 		{
 			if (!string.IsNullOrWhiteSpace (Line))
 			{
@@ -176,6 +177,21 @@ namespace Utils.CodeGeneration
 			else
 			{
 				StringBuilder.AppendLine ();
+			}
+
+			return this;
+		}
+
+		public IndentedTextBuilder AppendLine (string Text = null, int AddedDepth = 0)
+		{
+			if (Text == null)
+			{
+				return AppendSingleLine (null, AddedDepth);
+			}
+
+			foreach (string Line in Text.Split ('\n').Select (s => s.TrimEnd ('\r')))
+			{
+				AppendSingleLine (Line, AddedDepth);
 			}
 
 			return this;
