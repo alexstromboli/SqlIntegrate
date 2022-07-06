@@ -1126,3 +1126,15 @@ BEGIN
     ;
 END;
 $$;
+
+-- DROP PROCEDURE test_json;
+CREATE PROCEDURE test_json (data json, data_b jsonb, INOUT sample refcursor)    -- taking json or jsonb as arguments
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN sample FOR
+    -- # 1
+    SELECT  (data->>'t')::int * 2 + (data_b->>'t')::int AS result
+    ;
+END;
+$$;

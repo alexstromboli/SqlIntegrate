@@ -1718,6 +1718,46 @@ namespace Generated
 		}
 		#endregion
 
+		#region test_json
+		public int? test_json (string data, string data_b)
+		{
+			int? Result = null;
+
+			using (var Tran = Conn.BeginTransaction ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_json\" (@data::json, @data_b::jsonb, @sample);";
+					Cmd.Parameters.AddWithValue ("@data", (object)data ?? DBNull.Value);
+					Cmd.Parameters.AddWithValue ("@data_b", (object)data_b ?? DBNull.Value);
+					Cmd.Parameters.Add (new NpgsqlParameter ("@sample", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "sample" });
+
+					Cmd.ExecuteNonQuery ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"sample\";";
+						int? Set = null;
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = Rdr["result"] as int?;
+							}
+						}
+
+						Result = Set;
+					}
+
+					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+		#endregion
+
 		#region test_loops
 		public void test_loops ()
 		{

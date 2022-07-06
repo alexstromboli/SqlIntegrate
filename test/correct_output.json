@@ -1567,6 +1567,39 @@
     },
     {
       "Schema": "USER",
+      "Name": "test_json",
+      "Arguments": [
+        {
+          "Name": "data",
+          "Type": "json"
+        },
+        {
+          "Name": "data_b",
+          "Type": "jsonb"
+        },
+        {
+          "Name": "sample",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "sample",
+          "Comments": [
+            " # 1"
+          ],
+          "Columns": [
+            {
+              "Name": "result",
+              "Type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "test_loops",
       "Arguments": [],
       "ResultSets": []

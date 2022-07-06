@@ -91,7 +91,7 @@ namespace Wrapper
 				TypeMap.Add (PsqlKey, ClrKey, DbTypeMap.GetTypeForName (PsqlKey));
 				TypeMap[PsqlKey].ReportedType = t;
 			}
-			
+
 			// pre-matched types
 			foreach (var t in TypeMap)
 			{
@@ -100,7 +100,7 @@ namespace Wrapper
 					t.Value.CsTypeName = () => t.Value.ReportedType.MapTo;
 				}
 			}
-			
+
 			//
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
@@ -333,7 +333,7 @@ namespace Wrapper
 							}
 						}
 					}
-					
+
 					//
 					Processors.Act (p => p.OnCodeGeneratingDbProc (Database, sb));
 				}
@@ -508,8 +508,9 @@ namespace Wrapper
 									using (sb.UseCurlyBraces ("using (var Cmd = Conn.CreateCommand ())"))
 									{
 										string Params = string.Join (", ", p.Arguments.Select (a => a.CallParamName
-											+ (a.Origin.PSqlType?.BaseType.EnumValues == null ? "" : ($"::{a.Origin.PSqlType.BaseType.Schema.ToDoubleQuotes ()}.{a.Origin.PSqlType.BaseType.OwnName.ToDoubleQuotes ()}"
-											+ (a.Origin.PSqlType.IsArray ? "[]" : "")))
+											+ (a.Origin.PSqlType.BaseType.EnumValues == null ? "" : ($"::{a.Origin.PSqlType.BaseType.Schema.ToDoubleQuotes ()}.{a.Origin.PSqlType.BaseType.OwnName.ToDoubleQuotes ()}"
+												+ (a.Origin.PSqlType.IsArray ? "[]" : "")))
+											+ (a.Origin.PSqlType.ShortName == "jsonb" || a.Origin.PSqlType?.ShortName == "json" ? $"::{a.Origin.PSqlType?.ShortName}" : "")
 										));
 										string Call =
 											$"call {ns.NativeName.ToDoubleQuotes ()}.{pi.Value.NativeName.ToDoubleQuotes ()} ({Params});"

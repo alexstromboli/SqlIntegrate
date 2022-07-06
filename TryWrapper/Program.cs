@@ -33,13 +33,13 @@ namespace TryWrapper
 			{
 				Conn.Open ();
 				Conn.TypeMapper.UseNodaTime ();
-				//Conn.TypeMapper.MapEnum<EStatus> ("alexey.app_status");
-				//Conn.TypeMapper.MapComposite<Generated.alexey.monetary> ("alexey.monetary");
-				//Conn.TypeMapper.MapComposite<Generated.alexey.payment> ("alexey.payment");
-				//Conn.TypeMapper.MapComposite<Generated.alexey.indirectly_used_type> ("alexey.indirectly_used_type");
+
 				Func<byte[], byte[]> XorCryptor = buf => buf.Select (b => (byte)(b ^ 0x53)).ToArray ();
 				var DbProc = new Generated.DbProc (Conn, XorCryptor, XorCryptor);
-				
+
+				// jsonb
+				var t_json = DbProc.alexey.test_json ("{\"t\": 9}", "{\"t\": 20}");
+
 				// encryption
 				Payer Customer = new Payer { Last4 = "1502", PostalCode = "X3W" };
 				DbProc.alexey.test_write_encrypted (new byte[] { 8, 9, 1, 3 }, Customer);
