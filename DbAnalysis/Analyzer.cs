@@ -200,7 +200,7 @@ namespace DbAnalysis
 		{
 			this.DatabaseContext = DatabaseContext;
 			PExpressionRefST = new Ref<SPolynom> ();
-			
+
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
 			PDoubleQuotedString =
 					from _1 in Parse.Char ('"')
@@ -829,7 +829,19 @@ namespace DbAnalysis
 						.DelimitedBy (AnyTokenST ("union all", "union", "except", "subtract"))
 						.Select (ss => ss.ToArray ())
 					from ord in POrderByClauseOptionalST
-					from limit in SqlToken ("limit").Then (p => Parse.Number.SqlToken ()).Optional ()
+					from limit in
+					(
+						from kw in SqlToken ("limit")
+						from size in PExpressionRefST.Get.Return (0)
+							.Or (SqlToken ("limit").Return (0))
+						select 0
+					).Optional ()
+					from offset in
+					(
+						from kw in SqlToken ("offset")
+						from size in PExpressionRefST.Get
+						select 0
+					).Optional ()
 					select new SelectStatement (seq[0].List, seq[0].FromClause.GetOrDefault ())
 				;
 

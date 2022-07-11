@@ -921,6 +921,7 @@ BEGIN
         LEFT JOIN FILTERED FIRST ON FIRST.id_agent::uuid = ext.Persons.id
     GROUP BY ext.Persons.id, "first", ext.Persons.lastname, FILTERED.id_agent, FIRST."use ""quotes"" """""
     ORDER BY ext.Persons.id
+    LIMIT a * b OFFSET N
     ;
 END;
 $$;
