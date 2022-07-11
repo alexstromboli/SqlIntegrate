@@ -874,6 +874,10 @@ CREATE PROCEDURE get_aggregates
 )
 LANGUAGE 'plpgsql'
 AS $$
+DECLARE
+    N int := 1;
+    A int := 1;
+    B int := 1;
 BEGIN
     -- insert values
     OPEN result FOR

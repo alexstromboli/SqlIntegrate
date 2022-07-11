@@ -113,6 +113,7 @@ namespace Wrapper
 				{
 					"using System;",
 					"using System.Data;",
+					"using System.Threading.Tasks;",
 					"using System.Collections.Generic;",
 					"using Npgsql;",
 					"using NpgsqlTypes;"
@@ -251,7 +252,7 @@ namespace Wrapper
 				       : null)
 			{
 				bool HasCustomMapping = Module.Types.Any (t => t.Enum != null && t.GenerateEnum
-					|| t.Properties != null);
+				                                               || t.Properties != null);
 
 				using (sb.UseCurlyBraces ($"public class {Database.CsClassName}"))
 				{
@@ -284,7 +285,8 @@ namespace Wrapper
 					sb.AppendLine ();
 
 					// constructor
-					using (sb.UseCurlyBraces ($"public {Database.CsClassName} (NpgsqlConnection Conn{string.Join ("", DbProcProperties.Select (p => $", {p.Type} {p.Name}"))})"))
+					using (sb.UseCurlyBraces (
+						       $"public {Database.CsClassName} (NpgsqlConnection Conn{string.Join ("", DbProcProperties.Select (p => $", {p.Type} {p.Name}"))})"))
 					{
 						sb.AppendLine ("this.Conn = Conn;");
 						foreach (var p in DbProcProperties)
@@ -406,6 +408,7 @@ namespace Wrapper
 							{
 								p.ResultClassName = "void";
 							}
+
 							if (p.IsSingleSet)
 							{
 								p.ResultClassName = p.ResultSets[0].SetCsTypeName;
@@ -424,7 +427,8 @@ namespace Wrapper
 									.Select (a =>
 									{
 										string ArgumentType = a.TypeMapping.CsTypeName ();
-										Processors.Act (p => p.OnEncodingParameter (Database, ns, pi.Value, a, ref ArgumentType));
+										Processors.Act (p =>
+											p.OnEncodingParameter (Database, ns, pi.Value, a, ref ArgumentType));
 
 										return ArgumentType == null
 											? null
@@ -434,6 +438,7 @@ namespace Wrapper
 									.Where (a => a != null)
 									.ToArray ()
 								;
+							var OutArguments = p.Arguments.Where (a => !a.IsCursor && a.IsOut).ToArray ();
 
 							foreach (var Set in p.ResultSets.Where (s => !s.IsSingleColumn))
 							{
@@ -442,7 +447,9 @@ namespace Wrapper
 									foreach (var P in Set.Properties)
 									{
 										string ColumnCsType = P.TypeMapping.CsTypeName ();
-										Processors.Act (p => p.OnEncodingResultSetColumn (Database, ns, pi.Value, Set, P, ref ColumnCsType));
+										Processors.Act (p =>
+											p.OnEncodingResultSetColumn (Database, ns, pi.Value, Set, P,
+												ref ColumnCsType));
 
 										if (ColumnCsType != null)
 										{
@@ -467,202 +474,239 @@ namespace Wrapper
 								sb.AppendLine ();
 							}
 
-							// type comments
-							foreach (var e in p.Arguments.Where (a => a.Origin.PSqlType?.BaseType.EnumValues != null))
+							// method in two modes, sync and async
+							foreach (bool IsAsync in new[] { false, true })
 							{
-								sb.AppendLine ($"/// <param name=\"{e.CsName}\">Value from {e.Origin.PSqlType.BaseType.Display}</param>");
-							}
-
-							string MethodDeclPrefix = $"public {p.ResultClassName} {pi.Value.CsName} (";
-							if (Args.Length <= 2)
-							{
-								string ArgsDef = string.Join (", ", Args);
-								sb.AppendLine (MethodDeclPrefix + ArgsDef + ")");
-							}
-							else
-							{
-								sb.AppendLine (MethodDeclPrefix);
-								foreach (var a in Args.Indexed ())
+								if (IsAsync && OutArguments.Length > 0)
 								{
-									sb.AppendLine (a.Value + (a.IsLast ? " " : ","), 2);
+									continue;
 								}
-								sb.AppendLine (")", 1);
-							}
 
-							using (sb.UseCurlyBraces ())
-							{
-								bool UseTransaction = pi.Value.ResultSets.Count > 0;
+								string Await = IsAsync ? "await " : "";
+								string Async = IsAsync ? "Async" : "";
 
-								if (p.HasResults)
+								if (IsAsync)
+								{
+									sb.AppendLine ();
+								}
+
+								// type comments
+								foreach (var e in p.Arguments.Where (
+									         a => a.Origin.PSqlType?.BaseType.EnumValues != null))
 								{
 									sb.AppendLine (
-											$"{p.ResultClassName} Result = {(p.IsSingleSet ? "null" : "new " + p.ResultClassName + " ()")};"
-										)
-										.AppendLine ();
+										$"/// <param name=\"{e.CsName}\">Value from {e.Origin.PSqlType.BaseType.Display}</param>");
 								}
 
-								using (UseTransaction
-									       ? sb.UseCurlyBraces ("using (var Tran = Conn.BeginTransaction ())")
-									       : null)
+								string ReturnType = IsAsync
+									? "async " + (p.ResultClassName == "void" ? "Task" : "Task<" + p.ResultClassName + ">")
+									: p.ResultClassName;
+
+								string MethodDeclPrefix =
+									$"public {ReturnType} {pi.Value.CsName}{Async} (";
+								if (Args.Length <= 2)
 								{
-									using (sb.UseCurlyBraces ("using (var Cmd = Conn.CreateCommand ())"))
+									string ArgsDef = string.Join (", ", Args);
+									sb.AppendLine (MethodDeclPrefix + ArgsDef + ")");
+								}
+								else
+								{
+									sb.AppendLine (MethodDeclPrefix);
+									foreach (var a in Args.Indexed ())
 									{
-										string Params = string.Join (", ", p.Arguments.Select (a => a.CallParamName
-											+ (a.Origin.PSqlType.BaseType.EnumValues == null ? "" : ($"::{a.Origin.PSqlType.BaseType.Schema.ToDoubleQuotes ()}.{a.Origin.PSqlType.BaseType.OwnName.ToDoubleQuotes ()}"
-												+ (a.Origin.PSqlType.IsArray ? "[]" : "")))
-											+ (a.Origin.PSqlType.ShortName == "jsonb" || a.Origin.PSqlType?.ShortName == "json" ? $"::{a.Origin.PSqlType?.ShortName}" : "")
-										));
-										string Call =
-											$"call {ns.NativeName.ToDoubleQuotes ()}.{pi.Value.NativeName.ToDoubleQuotes ()} ({Params});"
-												.ToDoubleQuotes ();
-										sb.AppendLine ($"Cmd.CommandText = {Call};");
+										sb.AppendLine (a.Value + (a.IsLast ? "" : ","), 2);
+									}
 
-										foreach (var a in p.Arguments)
+									sb.AppendLine (")", 1);
+								}
+
+								using (sb.UseCurlyBraces ())
+								{
+									bool UseTransaction = pi.Value.ResultSets.Count > 0;
+
+									if (p.HasResults)
+									{
+										sb.AppendLine (
+												$"{p.ResultClassName} Result = {(p.IsSingleSet ? "null" : "new " + p.ResultClassName + " ()")};"
+											)
+											.AppendLine ();
+									}
+
+									using (UseTransaction
+										       ? sb.UseCurlyBraces ($"using (var Tran = {Await}Conn.BeginTransaction{Async} ())")
+										       : null)
+									{
+										using (sb.UseCurlyBraces ("using (var Cmd = Conn.CreateCommand ())"))
 										{
-											if (a.IsCursor)
+											string Params = string.Join (", ", p.Arguments.Select (a => a.CallParamName
+												+ (a.Origin.PSqlType.BaseType.EnumValues == null
+													? ""
+													: (
+														$"::{a.Origin.PSqlType.BaseType.Schema.ToDoubleQuotes ()}.{a.Origin.PSqlType.BaseType.OwnName.ToDoubleQuotes ()}"
+														+ (a.Origin.PSqlType.IsArray ? "[]" : "")))
+												+ (a.Origin.PSqlType.ShortName == "jsonb" ||
+												   a.Origin.PSqlType?.ShortName == "json"
+													? $"::{a.Origin.PSqlType?.ShortName}"
+													: "")
+											));
+											string Call =
+												$"call {ns.NativeName.ToDoubleQuotes ()}.{pi.Value.NativeName.ToDoubleQuotes ()} ({Params});"
+													.ToDoubleQuotes ();
+											sb.AppendLine ($"Cmd.CommandText = {Call};");
+
+											foreach (var a in p.Arguments)
 											{
-												if (a.IsOut)
+												if (a.IsCursor)
 												{
-													sb.AppendLine ($"Cmd.Parameters.Add (new NpgsqlParameter ({a.CallParamName.ToDoubleQuotes ()}, NpgsqlDbType.Refcursor) {{ Direction = ParameterDirection.InputOutput, Value = \"{a.CsName}\" }});");
-												}
-											}
-											else
-											{
-												string Value = a.TypeMapping.SetValue (a.CsName);
-												Processors.Act (p => p.OnPassingParameter (Database, ns, pi.Value, a, ref Value));
-
-												if (Value != null)
-												{
-													sb.AppendLine (
-														$"Cmd.Parameters.AddWithValue ({a.CallParamName.ToDoubleQuotes ()}, (object){Value} ?? DBNull.Value)"
-														+ (a.IsOut
-															? ".Direction = ParameterDirection.InputOutput"
-															: "")
-														+ ";");
-												}
-											}
-										}
-
-										sb.AppendLine ()
-											.AppendLine ("Cmd.ExecuteNonQuery ();");
-
-										// read OUT parameters returned
-										foreach (var oa in p.Arguments.Where (a => !a.IsCursor && a.IsOut).Indexed ())
-										{
-											if (oa.IsFirst)
-											{
-												sb.AppendLine ();
-											}
-
-											string ValueRep = oa.Value.TypeMapping.GetValue (
-												$"Cmd.Parameters[{oa.Value.CallParamName.ToDoubleQuotes ()}].Value");
-											Processors.Act (p => p.OnReadingParameter (Database, ns, pi.Value, oa.Value, ref ValueRep));
-
-											sb.AppendLine ($"{oa.Value.CsName} = {ValueRep};");
-										}
-
-										// read result sets
-										foreach (var Set in p.ResultSets)
-										{
-											sb.AppendLine ();
-											using (sb.UseCurlyBraces ($"using (var ResCmd = Conn.CreateCommand ())"))
-											{
-												sb.AppendLine (
-														$"ResCmd.CommandText = {$"FETCH ALL IN {Set.CursorName.ToDoubleQuotes ()};".ToDoubleQuotes ()};")
-													.AppendLine (
-														$"{Set.SetCsTypeName} Set = {(Set.IsSingleRow ? $"null" : $"new {Set.SetCsTypeName} ()")};")
-													.AppendLine ()
-													;
-
-												using (sb.UseCurlyBraces ("using (var Rdr = ResCmd.ExecuteReader ())"))
-												{
-													using (sb.UseCurlyBraces ((Set.IsSingleRow ? "if" : "while") +
-													                          " (Rdr.Read ())"))
+													if (a.IsOut)
 													{
-														sb.TypeIndent ();
-														if (Set.IsSingleRow)
-														{
-															sb.TypeText ("Set = ");
-														}
-														else
-														{
-															sb.TypeText ("Set.Add (");
-														}
-
-														var ReadProps = Set.Properties
-																.Select (prop =>
-																{
-																	string Value = prop.GetReaderExpression ("Rdr");
-																	Processors.Act (p =>
-																		p.OnReadingResultSetColumn (Database, ns,
-																			pi.Value, Set, prop, ref Value));
-
-																	return Value == null
-																			? null
-																			: new { Property = prop, Value }
-																		;
-																})
-																.Where (p => p != null)
-																.ToArray ()
-															;
-
-														if (Set.IsSingleColumn)
-														{
-															sb.TypeText (ReadProps[0].Value);
-														}
-														else
-														{
-															sb.AppendLine ($"new {Set.RowCsClassName}")
-																.AppendLine ("{");
-
-															using (sb.UseBlock ())
-															{
-																foreach (var c in ReadProps.Indexed ())
-																{
-																	sb.AppendLine (
-																		$"{c.Value.Property.CsName} = {c.Value.Value}{(c.IsLast ? "" : ",")}");
-																}
-															}
-
-															sb.TypeIndent ()
-																.TypeText ("}");
-														}
-
-														if (Set.IsSingleRow)
-														{
-															sb.AppendLine (";");
-														}
-														else
-														{
-															sb.AppendLine (");");
-														}
+														sb.AppendLine (
+															$"Cmd.Parameters.Add (new NpgsqlParameter ({a.CallParamName.ToDoubleQuotes ()}, NpgsqlDbType.Refcursor) {{ Direction = ParameterDirection.InputOutput, Value = \"{a.CsName}\" }});");
 													}
-												}
-
-												sb.AppendLine ();
-												if (p.IsSingleSet)
-												{
-													sb.AppendLine ($"Result = Set;");
 												}
 												else
 												{
-													sb.AppendLine ($"Result.{Set.PropertyName} = Set;");
+													string Value = a.TypeMapping.SetValue (a.CsName);
+													Processors.Act (p =>
+														p.OnPassingParameter (Database, ns, pi.Value, a, ref Value));
+
+													if (Value != null)
+													{
+														sb.AppendLine (
+															$"Cmd.Parameters.AddWithValue ({a.CallParamName.ToDoubleQuotes ()}, (object){Value} ?? DBNull.Value)"
+															+ (a.IsOut
+																? ".Direction = ParameterDirection.InputOutput"
+																: "")
+															+ ";");
+													}
 												}
 											}
-										}
 
-										if (UseTransaction)
-										{
 											sb.AppendLine ()
-												.AppendLine ("Tran.Commit ();");
+												.AppendLine ($"{Await}Cmd.ExecuteNonQuery{Async} ();");
+
+											// read OUT parameters returned
+											foreach (var oa in OutArguments.Indexed ())
+											{
+												if (oa.IsFirst)
+												{
+													sb.AppendLine ();
+												}
+
+												string ValueRep = oa.Value.TypeMapping.GetValue (
+													$"Cmd.Parameters[{oa.Value.CallParamName.ToDoubleQuotes ()}].Value");
+												Processors.Act (p =>
+													p.OnReadingParameter (Database, ns, pi.Value, oa.Value,
+														ref ValueRep));
+
+												sb.AppendLine ($"{oa.Value.CsName} = {ValueRep};");
+											}
+
+											// read result sets
+											foreach (var Set in p.ResultSets)
+											{
+												sb.AppendLine ();
+												using (sb.UseCurlyBraces (
+													       $"using (var ResCmd = Conn.CreateCommand ())"))
+												{
+													sb.AppendLine (
+															$"ResCmd.CommandText = {$"FETCH ALL IN {Set.CursorName.ToDoubleQuotes ()};".ToDoubleQuotes ()};")
+														.AppendLine (
+															$"{Set.SetCsTypeName} Set = {(Set.IsSingleRow ? $"null" : $"new {Set.SetCsTypeName} ()")};")
+														.AppendLine ()
+														;
+
+													using (sb.UseCurlyBraces (
+														       $"using (var Rdr = {Await}ResCmd.ExecuteReader{Async} ())"))
+													{
+														using (sb.UseCurlyBraces ((Set.IsSingleRow ? "if" : "while") +
+															       " (Rdr.Read ())"))
+														{
+															sb.TypeIndent ();
+															if (Set.IsSingleRow)
+															{
+																sb.TypeText ("Set = ");
+															}
+															else
+															{
+																sb.TypeText ("Set.Add (");
+															}
+
+															var ReadProps = Set.Properties
+																	.Select (prop =>
+																	{
+																		string Value = prop.GetReaderExpression ("Rdr");
+																		Processors.Act (p =>
+																			p.OnReadingResultSetColumn (Database, ns,
+																				pi.Value, Set, prop, ref Value));
+
+																		return Value == null
+																				? null
+																				: new { Property = prop, Value }
+																			;
+																	})
+																	.Where (p => p != null)
+																	.ToArray ()
+																;
+
+															if (Set.IsSingleColumn)
+															{
+																sb.TypeText (ReadProps[0].Value);
+															}
+															else
+															{
+																sb.AppendLine ($"new {Set.RowCsClassName}")
+																	.AppendLine ("{");
+
+																using (sb.UseBlock ())
+																{
+																	foreach (var c in ReadProps.Indexed ())
+																	{
+																		sb.AppendLine (
+																			$"{c.Value.Property.CsName} = {c.Value.Value}{(c.IsLast ? "" : ",")}");
+																	}
+																}
+
+																sb.TypeIndent ()
+																	.TypeText ("}");
+															}
+
+															if (Set.IsSingleRow)
+															{
+																sb.AppendLine (";");
+															}
+															else
+															{
+																sb.AppendLine (");");
+															}
+														}
+													}
+
+													sb.AppendLine ();
+													if (p.IsSingleSet)
+													{
+														sb.AppendLine ($"Result = Set;");
+													}
+													else
+													{
+														sb.AppendLine ($"Result.{Set.PropertyName} = Set;");
+													}
+												}
+											}
+
+											if (UseTransaction)
+											{
+												sb.AppendLine ()
+													.AppendLine ($"{Await}Tran.Commit{Async} ();");
+											}
 										}
 									}
-								}
 
-								if (p.HasResults)
-								{
-									sb.AppendLine ()
-										.AppendLine ($"return Result;");
+									if (p.HasResults)
+									{
+										sb.AppendLine ()
+											.AppendLine ($"return Result;");
+									}
 								}
 							}
 

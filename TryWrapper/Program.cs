@@ -87,7 +87,7 @@ namespace TryWrapper
 
 				//
 				var test_from_select = DbProc.alexey.test_from_select ();
-				var get_aggregates = DbProc.alexey.get_aggregates (1.7f);
+				var get_aggregates = DbProc.alexey.get_aggregatesAsync (1.7f).Result;
 				var rsons_getall = DbProc.alexey.persons_getall ();
 				DbProc.ext.calc ();
 				var get_single_row = DbProc.alexey.get_single_row ();

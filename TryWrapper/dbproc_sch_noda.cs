@@ -5,6 +5,7 @@
 
 using System;
 using System.Data;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using Npgsql;
 using NpgsqlTypes;
@@ -204,6 +205,51 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<List<get_aggregates_Result_result>> get_aggregatesAsync (float? coef)
+		{
+			List<get_aggregates_Result_result> Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_aggregates\" (@coef, @result);";
+					Cmd.Parameters.AddWithValue ("@coef", (object)coef ?? DBNull.Value);
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						List<get_aggregates_Result_result> Set = new List<get_aggregates_Result_result> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_aggregates_Result_result
+								{
+									id_agent = Rdr["id_agent"] as string,
+									lastname = Rdr["lastname"] as string,
+									input = Rdr["input"] as double?,
+									count = Rdr["count"] as long?,
+									first = Rdr["first"] as LocalDate?,
+									use_quotes = Rdr["use_quotes"] as string
+								});
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region get_array
@@ -327,6 +373,95 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<get_array_Result> get_arrayAsync ()
+		{
+			get_array_Result Result = new get_array_Result ();
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_array\" (@names, @by_person, @unnest);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@names", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "names" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@by_person", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "by_person" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@unnest", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "unnest" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"names\";";
+						List<get_array_Result_names> Set = new List<get_array_Result_names> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_array_Result_names
+								{
+									extents = Rdr["extents"] as int[],
+									array = Rdr["array"] as bool[],
+									names = Rdr["names"] as string[],
+									order = Rdr["order"] as int[],
+									array_plus_item = Rdr["array_plus_item"] as int[],
+									array_plus_array = Rdr["array_plus_array"] as int[],
+									item_plus_array = Rdr["item_plus_array"] as int[]
+								});
+							}
+						}
+
+						Result.names = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"by_person\";";
+						List<get_array_Result_by_person> Set = new List<get_array_Result_by_person> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_array_Result_by_person
+								{
+									id_person = Rdr["id_person"] as Guid?,
+									array_agg = Rdr["array_agg"] as int[]
+								});
+							}
+						}
+
+						Result.by_person = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"unnest\";";
+						List<get_array_Result_unnest> Set = new List<get_array_Result_unnest> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_array_Result_unnest
+								{
+									unnest = Rdr["unnest"] as int?,
+									e = Rdr["e"] as int?,
+									w = Rdr["w"] as string,
+									qw = Rdr["qw"] as string
+								});
+							}
+						}
+
+						Result.unnest = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region get_composite
@@ -413,6 +548,71 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<get_composite_Result> get_compositeAsync (TryWrapper.Town destination)
+		{
+			get_composite_Result Result = new get_composite_Result ();
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_composite\" (@destination, @result, @matched);";
+					Cmd.Parameters.AddWithValue ("@destination", (object)destination ?? DBNull.Value);
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@matched", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "matched" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						List<get_composite_Result_result> Set = new List<get_composite_Result_result> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_composite_Result_result
+								{
+									id = Rdr["id"] as int?,
+									as_block = Rdr["as_block"] as alexey.payment,
+									date = Rdr["date"] as LocalDate?,
+									paid = Rdr["paid"] as alexey.monetary /* financial */,
+									amount = Rdr["amount"] as decimal?,
+									last_status = Rdr["last_status"] as string,
+									aux_status = Rdr["aux_status"] as string,
+									town = Rdr["town"] as TryWrapper.Town,
+									locations = Rdr["locations"] as TryWrapper.Town[]
+								});
+							}
+						}
+
+						Result.result = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"matched\";";
+						TryWrapper.Town Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = Rdr["town"] as TryWrapper.Town;
+							}
+						}
+
+						Result.matched = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region get_db_qualified
@@ -467,6 +667,49 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<List<get_db_qualified_Result_own>> get_db_qualifiedAsync ()
+		{
+			List<get_db_qualified_Result_own> Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_db_qualified\" (@own);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@own", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "own" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"own\";";
+						List<get_db_qualified_Result_own> Set = new List<get_db_qualified_Result_own> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_db_qualified_Result_own
+								{
+									id_person = Rdr["id_person"] as Guid?,
+									id_room = Rdr["id_room"] as int?,
+									id = Rdr["id"] as int?,
+									name = Rdr["name"] as string,
+									extents = Rdr["extents"] as int[]
+								});
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region get_inserted
@@ -510,6 +753,46 @@ namespace Generated
 					}
 
 					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+
+		public async Task<List<get_inserted_Result_inserted>> get_insertedAsync ()
+		{
+			List<get_inserted_Result_inserted> Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_inserted\" (@inserted);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@inserted", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "inserted" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"inserted\";";
+						List<get_inserted_Result_inserted> Set = new List<get_inserted_Result_inserted> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_inserted_Result_inserted
+								{
+									id_person = Rdr["id_person"] as Guid?,
+									id_room = Rdr["id_room"] as int?
+								});
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
 				}
 			}
 
@@ -560,6 +843,47 @@ namespace Generated
 					}
 
 					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+
+		public async Task<List<get_join_single_Result_joined>> get_join_singleAsync ()
+		{
+			List<get_join_single_Result_joined> Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_join_single\" (@joined);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@joined", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "joined" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"joined\";";
+						List<get_join_single_Result_joined> Set = new List<get_join_single_Result_joined> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_join_single_Result_joined
+								{
+									title = Rdr["title"] as string,
+									document_id = Rdr["document_id"] as int?,
+									date = Rdr["date"] as LocalDate?
+								});
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
 				}
 			}
 
@@ -753,6 +1077,116 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<get_numeric_types_math_Result_result> get_numeric_types_mathAsync ()
+		{
+			get_numeric_types_math_Result_result Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_numeric_types_math\" (@result);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						get_numeric_types_math_Result_result Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new get_numeric_types_math_Result_result
+								{
+									res_numeric_numeric = Rdr["res_numeric_numeric"] as decimal?,
+									type_numeric_numeric = Rdr["type_numeric_numeric"] as string,
+									res_numeric_real = Rdr["res_numeric_real"] as double?,
+									type_numeric_real = Rdr["type_numeric_real"] as string,
+									res_numeric_float = Rdr["res_numeric_float"] as double?,
+									type_numeric_float = Rdr["type_numeric_float"] as string,
+									res_numeric_int = Rdr["res_numeric_int"] as decimal?,
+									type_numeric_int = Rdr["type_numeric_int"] as string,
+									res_numeric_smallint = Rdr["res_numeric_smallint"] as decimal?,
+									type_numeric_smallint = Rdr["type_numeric_smallint"] as string,
+									res_numeric_bigint = Rdr["res_numeric_bigint"] as decimal?,
+									type_numeric_bigint = Rdr["type_numeric_bigint"] as string,
+									res_real_numeric = Rdr["res_real_numeric"] as double?,
+									type_real_numeric = Rdr["type_real_numeric"] as string,
+									res_real_real = Rdr["res_real_real"] as float?,
+									type_real_real = Rdr["type_real_real"] as string,
+									res_real_float = Rdr["res_real_float"] as double?,
+									type_real_float = Rdr["type_real_float"] as string,
+									res_real_int = Rdr["res_real_int"] as double?,
+									type_real_int = Rdr["type_real_int"] as string,
+									res_real_smallint = Rdr["res_real_smallint"] as double?,
+									type_real_smallint = Rdr["type_real_smallint"] as string,
+									res_real_bigint = Rdr["res_real_bigint"] as double?,
+									type_real_bigint = Rdr["type_real_bigint"] as string,
+									res_float_numeric = Rdr["res_float_numeric"] as double?,
+									type_float_numeric = Rdr["type_float_numeric"] as string,
+									res_float_real = Rdr["res_float_real"] as double?,
+									type_float_real = Rdr["type_float_real"] as string,
+									res_float_float = Rdr["res_float_float"] as double?,
+									type_float_float = Rdr["type_float_float"] as string,
+									res_float_int = Rdr["res_float_int"] as double?,
+									type_float_int = Rdr["type_float_int"] as string,
+									res_float_smallint = Rdr["res_float_smallint"] as double?,
+									type_float_smallint = Rdr["type_float_smallint"] as string,
+									res_float_bigint = Rdr["res_float_bigint"] as double?,
+									type_float_bigint = Rdr["type_float_bigint"] as string,
+									res_int_numeric = Rdr["res_int_numeric"] as decimal?,
+									type_int_numeric = Rdr["type_int_numeric"] as string,
+									res_int_real = Rdr["res_int_real"] as double?,
+									type_int_real = Rdr["type_int_real"] as string,
+									res_int_float = Rdr["res_int_float"] as double?,
+									type_int_float = Rdr["type_int_float"] as string,
+									res_int_int = Rdr["res_int_int"] as int?,
+									type_int_int = Rdr["type_int_int"] as string,
+									res_int_smallint = Rdr["res_int_smallint"] as int?,
+									type_int_smallint = Rdr["type_int_smallint"] as string,
+									res_int_bigint = Rdr["res_int_bigint"] as long?,
+									type_int_bigint = Rdr["type_int_bigint"] as string,
+									res_smallint_numeric = Rdr["res_smallint_numeric"] as decimal?,
+									type_smallint_numeric = Rdr["type_smallint_numeric"] as string,
+									res_smallint_real = Rdr["res_smallint_real"] as double?,
+									type_smallint_real = Rdr["type_smallint_real"] as string,
+									res_smallint_float = Rdr["res_smallint_float"] as double?,
+									type_smallint_float = Rdr["type_smallint_float"] as string,
+									res_smallint_int = Rdr["res_smallint_int"] as int?,
+									type_smallint_int = Rdr["type_smallint_int"] as string,
+									res_smallint_smallint = Rdr["res_smallint_smallint"] as short?,
+									type_smallint_smallint = Rdr["type_smallint_smallint"] as string,
+									res_smallint_bigint = Rdr["res_smallint_bigint"] as long?,
+									type_smallint_bigint = Rdr["type_smallint_bigint"] as string,
+									res_bigint_numeric = Rdr["res_bigint_numeric"] as decimal?,
+									type_bigint_numeric = Rdr["type_bigint_numeric"] as string,
+									res_bigint_real = Rdr["res_bigint_real"] as double?,
+									type_bigint_real = Rdr["type_bigint_real"] as string,
+									res_bigint_float = Rdr["res_bigint_float"] as double?,
+									type_bigint_float = Rdr["type_bigint_float"] as string,
+									res_bigint_int = Rdr["res_bigint_int"] as long?,
+									type_bigint_int = Rdr["type_bigint_int"] as string,
+									res_bigint_smallint = Rdr["res_bigint_smallint"] as long?,
+									type_bigint_smallint = Rdr["type_bigint_smallint"] as string,
+									res_bigint_bigint = Rdr["res_bigint_bigint"] as long?,
+									type_bigint_bigint = Rdr["type_bigint_bigint"] as string
+								};
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region get_operators
@@ -800,6 +1234,48 @@ namespace Generated
 					}
 
 					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+
+		public async Task<get_operators_Result_result> get_operatorsAsync ()
+		{
+			get_operators_Result_result Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_operators\" (@result);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						get_operators_Result_result Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new get_operators_Result_result
+								{
+									t1 = Rdr["t1"] as bool?,
+									t2 = Rdr["t2"] as bool?,
+									t3 = Rdr["t3"] as bool?,
+									sum = Rdr["sum"] as int?
+								};
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
 				}
 			}
 
@@ -918,6 +1394,90 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<get_returning_Result> get_returningAsync ()
+		{
+			get_returning_Result Result = new get_returning_Result ();
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_returning\" (@insert_result_1, @insert_result_2, @delete_result_1);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@insert_result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "insert_result_1" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@insert_result_2", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "insert_result_2" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@delete_result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "delete_result_1" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"insert_result_1\";";
+						List<get_returning_Result_insert_result_1> Set = new List<get_returning_Result_insert_result_1> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_returning_Result_insert_result_1
+								{
+									notch = Rdr["notch"] as int?,
+									category = Rdr["category"] as string
+								});
+							}
+						}
+
+						Result.insert_result_1 = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"insert_result_2\";";
+						List<get_returning_Result_insert_result_2> Set = new List<get_returning_Result_insert_result_2> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_returning_Result_insert_result_2
+								{
+									id = Rdr["id"] as int?,
+									category = Rdr["category"] as string,
+									height = Rdr["height"] as int?,
+									stub = Rdr["stub"] as int?
+								});
+							}
+						}
+
+						Result.insert_result_2 = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"delete_result_1\";";
+						List<get_returning_Result_delete_result_1> Set = new List<get_returning_Result_delete_result_1> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_returning_Result_delete_result_1
+								{
+									id_person = Rdr["id_person"] as Guid?,
+									id_room = Rdr["id_room"] as int?
+								});
+							}
+						}
+
+						Result.delete_result_1 = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region get_scalar
@@ -951,6 +1511,42 @@ namespace Generated
 					}
 
 					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+
+		public async Task<string> get_scalarAsync ()
+		{
+			string Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_scalar\" (@partial);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@partial", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "partial" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"partial\";";
+						string Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = Rdr["name"] as string;
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
 				}
 			}
 
@@ -1001,6 +1597,47 @@ namespace Generated
 					}
 
 					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+
+		public async Task<get_single_row_Result_partial> get_single_rowAsync ()
+		{
+			get_single_row_Result_partial Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_single_row\" (@partial);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@partial", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "partial" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"partial\";";
+						get_single_row_Result_partial Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new get_single_row_Result_partial
+								{
+									id = Rdr["id"] as int?,
+									name = Rdr["name"] as string,
+									_float = Rdr["float"] as string
+								};
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
 				}
 			}
 
@@ -1080,6 +1717,67 @@ namespace Generated
 					}
 
 					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+
+		public async Task<get_user_and_details_Result> get_user_and_detailsAsync ()
+		{
+			get_user_and_details_Result Result = new get_user_and_details_Result ();
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_user_and_details\" (@user, @details);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@user", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "user" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@details", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "details" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"user\";";
+						string Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = Rdr["name"] as string;
+							}
+						}
+
+						Result.user = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"details\";";
+						List<get_user_and_details_Result_details> Set = new List<get_user_and_details_Result_details> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_user_and_details_Result_details
+								{
+									id = Rdr["id"] as Guid?,
+									lastname = Rdr["lastname"] as string,
+									firstname = Rdr["firstname"] as string,
+									dob = Rdr["dob"] as LocalDate?,
+									tab_num = Rdr["tab_num"] as long?,
+									effect = Rdr["effect"] as int?
+								});
+							}
+						}
+
+						Result.details = Set;
+					}
+
+					await Tran.CommitAsync ();
 				}
 			}
 
@@ -1284,6 +1982,133 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<get_value_types_Result> get_value_typesAsync ()
+		{
+			get_value_types_Result Result = new get_value_types_Result ();
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_value_types\" (@result, @expressions_2, @nulls);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@expressions_2", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "expressions_2" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@nulls", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "nulls" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						get_value_types_Result_result Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new get_value_types_Result_result
+								{
+									_int = Rdr["int"] as int?,
+									numeric = Rdr["numeric"] as decimal?,
+									numeric_e_neg = Rdr["numeric_e_neg"] as decimal?,
+									numeric_e_pos = Rdr["numeric_e_pos"] as decimal?,
+									numeric_e_def = Rdr["numeric_e_def"] as decimal?,
+									real = Rdr["real"] as float?,
+									_float = Rdr["float"] as double?,
+									money = Rdr["money"] as decimal?,
+									varchar = Rdr["varchar"] as string,
+									given = Rdr["given"] as string,
+									remote = Rdr["remote"] as LocalDateTime?,
+									_bool = Rdr["bool"] as bool?,
+									regtype = Rdr["regtype"] as uint?,
+									last_status = Rdr["last_status"] as string,
+									packages = Rdr["packages"] as string[],
+									owner_sum = Rdr["owner_sum"] as long?,
+									full_qual = Rdr["full_qual"] as string,
+									full_qual_quot = Rdr["full_qual_quot"] as string,
+									full_qual_quot_2 = Rdr["full_qual_quot_2"] as string
+								};
+							}
+						}
+
+						Result.result = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"expressions_2\";";
+						get_value_types_Result_expressions_2 Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new get_value_types_Result_expressions_2
+								{
+									timestamptz = Rdr["timestamptz"] as Instant?,
+									money = Rdr["money"] as decimal?,
+									timestamp_2 = Rdr["timestamp 2"] as LocalDateTime?,
+									timestamp_3 = Rdr["timestamp 3"] as LocalDateTime?,
+									interval = Rdr["interval"] as Period,
+									_bool = Rdr["bool"] as bool?,
+									bool_2 = Rdr["bool 2"] as bool?,
+									bool_3 = Rdr["bool 3"] as bool?,
+									varchar_1 = Rdr["varchar 1"] as string,
+									varchar_2 = Rdr["varchar 2"] as string,
+									varchar_3 = Rdr["varchar 3"] as string,
+									bigint = Rdr["bigint"] as long?,
+									between_2 = Rdr["between 2"] as bool?,
+									loop = Rdr["loop"] as byte[],
+									money_2 = Rdr["money 2"] as decimal?,
+									array_agg = Rdr["array_agg"] as long?,
+									array_agg_2 = Rdr["array_agg_2"] as string,
+									_case = Rdr["case"] as string
+								};
+							}
+						}
+
+						Result.expressions_2 = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"nulls\";";
+						get_value_types_Result_nulls Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new get_value_types_Result_nulls
+								{
+									_int = Rdr["int"] as int?,
+									numeric = Rdr["numeric"] as decimal?,
+									_float = Rdr["float"] as double?,
+									real = Rdr["real"] as float?,
+									bigint = Rdr["bigint"] as long?,
+									smallint = Rdr["smallint"] as short?,
+									money = Rdr["money"] as decimal?,
+									varchar = Rdr["varchar"] as string,
+									uuid = Rdr["uuid"] as Guid?,
+									timestamp = Rdr["timestamp"] as LocalDateTime?,
+									date = Rdr["date"] as LocalDate?,
+									_bool = Rdr["bool"] as bool?,
+									coalesce_first = Rdr["coalesce_first"] as bool?,
+									coalesce_second = Rdr["coalesce_second"] as decimal?
+								};
+							}
+						}
+
+						Result.nulls = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region getdeptchain
@@ -1335,6 +2160,48 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<getdeptchain_Result_res01> getdeptchainAsync (int? p_id)
+		{
+			getdeptchain_Result_res01 Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"getdeptchain\" (@p_id, @res01);";
+					Cmd.Parameters.AddWithValue ("@p_id", (object)p_id ?? DBNull.Value);
+					Cmd.Parameters.Add (new NpgsqlParameter ("@res01", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "res01" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"res01\";";
+						getdeptchain_Result_res01 Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new getdeptchain_Result_res01
+								{
+									id = Rdr["id"] as int?,
+									name = Rdr["name"] as string,
+									_float = Rdr["float"] as int?
+								};
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region insert_conflict
@@ -1345,6 +2212,16 @@ namespace Generated
 				Cmd.CommandText = "call \"alexey\".\"insert_conflict\" ();";
 
 				Cmd.ExecuteNonQuery ();
+			}
+		}
+
+		public async Task insert_conflictAsync ()
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"alexey\".\"insert_conflict\" ();";
+
+				await Cmd.ExecuteNonQueryAsync ();
 			}
 		}
 		#endregion
@@ -1446,6 +2323,76 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<persons_getall_Result> persons_getallAsync ()
+		{
+			persons_getall_Result Result = new persons_getall_Result ();
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"persons_getall\" (@users, @ownership);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@users", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "users" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@ownership", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "ownership" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"users\";";
+						List<persons_getall_Result_users> Set = new List<persons_getall_Result_users> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new persons_getall_Result_users
+								{
+									num = Rdr["num"] as int?,
+									id = Rdr["id"] as Guid?,
+									lastname = Rdr["lastname"] as string,
+									firstname = Rdr["firstname"] as string,
+									dob = Rdr["dob"] as LocalDate?,
+									tab_num = Rdr["tab_num"] as long?,
+									status = Rdr["status"] as string,
+									effect = Rdr["effect"] as int?
+								});
+							}
+						}
+
+						Result.users = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"ownership\";";
+						List<persons_getall_Result_ownership> Set = new List<persons_getall_Result_ownership> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new persons_getall_Result_ownership
+								{
+									lastname = Rdr["lastname"] as string,
+									num = Rdr["num"] as int?,
+									id = Rdr["id"] as int?,
+									name = Rdr["name"] as string,
+									extents = Rdr["extents"] as int[]
+								});
+							}
+						}
+
+						Result.ownership = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region roomsforperson
@@ -1491,7 +2438,7 @@ namespace Generated
 				string txt,
 				decimal? amount,
 				ref long? came,
-				ref string done 
+				ref string done
 			)
 		{
 			roomsforperson_Result Result = new roomsforperson_Result ();
@@ -1652,6 +2599,64 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<test_duplicate_open_Result> test_duplicate_openAsync (int? i)
+		{
+			test_duplicate_open_Result Result = new test_duplicate_open_Result ();
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_duplicate_open\" (@i, @scalar, @single);";
+					Cmd.Parameters.AddWithValue ("@i", (object)i ?? DBNull.Value);
+					Cmd.Parameters.Add (new NpgsqlParameter ("@scalar", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "scalar" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@single", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "single" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"scalar\";";
+						int? Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = Rdr["id"] as int?;
+							}
+						}
+
+						Result.scalar = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"single\";";
+						test_duplicate_open_Result_single Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new test_duplicate_open_Result_single
+								{
+									id = Rdr["id"] as int?,
+									name = Rdr["name"] as string
+								};
+							}
+						}
+
+						Result.single = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region test_exception
@@ -1664,6 +2669,18 @@ namespace Generated
 				Cmd.Parameters.AddWithValue ("@retry", (object)retry ?? DBNull.Value);
 
 				Cmd.ExecuteNonQuery ();
+			}
+		}
+
+		public async Task test_exceptionAsync (string message, int? retry)
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"alexey\".\"test_exception\" (@message, @retry);";
+				Cmd.Parameters.AddWithValue ("@message", (object)message ?? DBNull.Value);
+				Cmd.Parameters.AddWithValue ("@retry", (object)retry ?? DBNull.Value);
+
+				await Cmd.ExecuteNonQueryAsync ();
 			}
 		}
 		#endregion
@@ -1716,6 +2733,47 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<List<test_from_select_Result_result>> test_from_selectAsync ()
+		{
+			List<test_from_select_Result_result> Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_from_select\" (@result);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						List<test_from_select_Result_result> Set = new List<test_from_select_Result_result> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new test_from_select_Result_result
+								{
+									lastname = Rdr["lastname"] as string,
+									room = Rdr["room"] as string,
+									own = Rdr["own"] as string
+								});
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region test_json
@@ -1756,6 +2814,44 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<int?> test_jsonAsync (string data, string data_b)
+		{
+			int? Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_json\" (@data::json, @data_b::jsonb, @sample);";
+					Cmd.Parameters.AddWithValue ("@data", (object)data ?? DBNull.Value);
+					Cmd.Parameters.AddWithValue ("@data_b", (object)data_b ?? DBNull.Value);
+					Cmd.Parameters.Add (new NpgsqlParameter ("@sample", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "sample" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"sample\";";
+						int? Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = Rdr["result"] as int?;
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region test_loops
@@ -1766,6 +2862,16 @@ namespace Generated
 				Cmd.CommandText = "call \"alexey\".\"test_loops\" ();";
 
 				Cmd.ExecuteNonQuery ();
+			}
+		}
+
+		public async Task test_loopsAsync ()
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"alexey\".\"test_loops\" ();";
+
+				await Cmd.ExecuteNonQueryAsync ();
 			}
 		}
 		#endregion
@@ -1790,7 +2896,7 @@ namespace Generated
 				ref string p_status,
 				ref string[] p_valid_statuses,
 				ref TryWrapper.Town p_city,
-				ref TryWrapper.Payer p_enc_pi_payer 
+				ref TryWrapper.Payer p_enc_pi_payer
 			)
 		{
 			int? Result = null;
@@ -1911,6 +3017,47 @@ namespace Generated
 
 			return Result;
 		}
+
+		public async Task<test_read_encrypted_Result_sample> test_read_encryptedAsync ()
+		{
+			test_read_encrypted_Result_sample Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_read_encrypted\" (@sample);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@sample", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "sample" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"sample\";";
+						test_read_encrypted_Result_sample Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new test_read_encrypted_Result_sample
+								{
+									id = Rdr["id"] as int?,
+									hash = Rdr["hash"] as byte[],
+									enc_pi_payer = DbProc.ReadEncrypted<TryWrapper.Payer> (Rdr["enc_pi_payer"] as byte[])
+								};
+							}
+						}
+
+						Result = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
 		#endregion
 
 		#region test_write_encrypted
@@ -1923,6 +3070,18 @@ namespace Generated
 				Cmd.Parameters.AddWithValue ("@p_enc_pi_payer", (object)DbProc.WriteEncrypted (p_enc_pi_payer) ?? DBNull.Value);
 
 				Cmd.ExecuteNonQuery ();
+			}
+		}
+
+		public async Task test_write_encryptedAsync (byte[] p_hash, TryWrapper.Payer p_enc_pi_payer)
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"alexey\".\"test_write_encrypted\" (@p_hash, @p_enc_pi_payer);";
+				Cmd.Parameters.AddWithValue ("@p_hash", (object)p_hash ?? DBNull.Value);
+				Cmd.Parameters.AddWithValue ("@p_enc_pi_payer", (object)DbProc.WriteEncrypted (p_enc_pi_payer) ?? DBNull.Value);
+
+				await Cmd.ExecuteNonQueryAsync ();
 			}
 		}
 		#endregion
@@ -1948,6 +3107,16 @@ namespace Generated
 				Cmd.ExecuteNonQuery ();
 			}
 		}
+
+		public async Task calcAsync ()
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"ext\".\"calc\" ();";
+
+				await Cmd.ExecuteNonQueryAsync ();
+			}
+		}
 		#endregion
 
 		#region empty
@@ -1958,6 +3127,16 @@ namespace Generated
 				Cmd.CommandText = "call \"ext\".\"empty\" ();";
 
 				Cmd.ExecuteNonQuery ();
+			}
+		}
+
+		public async Task emptyAsync ()
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"ext\".\"empty\" ();";
+
+				await Cmd.ExecuteNonQueryAsync ();
 			}
 		}
 		#endregion
