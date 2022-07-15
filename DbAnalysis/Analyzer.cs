@@ -432,6 +432,14 @@ namespace DbAnalysis
 				).Optional ()
 				;
 
+			var PHavingClauseOptionalST =
+				(
+					from kw_groupby in SqlToken ("having")
+					from cond in PExpressionRefST.Get
+					select 0
+				).Optional ()
+				;
+
 			var POrderByClauseOptionalST =
 				(
 					from f in AnyTokenST ("order by")
@@ -564,11 +572,27 @@ namespace DbAnalysis
 							case_c.Branches.First ().GetResult (rc).Type
 						))
 					)
+					.Or (
+						(
+							from kw_ext in SqlToken ("extract")
+							from p in (
+								from kw_part in AnyTokenST ("century", "day", "decade", "dow", "doy", "epoch", "hour",
+									"isodow", "isoyear", "microseconds", "millennium", "milliseconds", "minute",
+									"month", "quarter", "second", "timezone", "timezone_hour", "timezone_minute",
+									"week", "year")
+								from _from in SqlToken ("from")
+								from exp in PExpressionRefST.Get
+								select 0
+							).InParentsST ()
+							select (Func<RequestContext, NamedTyped>)(rc =>
+								new NamedTyped (kw_ext, DatabaseContext.TypeMap.Decimal))
+						)
+					)
 					.Or (PArrayST)
-					.Or (PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()		// ('one', 'two', 'three')
+					.Or (PExpressionRefST.Get.CommaDelimitedST ().InParentsST () // ('one', 'two', 'three')
 						.Where (r => r.Count () > 1)
 						.ProduceType (DatabaseContext.TypeMap.Record))
-					.Or (	// interval '90 days'
+					.Or ( // interval '90 days'
 						(
 							from t in PTypeST
 							from v in PSingleQuotedString.SqlToken ()
@@ -821,6 +845,7 @@ namespace DbAnalysis
 					).Optional ()
 					from _w in PWhereClauseOptionalST
 					from _g in PGroupByClauseOptionalST
+					from _h in PHavingClauseOptionalST
 					select new OrdinarySelect (list, from_cl)
 				;
 

@@ -222,8 +222,10 @@ BEGIN
         )
     SELECT  id,
             name,
-            p_id as float
+            p_id as float,
+            EXTRACT(hour FROM some_date)
     FROM R
+    HAVING EXTRACT(hour FROM some_date) is not null     -- test (a) HAVING, (b) EXTRACT, (c) IS NOT NULL
     ORDER BY R.order;
 
     SELECT name,

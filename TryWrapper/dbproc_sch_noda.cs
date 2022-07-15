@@ -2117,6 +2117,7 @@ namespace Generated
 			public int? id;
 			public string name;
 			public int? _float;
+			public decimal? extract;
 		}
 
 		public getdeptchain_Result_res01 getdeptchain (int? p_id)
@@ -2146,7 +2147,8 @@ namespace Generated
 								{
 									id = Rdr["id"] as int?,
 									name = Rdr["name"] as string,
-									_float = Rdr["float"] as int?
+									_float = Rdr["float"] as int?,
+									extract = Rdr["extract"] as decimal?
 								};
 							}
 						}
@@ -2188,7 +2190,8 @@ namespace Generated
 								{
 									id = Rdr["id"] as int?,
 									name = Rdr["name"] as string,
-									_float = Rdr["float"] as int?
+									_float = Rdr["float"] as int?,
+									extract = Rdr["extract"] as decimal?
 								};
 							}
 						}

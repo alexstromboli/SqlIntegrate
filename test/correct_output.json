@@ -1230,6 +1230,10 @@
             {
               "Name": "float",
               "Type": "int"
+            },
+            {
+              "Name": "extract",
+              "Type": "decimal"
             }
           ]
         }
