@@ -13,16 +13,24 @@ namespace DbAnalysis
 {
 	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
 
+	public class TextSpan<T> : ITextSpan<T>
+	{
+		public T Value { get; set; }
+		public Position Start { get; set; }
+		public Position End { get; set; }
+		public int Length { get; set; }
+	}
+
 	public class Analyzer
 	{
 		protected DatabaseContext DatabaseContext;
 		protected Dictionary<int, string> WordsCache;
-		protected Parser<string> PDoubleQuotedString;
+		protected Parser<ITextSpan<string>> PDoubleQuotedString;
 		protected Ref<SPolynom> PExpressionRefST;
 		protected Parser<SPolynom> PExpressionST => PExpressionRefST.Get;
 		public Parser<SProcedure> PProcedureST { get; }
 
-		protected Parser<string> PAlphaNumericL
+		protected Parser<ITextSpan<string>> PAlphaNumericL
 		{
 			get
 			{
@@ -31,22 +39,30 @@ namespace DbAnalysis
 					if (WordsCache.TryGetValue (i.Position, out string Word))
 					{
 						int Len = Word.Length;
-						return Result.Success (Word, new CustomInput (i.Source, i.Position + Len, i.Line, i.Column + Len));
+						return Result.Success (
+							new TextSpan<string>
+							{
+								Value = Word,
+								Start = Position.FromInput (i),
+								End = new Position (i.Position + Word.Length, i.Line, i.Column + Word.Length),
+								Length = Word.Length
+							},
+							new CustomInput (i.Source, i.Position + Len, i.Line, i.Column + Len));
 					}
 
-					return Result.Failure<string> (i, "No word found", Array.Empty<string> ());
+					return Result.Failure<ITextSpan<string>> (i, "No word found", Array.Empty<string> ());
 				};
 			}
 		}
 
-		public Parser<string> SqlToken (string LineL)
+		public Parser<ITextSpan<string>> SqlToken (string LineL)
 		{
 			if (LineL.All (c => char.IsLetterOrDigit (c) || c == '_'))
 			{
 				// to prevent cases like taking 'order' for 'or'
 				// take all the letters, and then check
 				return PAlphaNumericL
-						.Where (s => s == LineL)
+						.Where (s => s.Value == LineL)
 						.SqlToken ()
 					;
 			}
@@ -55,18 +71,19 @@ namespace DbAnalysis
 					.IgnoreCase (LineL)
 					.Text ()
 					.ToLower ()
+					.Span ()
 					.SqlToken ()
 				;
 		}
 
 		// postfix ST means that the result is 'SQL token',
 		// i.e. duly processes comments and whitespaces
-		public Parser<string> AnyTokenST (params string[] Options)
+		public Parser<ITextSpan<string>> AnyTokenST (params string[] Options)
 		{
-			Parser<string> Result = null;
+			Parser<ITextSpan<string>> Result = null;
 			foreach (string[] Tokens in Options.Select (s => s.Split (' ', StringSplitOptions.RemoveEmptyEntries)))
 			{
-				Parser<string> Line = null;
+				Parser<ITextSpan<string>> Line = null;
 				foreach (string Token in Tokens)
 				{
 					var PT = SqlToken (Token);
@@ -74,7 +91,13 @@ namespace DbAnalysis
 							? PT
 							: (from f in Line
 								from n in PT
-								select f + " " + n)
+								select new TextSpan<string>
+								{
+									Value = f + " " + n,
+									Start = f.Start,
+									End = n.End,
+									Length = n.End.Pos - f.Start.Pos
+								})
 						;
 				}
 
@@ -170,7 +193,7 @@ namespace DbAnalysis
 
 			var FindWordST = PAlphaNumericL
 					.Or (PDoubleQuotedString)
-					.Or (Parse.Chars ('[', ']', '.').Select (c => c.ToString ()))
+					.Or (Parse.Chars ('[', ']', '.').Select (c => c.ToString ()).Span ())
 					.SqlToken ()
 				;
 
@@ -179,7 +202,7 @@ namespace DbAnalysis
 				var WordResult = FindWordST (i);
 				if (WordResult.WasSuccessful
 				    && !i.Equals (WordResult.Remainder)
-				    && Map.TryGetValue (WordResult.Value, out var Next)
+				    && Map.TryGetValue (WordResult.Value.Value, out var Next)
 				   )
 				{
 					return Next (WordResult.Remainder);
@@ -190,10 +213,10 @@ namespace DbAnalysis
 		}
 
 		// immediate, i.e. no comments or whitespace
-		protected Parser<string> ReadKeywordL (params string[] ValuesL)
+		protected Parser<ITextSpan<string>> ReadKeywordL (params string[] ValuesL)
 		{
 			return PAlphaNumericL
-					.Where (r => ValuesL.Any (v => v == r))
+					.Where (r => ValuesL.Any (v => v == r.Value))
 				;
 		}
 
@@ -210,6 +233,7 @@ namespace DbAnalysis
 						.Or (Parse.String ("\"\"").Return ('"'))
 						.Many ()
 						.Text ()
+						.Span ()
 					from _2 in Parse.Char ('"')
 					select s
 				;
@@ -255,7 +279,7 @@ namespace DbAnalysis
 
 			// valid for column name
 			var PColumnNameLST = PAlphaNumericL
-					.Where (n => n.NotROrT ())
+					.Where (n => n.Value.NotROrT ())
 					.Or (PDoubleQuotedString.ToLower ())
 					.SqlToken ()
 				;
@@ -264,7 +288,7 @@ namespace DbAnalysis
 			//var PSchemaNameLST = PColumnNameLST;
 
 			var PDirectColumnAliasLST = PAlphaNumericL
-					.Where (n => !n.IsKeyword ())
+					.Where (n => !n.Value.IsKeyword ())
 					.Or (PDoubleQuotedString.ToLower ())
 					.SqlToken ()
 				;
@@ -292,12 +316,17 @@ namespace DbAnalysis
 				;
 
 			var PSignPrefix =
-					from c in Parse.Chars ('+', '-')
-					from sp in Parse.Chars ('+', '-').Or (Parse.WhiteSpace).Many ().Text ()
-					let res = c + sp
+					from c in Parse.Chars ('+', '-').Span ()
+					from sp in Parse.Chars ('+', '-').Or (Parse.WhiteSpace).Many ().Text ().Span ()
+					let res = c.Value + sp.Value
 					where !res.Contains ("--")
-					select res
-				;
+					select new TextSpan<string>
+					{
+						Value = res,
+						Start = c.Start,
+						End = sp.End,
+						Length = sp.End.Pos - c.Start.Pos
+					};
 
 			Ref<FullSelectStatement> PFullSelectStatementRefST = new Ref<FullSelectStatement> ();
 
@@ -461,7 +490,7 @@ namespace DbAnalysis
 					from exp in PExpressionRefST.Get
 					from _3 in AnyTokenST (")")
 					select (Func<RequestContext, NamedTyped>)(rc =>
-						new NamedTyped (f, exp.GetResult (rc).Type.BaseType))
+						new NamedTyped (f.Value, exp.GetResult (rc).Type.BaseType))
 				;
 
 			var PBaseAtomicST =
@@ -473,12 +502,12 @@ namespace DbAnalysis
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (DatabaseContext.TypeMap.VarChar))
 						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
-						.Or (PFunctionCallST.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
-							rc.ModuleContext.GetFunction (p)
+						.Or (PFunctionCallST.Select<ITextSpan<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
+							rc.ModuleContext.GetFunction (p.Values ())
 							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST
-							.Select<string[], Func<RequestContext, NamedTyped>> (p => rc =>
+							.Select<ITextSpan<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
 							{
 								string Key = p.JoinDot ();
 								return rc.NamedDict.TryGetValue (Key, out var V) ? V : throw new KeyNotFoundException ("Not found " + Key);
@@ -499,7 +528,7 @@ namespace DbAnalysis
 						from _5 in POrderByClauseOptionalST
 						from _6 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)
-							(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int))
+							(rc => new NamedTyped (rn.Value, DatabaseContext.TypeMap.Int))
 					)
 					.Or (
 						from f in AnyTokenST ("sum", "min", "max")
@@ -507,7 +536,7 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionRefST.Get
 						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).WithName (f))
+						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).WithName (f.Value))
 					)
 					.Or (
 						from f in SqlToken ("count")
@@ -516,7 +545,7 @@ namespace DbAnalysis
 						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (f, DatabaseContext.TypeMap.BigInt))
+							new NamedTyped (f.Value, DatabaseContext.TypeMap.BigInt))
 					)
 					.Or (
 						from f in SqlToken ("array_agg")
@@ -524,7 +553,7 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionRefST.Get
 						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
+						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f.Value))
 					)
 					.Or (PUnnestST)
 					.Or (
@@ -538,15 +567,15 @@ namespace DbAnalysis
 						{
 							var ExpRes = exp.GetResult (rc);
 							return (ExpRes.Type == DatabaseContext.TypeMap.Null ? subst.GetResult (rc) : ExpRes)
-								.WithName (f);
+								.WithName (f.Value);
 						})
 					)
 					.Or (
 						from kw in PAlphaNumericL.SqlToken ()
-						let type = kw.GetExpressionType ()
+						let type = kw.Value.GetExpressionType ()
 						where type != null
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (kw, DatabaseContext.GetTypeForName ("pg_catalog", type)))
+							new NamedTyped (kw.Value, DatabaseContext.GetTypeForName ("pg_catalog", type)))
 					)
 					.Or (
 						(
@@ -569,7 +598,7 @@ namespace DbAnalysis
 					.Or (
 						from case_c in GetCase (PExpressionRefST.Get)
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
-							case_c.ElseC.GetOrDefault ()?.GetResult (rc).Name ?? case_c.CaseH,
+							case_c.ElseC.GetOrDefault ()?.GetResult (rc).Name ?? case_c.CaseH.Value,
 							case_c.Branches.First ().GetResult (rc).Type
 						))
 					)
@@ -586,7 +615,7 @@ namespace DbAnalysis
 								select 0
 							).InParentsST ()
 							select (Func<RequestContext, NamedTyped>)(rc =>
-								new NamedTyped (kw_ext, DatabaseContext.TypeMap.Decimal))
+								new NamedTyped (kw_ext.Value, DatabaseContext.TypeMap.Decimal))
 						)
 					)
 					.Or (PArrayST)
@@ -630,8 +659,8 @@ namespace DbAnalysis
 							false,
 							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool))))
 						.Or (PTakePropertyST.Select (prop => new OperatorProcessor (PSqlOperatorPriority.Unary, false,
-							(l, r) => rc => new NamedTyped (prop,
-								l (rc).Type.PropertiesDict[prop].Type)
+							(l, r) => rc => new NamedTyped (prop.Value,
+								l (rc).Type.PropertiesDict[prop.Value].Type)
 						)))
 						.Many ()
 						.Optional ()
@@ -640,17 +669,17 @@ namespace DbAnalysis
 			var PBinaryOperatorsST =
 					PBinaryJsonOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General,
 							true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b)))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value)))
 						.Or (PBinaryMultiplicationOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.MulDiv,
 							true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value))))
 						.Or (PBinaryAdditionOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.AddSub,
 							true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value))))
 						.Or (PBinaryExponentialOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Exp,
 							true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value))))
 						.Or (PBinaryComparisonOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.Comparison, true,
 							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
@@ -669,7 +698,7 @@ namespace DbAnalysis
 							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.General, true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value))))
 						.Or (PBetweenOperatorST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Between, true,
 							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool), true)))
 				;
@@ -715,7 +744,7 @@ namespace DbAnalysis
 							{
 								var nt = exp.GetResult (rc);
 								var res = alias_cl.IsDefined
-									? nt.WithName (alias_cl.Get ())
+									? nt.WithName (alias_cl.Get ().Value)
 									: nt;
 
 								return res.ToTrivialArray ();
@@ -734,11 +763,11 @@ namespace DbAnalysis
 							)
 				;
 
-			Func<IEnumerable<string>, Parser<IOption<string>>> PTableAliasClauseOptionalST = excl =>
+			Func<IEnumerable<string>, Parser<IOption<ITextSpan<string>>>> PTableAliasClauseOptionalST = excl =>
 				(
 					from kw_as in SqlToken ("as").Optional ()
 					from id in PTableAliasLST
-					where kw_as.IsDefined || excl == null || excl.All (s => s != id)
+					where kw_as.IsDefined || excl == null || excl.All (s => s != id.Value)
 					select id
 				).Optional ()
 				;
@@ -760,8 +789,8 @@ namespace DbAnalysis
 						PTableAliasLST // here: use PTableAliasClauseOptionalST to exclude selected keywords
 					from column_names in PColumnNameLST.CommaDelimitedST ().InParentsST ().Optional ()
 					select new ValuesBlock (v.ToArray (),
-						table_name,
-						column_names.GetOrDefault ()?.ToArray () ?? new string[0])
+						table_name.Value,
+						column_names.GetOrDefault ()?.Values () ?? Array.Empty<string> ())
 				;
 
 			var PFromTableExpressionST =
@@ -770,10 +799,10 @@ namespace DbAnalysis
 						PUnnestST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p =>
 								new UnnestTableRetriever (p))
 							// or-ed after unnest
-							.Or (PFunctionCallST.Select (qi => new NamedTableRetriever (qi) // stub
+							.Or (PFunctionCallST.Select (qi => new NamedTableRetriever (qi.Values ()) // stub
 							))
 							// or-ed after function calls
-							.Or (PQualifiedIdentifierLST.Select (qi => new NamedTableRetriever (qi)))
+							.Or (PQualifiedIdentifierLST.Select (qi => new NamedTableRetriever (qi.Values ())))
 							.Or (PFullSelectStatementRefST.Get.InParentsST ())
 							.Or (PValuesSourceST)
 					)
@@ -784,7 +813,7 @@ namespace DbAnalysis
 							"having"
 						}
 					) // stub, for cases like 'for ... in select * from mytable loop ... end loop'
-					select new FromTableExpression (table, alias_cl.GetOrDefault ())
+					select new FromTableExpression (table, alias_cl.GetOrDefault ()?.Value)
 				;
 
 			var PFromClauseOptionalST =
@@ -875,7 +904,7 @@ namespace DbAnalysis
 					from name in PColumnNameLST
 					from kw_as in SqlToken ("as")
 					from select_exp in PSelectST.InParentsST ()
-					select new SelectStatement (select_exp, name)
+					select new SelectStatement (select_exp, name.Value)
 				;
 
 			var PCteTopOptionalST =
@@ -933,7 +962,7 @@ namespace DbAnalysis
 					select returning.IsDefined
 						? new FullSelectStatement (null,
 							new SelectStatement (returning.Get (),
-								new FromTableExpression (new NamedTableRetriever (table_name), null).ToTrivialArray ()))
+								new FromTableExpression (new NamedTableRetriever (table_name.Values ()), null).ToTrivialArray ()))
 						: null
 				;
 
@@ -954,7 +983,7 @@ namespace DbAnalysis
 					select returning.IsDefined
 						? new FullSelectStatement (null,
 							new SelectStatement (returning.Get (),
-								new FromTableExpression (new NamedTableRetriever (table_name), null).ToTrivialArray ()))
+								new FromTableExpression (new NamedTableRetriever (table_name.Values ()), null).ToTrivialArray ()))
 						: null
 				;
 
@@ -964,7 +993,7 @@ namespace DbAnalysis
 					from _cm1 in SpracheUtils.AllCommentsST ()
 					from kw_for in SqlToken ("for")
 					from _cm2 in SpracheUtils.AllCommentsST ()
-					select new OpenDataset (name, _cm2.ToArray ())
+					select new OpenDataset (name.Value, _cm2.ToArray ())
 				;
 
 			var PDataReturnStatementST =
@@ -1191,7 +1220,7 @@ namespace DbAnalysis
 							).Optional ()
 							from _2 in SqlToken (";")
 							select type.key != null
-								? new NamedTyped (name, type.key)
+								? new NamedTyped (name.Value, type.key)
 								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.given_as + ") is not supported")
 						).Many ()
 						select vars.ToArray ()

@@ -21,6 +21,34 @@ namespace DbAnalysis
 			return Inner.Select (s => s.ToLower ());
 		}
 
+		public static Parser<ITextSpan<string>> ToLower (this Parser<ITextSpan<string>> Inner)
+		{
+			return Inner.Select (s =>
+			{
+				string L = s.Value.ToLower ();
+
+				return L == s.Value
+				? s
+				: new TextSpan<string>
+				{
+					Value = L,
+					Start = s.Start,
+					End = s.End,
+					Length = s.Length
+				};
+			});
+		}
+
+		public static T[] Values<T> (this IEnumerable<ITextSpan<T>> Items)
+		{
+			return Items.Select (f => f.Value).ToArray ();
+		}
+
+		public static string JoinDot (this IEnumerable<ITextSpan<string>> Fragments)
+		{
+			return Fragments.Values ().JoinDot ();
+		}
+
 		public static Parser<T> SqlToken<T> (this Parser<T> Inner)
 		{
 			return Inner
