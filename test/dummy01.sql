@@ -1046,6 +1046,7 @@ BEGIN
             (diff).date,
             (diff).paid,
             (diff).paid.amount,
+            2 * (financial_history.diff).paid.amount AS double_amount,      -- test that 'property taker' has higher priority than multiplication
             'hold'::app_status as last_status,
             null::app_status as aux_status,
             ('Montreal', 'Quebec')::city_locale town,

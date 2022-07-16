@@ -472,6 +472,7 @@ namespace Generated
 			public LocalDate? date;
 			public alexey.monetary paid;
 			public decimal? amount;
+			public decimal? double_amount;
 			public string last_status;
 			public string aux_status;
 			public TryWrapper.Town town;
@@ -515,6 +516,7 @@ namespace Generated
 									date = Rdr["date"] as LocalDate?,
 									paid = Rdr["paid"] as alexey.monetary /* financial */,
 									amount = Rdr["amount"] as decimal?,
+									double_amount = Rdr["double_amount"] as decimal?,
 									last_status = Rdr["last_status"] as string,
 									aux_status = Rdr["aux_status"] as string,
 									town = Rdr["town"] as TryWrapper.Town,
@@ -580,6 +582,7 @@ namespace Generated
 									date = Rdr["date"] as LocalDate?,
 									paid = Rdr["paid"] as alexey.monetary /* financial */,
 									amount = Rdr["amount"] as decimal?,
+									double_amount = Rdr["double_amount"] as decimal?,
 									last_status = Rdr["last_status"] as string,
 									aux_status = Rdr["aux_status"] as string,
 									town = Rdr["town"] as TryWrapper.Town,

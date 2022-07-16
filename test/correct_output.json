@@ -281,6 +281,10 @@
               "Type": "decimal"
             },
             {
+              "Name": "double_amount",
+              "Type": "decimal"
+            },
+            {
               "Name": "last_status",
               "Type": "USER.app_status"
             },

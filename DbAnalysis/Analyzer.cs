@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -628,7 +629,7 @@ namespace DbAnalysis
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is,
 							false,
 							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool))))
-						.Or (PTakePropertyST.Select (prop => new OperatorProcessor (PSqlOperatorPriority.None, false,
+						.Or (PTakePropertyST.Select (prop => new OperatorProcessor (PSqlOperatorPriority.Unary, false,
 							(l, r) => rc => new NamedTyped (prop,
 								l (rc).Type.PropertiesDict[prop].Type)
 						)))
@@ -1255,16 +1256,37 @@ namespace DbAnalysis
 
 		public Module Run ()
 		{
-			// DEBUG
-			/*
-			string TestProc = @"BEGIN END";
-			BuildWordCache (TestProc);
-			(
-				from _1 in PProcedureST
-				from _2 in SqlToken ("~")
-				select _1
-			).Parse (TestProc + "~");
-			*/
+			bool IsDebugging = false;
+			if (IsDebugging)
+			{
+				// DEBUG
+				//string TestProc = @"BEGIN END";
+				while (true)
+				{
+					string TestProc = System.IO.File.ReadAllText ("debug_procedure.sql").Trim ().TrimEnd (';');
+
+					if (string.IsNullOrWhiteSpace (TestProc))
+					{
+						break;
+					}
+
+					try
+					{
+						BuildWordCache (TestProc);
+						(
+							from _1 in PProcedureST
+							from _2 in SqlToken ("~")
+							select _1
+						).Parse (TestProc + "~");
+
+						break;
+					}
+					catch (Exception)
+					{
+						Debugger.Break ();
+					}
+				}
+			}
 
 			// parse all procedures
 			Module ModuleReport = new Module { Procedures = new List<Datasets.Procedure> () };
@@ -1301,11 +1323,15 @@ namespace DbAnalysis
 					//
 					var Parse = PProcedureST.Parse (proc.SourceCode);
 
+					var VarNames = Parse.vars.ToDictionary (v => v.Name);
 					ModuleContext mcProc = new ModuleContext (
 						proc.Name,
 						DatabaseContext,
 						Parse.vars
-							.Concat (proc.Arguments)
+							.Concat (proc.Arguments
+								// here: issue warning for duplicate names
+								.Where (a => !VarNames.ContainsKey (a.Name))
+							)
 							.ToDictionary (v => v.Name)
 					);
 
