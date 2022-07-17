@@ -24,13 +24,13 @@ namespace DbAnalysis
 
 		public Argument AddArgument (Argument Argument)
 		{
-			if (_ArgumentsDict.TryGetValue (Argument.Name, out Argument Existing))
+			if (_ArgumentsDict.TryGetValue (Argument.Name.Value, out Argument Existing))
 			{
 				return Existing;
 			}
 
 			_Arguments.Add (Argument);
-			_ArgumentsDict[Argument.Name] = Argument;
+			_ArgumentsDict[Argument.Name.Value] = Argument;
 
 			return Argument;
 		}

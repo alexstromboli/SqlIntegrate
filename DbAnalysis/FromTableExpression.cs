@@ -3,9 +3,9 @@ namespace DbAnalysis
 	public class FromTableExpression
 	{
 		public ITableRetriever TableRetriever { get; }
-		public string Alias { get; }
+		public Sourced<string> Alias { get; }
 
-		public FromTableExpression (ITableRetriever TableRetriever, string Alias)
+		public FromTableExpression (ITableRetriever TableRetriever, Sourced<string> Alias)
 		{
 			this.TableRetriever = TableRetriever;
 			this.Alias = Alias;

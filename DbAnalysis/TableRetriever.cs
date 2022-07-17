@@ -51,10 +51,10 @@ namespace DbAnalysis
 				Columns = SingleColumn.ToTrivialArray ();
 			}
 
-			public override ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+			public override ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, Sourced<string> Alias = null)
 			{
-				string Name = Alias ?? Columns[0].Name;
-				PSqlType Type = Columns[0].Type;
+				Sourced<string> Name = Alias ?? Columns[0].Name;
+				Sourced<PSqlType> Type = Columns[0].Type;
 				NamedTyped Column = new NamedTyped (Name, Type);
 				var ColumnsArray = Column.ToTrivialArray ();
 
@@ -62,24 +62,24 @@ namespace DbAnalysis
 				{
 					Columns = new Dictionary<string, NamedTyped>
 					{
-						[Name] = Column,
-						[Name + "." + Name] = Column
+						[Name.Value] = Column,
+						[Name.Value + "." + Name.Value] = Column
 					},
 					Asterisks = new Dictionary<string, NamedTyped[]>
 					{
 						["*"] = ColumnsArray,
-						[Name + ".*"] = ColumnsArray
+						[Name.Value + ".*"] = ColumnsArray
 					}
 				};
 			}
 		}
 
-		public string FunctionName;
+		public Sourced<string> FunctionName;
 		public Func<RequestContext, NamedTyped> Parameter;
 
-		public UnnestTableRetriever (Func<RequestContext, NamedTyped> Parameter, string FunctionName = null)
+		public UnnestTableRetriever (Func<RequestContext, NamedTyped> Parameter, Sourced<string> FunctionName = null)
 		{
-			this.FunctionName = FunctionName ?? "unnest";
+			this.FunctionName = FunctionName ?? new Sourced<string> ("unnest");
 			this.Parameter = Parameter;
 		}
 

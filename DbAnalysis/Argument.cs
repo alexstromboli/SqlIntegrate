@@ -10,7 +10,7 @@ namespace DbAnalysis
 		
 		public DirectionType Direction { get; protected set; }
 		
-		public Argument (string Name, PSqlType Type, DirectionType Direction)
+		public Argument (Sourced<string> Name, Sourced<PSqlType> Type, DirectionType Direction)
 			: base (Name, Type)
 		{
 			this.Direction = Direction;

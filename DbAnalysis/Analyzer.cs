@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Net;
 using System.Text.RegularExpressions;
 
 using Sprache;
@@ -13,12 +14,26 @@ namespace DbAnalysis
 {
 	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
 
-	public class TextSpan<T> : ITextSpan<T>
+	public class TextSpan
 	{
-		public T Value { get; set; }
 		public Position Start { get; set; }
 		public Position End { get; set; }
 		public int Length { get; set; }
+
+		public static TextSpan Range (TextSpan Left, TextSpan Right)
+		{
+			if (Left == null || Right == null)
+			{
+				return null;
+			}
+
+			return new TextSpan { Start = Left.Start, End = Right.End, Length = Right.End.Pos - Left.Start.Pos };
+		}
+	}
+
+	public class TextSpan<T> : TextSpan, ITextSpan<T>
+	{
+		public T Value { get; set; }
 	}
 
 	public class Analyzer

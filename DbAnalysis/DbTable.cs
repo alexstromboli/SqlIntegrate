@@ -27,7 +27,7 @@ namespace DbAnalysis
 			public Dictionary<string, NamedTyped[]> Asterisks;
 		}
 
-		ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null);
+		ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, Sourced<string> Alias = null);
 	}
 
 	public abstract class BasicTable : ITable
@@ -41,14 +41,14 @@ namespace DbAnalysis
 			{
 				if (_ColumnsDict == null)
 				{
-					_ColumnsDict = Columns.ToDictionary (c => c.Name);
+					_ColumnsDict = Columns.ToDictionary (c => c.Name.Value);
 				}
 
 				return _ColumnsDict;
 			}
 		}
 
-		public virtual ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+		public virtual ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, Sourced<string> Alias = null)
 		{
 			Dictionary<string, NamedTyped> AvailableColumns = new Dictionary<string, NamedTyped> (ColumnsDict);
 			Dictionary<string, NamedTyped[]> Asterisks = new Dictionary<string, NamedTyped[]> ();
@@ -77,9 +77,9 @@ namespace DbAnalysis
 	{
 		protected List<NamedTyped> _Columns;
 		public override IReadOnlyList<NamedTyped> Columns => _Columns;
-		public string Name { get; }
+		public Sourced<string> Name { get; }
 
-		public Table (string Name = null)
+		public Table (Sourced<string> Name = null)
 		{
 			_Columns = new List<NamedTyped> ();
 			_ColumnsDict = new Dictionary<string, NamedTyped> ();
@@ -88,7 +88,7 @@ namespace DbAnalysis
 
 		public NamedTyped AddColumn (NamedTyped ColumnL)
 		{
-			if (ColumnL.Name != null && _ColumnsDict.TryGetValue (ColumnL.Name, out NamedTyped Existing))
+			if (ColumnL.Name != null && _ColumnsDict.TryGetValue (ColumnL.Name.Value, out NamedTyped Existing))
 			{
 				return Existing;
 			}
@@ -97,13 +97,13 @@ namespace DbAnalysis
 
 			if (ColumnL.Name != null)
 			{
-				_ColumnsDict[ColumnL.Name] = ColumnL;
+				_ColumnsDict[ColumnL.Name.Value] = ColumnL;
 			}
 
 			return ColumnL;
 		}
 
-		public override ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+		public override ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, Sourced<string> Alias = null)
 		{
 			return base.GetAllColumnReferences (ModuleContext, Alias ?? Name);
 		}
@@ -122,7 +122,7 @@ namespace DbAnalysis
 		public IReadOnlyList<NamedTyped> Columns => ((ITable)ColumnsHolder).Columns;
 		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict => ((ITable)ColumnsHolder).ColumnsDict;
 
-		public ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, string Alias = null)
+		public ITable.ColumnReferences GetAllColumnReferences (ModuleContext ModuleContext, Sourced<string> Alias = null)
 		{
 			var BaseResult = ColumnsHolder.GetAllColumnReferences (ModuleContext, Alias);
 

@@ -5,10 +5,10 @@ namespace DbAnalysis
 	public class ValuesBlock : ITableRetriever
 	{
 		public SPolynom[] Values;
-		public string TableName;
-		public string[] ColumnNames;
+		public Sourced<string> TableName;
+		public Sourced<string>[] ColumnNames;
 
-		public ValuesBlock (SPolynom[] Values, string TableName, string[] ColumnNames)
+		public ValuesBlock (SPolynom[] Values, Sourced<string> TableName, Sourced<string>[] ColumnNames)
 		{
 			this.Values = Values;
 			this.TableName = TableName;
@@ -22,7 +22,7 @@ namespace DbAnalysis
 			foreach (var ValueExp in Values.Indexed ())
 			{
 				int Pos = ValueExp.Index;
-				string ColName = Pos < ColumnNames.Length ? ColumnNames[Pos] : null;
+				Sourced<string> ColName = Pos < ColumnNames.Length ? ColumnNames[Pos] : null;
 
 				if (ColName != null || !OnlyNamed)
 				{

@@ -58,7 +58,7 @@ namespace DbAnalysis
 			string Name = NameSegments[^1].ToLower ();
 			PSqlType Type = GetSchemaEntity (FunctionsDict, NameSegments) ?? DatabaseContext.TypeMap.Null;
 
-			return new NamedTyped (Name, Type);
+			return new NamedTyped (new Sourced<string> (Name), new Sourced<PSqlType> (Type));
 		}
 
 		public DbTable GetTable (string[] NameSegments)

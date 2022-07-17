@@ -181,7 +181,8 @@ ORDER BY table_schema, table_name, ordinal_position;
 								continue;
 							}
 
-							NamedTyped c = new NamedTyped (ColumnName, Result.GetTypeForName (TypeSchema, Type));
+							NamedTyped c = new NamedTyped (Sourced.FromTable (ColumnName, Schema, TableName, ColumnName),
+								Result.GetTypeForName (TypeSchema, Type));
 							t.AddColumn (c);
 						}
 					}
