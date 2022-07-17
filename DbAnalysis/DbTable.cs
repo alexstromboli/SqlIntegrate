@@ -1,6 +1,8 @@
 using System.Linq;
 using System.Collections.Generic;
 
+using DbAnalysis.Sources;
+
 namespace DbAnalysis
 {
 	public interface ITable

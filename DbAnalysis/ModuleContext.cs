@@ -2,6 +2,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 using Utils;
+using DbAnalysis.Sources;
 
 namespace DbAnalysis
 {
@@ -53,12 +54,14 @@ namespace DbAnalysis
 			return Result;
 		}
 
-		public NamedTyped GetFunction (string[] NameSegments)
+		public NamedTyped GetFunction (Sourced<string>[] NameSegments)
 		{
-			string Name = NameSegments[^1].ToLower ();
-			PSqlType Type = GetSchemaEntity (FunctionsDict, NameSegments) ?? DatabaseContext.TypeMap.Null;
+			Sourced<string> Name = NameSegments[^1].ToLower ();
+			var Span = NameSegments.Range ();
+			Sourced<PSqlType> Type = GetSchemaEntity (FunctionsDict, NameSegments.Values ()).SourcedFunction (Span)
+			                ?? DatabaseContext.TypeMap.Null.SourcedTextSpan (Span);
 
-			return new NamedTyped (new Sourced<string> (Name), new Sourced<PSqlType> (Type));
+			return new NamedTyped (Name, Type);
 		}
 
 		public DbTable GetTable (string[] NameSegments)

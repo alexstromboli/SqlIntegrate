@@ -1,3 +1,5 @@
+using DbAnalysis.Sources;
+
 namespace DbAnalysis
 {
 	public class Argument : NamedTyped
@@ -7,9 +9,9 @@ namespace DbAnalysis
 			In,
 			InOut
 		}
-		
+
 		public DirectionType Direction { get; protected set; }
-		
+
 		public Argument (Sourced<string> Name, Sourced<PSqlType> Type, DirectionType Direction)
 			: base (Name, Type)
 		{

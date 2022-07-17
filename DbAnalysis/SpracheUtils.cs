@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Sprache;
 
 using Utils;
+using DbAnalysis.Sources;
 
 namespace DbAnalysis
 {
@@ -49,7 +50,15 @@ namespace DbAnalysis
 			return Fragments.Values ().JoinDot ();
 		}
 
-		public static Parser<T> SqlToken<T> (this Parser<T> Inner)
+		public static Parser<ITextSpan<T>> SqlToken<T> (this Parser<T> Inner)
+		{
+			return Inner
+					.Span ()
+					.SqlToken ()
+				;
+		}
+
+		public static Parser<ITextSpan<T>> SqlToken<T> (this Parser<ITextSpan<T>> Inner)
 		{
 			return Inner
 					.Commented (SqlCommentParser.Instance)
@@ -110,14 +119,14 @@ namespace DbAnalysis
 				;
 		}
 
-		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
+		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<ITextSpan<T>> Parser, PSqlType Type)
 		{
-			return Parser.Select<T, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type));
+			return Parser.Select<ITextSpan<T>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type.SourcedCalculated (t)));
 		}
 
-		public static Parser<Func<RequestContext, NamedTyped>> ProduceType (this Parser<PSqlType> Parser)
+		public static Parser<Func<RequestContext, NamedTyped>> ProduceType (this Parser<ITextSpan<PSqlType>> Parser)
 		{
-			return Parser.Select<PSqlType, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (t));
+			return Parser.Select<ITextSpan<PSqlType>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (t.ToSourced ()));
 		}
 	}
 }

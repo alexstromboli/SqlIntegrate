@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Npgsql;
 
 using Utils;
+using DbAnalysis.Sources;
 
 namespace DbAnalysis
 {
@@ -181,8 +182,8 @@ ORDER BY table_schema, table_name, ordinal_position;
 								continue;
 							}
 
-							NamedTyped c = new NamedTyped (Sourced.FromTable (ColumnName, Schema, TableName, ColumnName),
-								Result.GetTypeForName (TypeSchema, Type));
+							NamedTyped c = new NamedTyped (ColumnName.SourcedTable (Schema, TableName, ColumnName),
+								Result.GetTypeForName (TypeSchema, Type).SourcedTable (Schema, TableName, ColumnName));
 							t.AddColumn (c);
 						}
 					}
@@ -235,7 +236,9 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 
 							foreach (var arg in ArgNames.Indexed ())
 							{
-								Argument c = new Argument (arg.Value, ArgTypes[arg.Index], ArgDirections[arg.Index]);
+								Argument c = new Argument (arg.Value.SourcedDefinition (),
+									ArgTypes[arg.Index].SourcedDefinition (),
+									ArgDirections[arg.Index]);
 								p.AddArgument (c);
 							}
 

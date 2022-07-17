@@ -1,5 +1,9 @@
 using System;
 
+using Sprache;		// for utilities
+
+using DbAnalysis.Sources;
+
 namespace DbAnalysis
 {
 	public class OperatorProcessor
@@ -43,10 +47,20 @@ namespace DbAnalysis
 			{
 				Sourced<PSqlType> Left = l (rc).Type;
 				Sourced<PSqlType> Right = r (rc).Type;
-				return new NamedTyped (Sourced<PSqlType>.Calculated (
-					PSqlUtils.GetBinaryOperationResultType (Typemap, Left.Value, Right.Value, Operator.Value),
-					TextSpan.Range (Left.TextSpan, Right.TextSpan)));
+				return new NamedTyped (
+					PSqlUtils.GetBinaryOperationResultType (Typemap, Left.Value, Right.Value, Operator.Value)
+						.SourcedCalculated (TextSpan.Range (Left.TextSpan, Right.TextSpan))
+				);
 			};
+		}
+
+		public static Func<
+			Func<RequestContext, NamedTyped>, // left
+			Func<RequestContext, NamedTyped>, // right (null for unary)
+			Func<RequestContext, NamedTyped> // result
+		> GetForBinaryOperator (SqlTypeMap Typemap, ITextSpan<string> Operator)
+		{
+			return GetForBinaryOperator (Typemap, Operator.ToSourced ());
 		}
 
 		public static Func<

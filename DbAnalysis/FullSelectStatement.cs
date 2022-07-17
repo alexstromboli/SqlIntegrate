@@ -28,7 +28,7 @@ namespace DbAnalysis
 					foreach (var l in Levels)
 					{
 						ITable t = l.GetTable (CurrentContext, true);
-						CurrentContext = new RequestContext (CurrentContext, new Dictionary<string, ITable> { [l.Name] = t });
+						CurrentContext = new RequestContext (CurrentContext, new Dictionary<string, ITable> { [l.Name.Value] = t });
 					}
 				}
 			}

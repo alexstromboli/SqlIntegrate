@@ -1,3 +1,5 @@
+using DbAnalysis.Sources;
+
 namespace DbAnalysis
 {
 	public class FromTableExpression

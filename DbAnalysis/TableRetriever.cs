@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 using Utils;
+using DbAnalysis.Sources;
 
 namespace DbAnalysis
 {
@@ -79,7 +80,7 @@ namespace DbAnalysis
 
 		public UnnestTableRetriever (Func<RequestContext, NamedTyped> Parameter, Sourced<string> FunctionName = null)
 		{
-			this.FunctionName = FunctionName ?? new Sourced<string> ("unnest");
+			this.FunctionName = FunctionName ?? "unnest".SourcedDefinition ();
 			this.Parameter = Parameter;
 		}
 

@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
+using DbAnalysis.Sources;
+
 namespace DbAnalysis
 {
 	public class SelectStatement : ITableRetriever
@@ -9,17 +11,17 @@ namespace DbAnalysis
 		public Func<RequestContext, IReadOnlyList<NamedTyped>> List { get; }
 		// can be null
 		public FromTableExpression[] Froms { get; }
-		public string Name { get; }
+		public Sourced<string> Name { get; }
 
 		public SelectStatement (Func<RequestContext, IReadOnlyList<NamedTyped>> List, FromTableExpression[] Froms,
-			string Name = null)
+			Sourced<string> Name = null)
 		{
 			this.List = List;
 			this.Froms = Froms;
 			this.Name = Name;
 		}
 
-		public SelectStatement (SelectStatement Core, string Name)
+		public SelectStatement (SelectStatement Core, Sourced<string> Name)
 			: this (Core.List, Core.Froms, Name)
 		{
 		}
@@ -78,9 +80,9 @@ namespace DbAnalysis
 			Table Result = new Table (Name);
 			foreach (var nt in List (NewContext))
 			{
-				if (nt.Name != null && !FoundNames.Contains (nt.Name))
+				if (nt.Name != null && !FoundNames.Contains (nt.Name.Value))
 				{
-					FoundNames.Add (nt.Name);
+					FoundNames.Add (nt.Name.Value);
 					Result.AddColumn (nt);
 				}
 				else if (!OnlyNamed)

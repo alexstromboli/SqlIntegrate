@@ -2,39 +2,17 @@
 using System.Linq;
 using System.Diagnostics;
 using System.Collections.Generic;
-using System.Net;
 using System.Text.RegularExpressions;
 
 using Sprache;
 
 using Utils;
+using DbAnalysis.Sources;
 using DbAnalysis.Datasets;
 
 namespace DbAnalysis
 {
 	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
-
-	public class TextSpan
-	{
-		public Position Start { get; set; }
-		public Position End { get; set; }
-		public int Length { get; set; }
-
-		public static TextSpan Range (TextSpan Left, TextSpan Right)
-		{
-			if (Left == null || Right == null)
-			{
-				return null;
-			}
-
-			return new TextSpan { Start = Left.Start, End = Right.End, Length = Right.End.Pos - Left.Start.Pos };
-		}
-	}
-
-	public class TextSpan<T> : TextSpan, ITextSpan<T>
-	{
-		public T Value { get; set; }
-	}
 
 	public class Analyzer
 	{
@@ -86,7 +64,6 @@ namespace DbAnalysis
 					.IgnoreCase (LineL)
 					.Text ()
 					.ToLower ()
-					.Span ()
 					.SqlToken ()
 				;
 		}
@@ -270,6 +247,7 @@ namespace DbAnalysis
 			var PNull = ReadKeywordL ( "null");
 			var PInteger = Parse.Number;
 			var PDecimal =
+				(
 					from i in Parse.Number.Optional ()
 					from frac in
 					(
@@ -288,6 +266,7 @@ namespace DbAnalysis
 					where frac.IsDefined || exp.IsDefined
 					select i.GetOrElse ("") + frac.GetOrElse ("")
 					                        + exp.GetOrElse ("")
+				).Span ()
 				;
 
 			var PBooleanLiteralST = AnyTokenST ("true", "false");
@@ -335,7 +314,7 @@ namespace DbAnalysis
 					from sp in Parse.Chars ('+', '-').Or (Parse.WhiteSpace).Many ().Text ().Span ()
 					let res = c.Value + sp.Value
 					where !res.Contains ("--")
-					select new TextSpan<string>
+					select (ITextSpan<string>)new TextSpan<string>
 					{
 						Value = res,
 						Start = c.Start,
@@ -346,7 +325,7 @@ namespace DbAnalysis
 			Ref<FullSelectStatement> PFullSelectStatementRefST = new Ref<FullSelectStatement> ();
 
 			var PParentsST = PExpressionRefST.Get.InParentsST ();
-			var PBracketsST = PExpressionRefST.Get.Contained (Parse.Char ('[').SqlToken (), Parse.Char (']').SqlToken ());
+			var PBracketsST = PExpressionRefST.Get.InBracketsST ();
 
 			var PBinaryAdditionOperatorsST = AnyTokenST ("+", "-");
 			var PBinaryMultiplicationOperatorsST = AnyTokenST ("/", "*", "%");
@@ -437,11 +416,11 @@ namespace DbAnalysis
 						.Select<IEnumerable<SPolynom>, Func<RequestContext, NamedTyped>> (arr =>
 							rc =>
 								arr.Select (it => it.GetResult (rc))
-									.FirstOrDefault (nt => nt.Type != DatabaseContext.TypeMap.Null) ??
-								new NamedTyped (DatabaseContext.TypeMap.Null))
+									.FirstOrDefault (nt => nt.Type.Value != DatabaseContext.TypeMap.Null) ??
+								new NamedTyped (DatabaseContext.TypeMap.Null.SourcedTextSpan (array_kw.ToTextSpan ())))
 						.Or (PSelectFirstColumnST)
 					select (Func<RequestContext, NamedTyped>)(rc =>
-						body (rc).ToArray ().WithName ("array"))
+						body (rc).ToArray ().WithName (array_kw))
 				;
 
 			var PFunctionCallST =
@@ -502,10 +481,10 @@ namespace DbAnalysis
 			var PUnnestST =
 					from f in AnyTokenST ("unnest")
 					from _1 in AnyTokenST ("(")
-					from exp in PExpressionRefST.Get
+					from exp in PExpressionRefST.Get.Span ()
 					from _3 in AnyTokenST (")")
 					select (Func<RequestContext, NamedTyped>)(rc =>
-						new NamedTyped (f.Value, exp.GetResult (rc).Type.BaseType))
+						new NamedTyped (f.ToSourced (), exp.Value.GetResult (rc).Type.Select (t => t.BaseType)))
 				;
 
 			var PBaseAtomicST =
@@ -518,7 +497,7 @@ namespace DbAnalysis
 						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
 						.Or (PFunctionCallST.Select<ITextSpan<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
-							rc.ModuleContext.GetFunction (p.Values ())
+							rc.ModuleContext.GetFunction (p.ToSourced ())
 							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST
@@ -543,7 +522,7 @@ namespace DbAnalysis
 						from _5 in POrderByClauseOptionalST
 						from _6 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)
-							(rc => new NamedTyped (rn.Value, DatabaseContext.TypeMap.Int))
+							(rc => new NamedTyped (rn.ToSourced (), DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
 					)
 					.Or (
 						from f in AnyTokenST ("sum", "min", "max")
@@ -551,7 +530,7 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionRefST.Get
 						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).WithName (f.Value))
+						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).WithName (f))
 					)
 					.Or (
 						from f in SqlToken ("count")
@@ -560,7 +539,7 @@ namespace DbAnalysis
 						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (f.Value, DatabaseContext.TypeMap.BigInt))
+							new NamedTyped (f.ToSourced (), DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
 					)
 					.Or (
 						from f in SqlToken ("array_agg")
@@ -568,7 +547,7 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionRefST.Get
 						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f.Value))
+						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
 					)
 					.Or (PUnnestST)
 					.Or (
@@ -581,8 +560,8 @@ namespace DbAnalysis
 						select (Func<RequestContext, NamedTyped>)(rc =>
 						{
 							var ExpRes = exp.GetResult (rc);
-							return (ExpRes.Type == DatabaseContext.TypeMap.Null ? subst.GetResult (rc) : ExpRes)
-								.WithName (f.Value);
+							return (ExpRes.Type.Value == DatabaseContext.TypeMap.Null ? subst.GetResult (rc) : ExpRes)
+								.WithName (f);
 						})
 					)
 					.Or (
@@ -590,7 +569,7 @@ namespace DbAnalysis
 						let type = kw.Value.GetExpressionType ()
 						where type != null
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (kw.Value, DatabaseContext.GetTypeForName ("pg_catalog", type)))
+							new NamedTyped (kw.ToSourced (), DatabaseContext.GetTypeForName ("pg_catalog", type)))
 					)
 					.Or (
 						(
@@ -630,7 +609,7 @@ namespace DbAnalysis
 								select 0
 							).InParentsST ()
 							select (Func<RequestContext, NamedTyped>)(rc =>
-								new NamedTyped (kw_ext.Value, DatabaseContext.TypeMap.Decimal))
+								new NamedTyped (kw_ext.ToSourced (), DatabaseContext.TypeMap.Decimal))
 						)
 					)
 					.Or (PArrayST)
@@ -665,7 +644,7 @@ namespace DbAnalysis
 							(l, r) => rc =>
 							{
 								var NamedTyped = l (rc);
-								return NamedTyped.WithType (NamedTyped.Type.BaseType);
+								return NamedTyped.WithType (NamedTyped.Type.Select (t => t.BaseType));
 							}))
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast,
 							false,
@@ -674,8 +653,8 @@ namespace DbAnalysis
 							false,
 							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool))))
 						.Or (PTakePropertyST.Select (prop => new OperatorProcessor (PSqlOperatorPriority.Unary, false,
-							(l, r) => rc => new NamedTyped (prop.Value,
-								l (rc).Type.PropertiesDict[prop.Value].Type)
+							(l, r) => rc => new NamedTyped (prop.ToSourced (),
+								l (rc).Type.Value.PropertiesDict[prop.Value].Type)
 						)))
 						.Many ()
 						.Optional ()
@@ -684,17 +663,17 @@ namespace DbAnalysis
 			var PBinaryOperatorsST =
 					PBinaryJsonOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.General,
 							true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value)))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b)))
 						.Or (PBinaryMultiplicationOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.MulDiv,
 							true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBinaryAdditionOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.AddSub,
 							true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBinaryExponentialOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Exp,
 							true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBinaryComparisonOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.Comparison, true,
 							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
@@ -713,7 +692,7 @@ namespace DbAnalysis
 							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.General, true,
-							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b.Value))))
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBetweenOperatorST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Between, true,
 							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool), true)))
 				;
@@ -759,7 +738,7 @@ namespace DbAnalysis
 							{
 								var nt = exp.GetResult (rc);
 								var res = alias_cl.IsDefined
-									? nt.WithName (alias_cl.Get ().Value)
+									? nt.WithName (alias_cl.Get ())
 									: nt;
 
 								return res.ToTrivialArray ();
@@ -804,7 +783,7 @@ namespace DbAnalysis
 						PTableAliasLST // here: use PTableAliasClauseOptionalST to exclude selected keywords
 					from column_names in PColumnNameLST.CommaDelimitedST ().InParentsST ().Optional ()
 					select new ValuesBlock (v.ToArray (),
-						table_name.Value,
+						table_name.ToSourced (),
 						column_names.GetOrDefault ()?.Values () ?? Array.Empty<string> ())
 				;
 
@@ -828,7 +807,7 @@ namespace DbAnalysis
 							"having"
 						}
 					) // stub, for cases like 'for ... in select * from mytable loop ... end loop'
-					select new FromTableExpression (table, alias_cl.GetOrDefault ()?.Value)
+					select new FromTableExpression (table, alias_cl.GetOrDefault ()?.ToSourced ())
 				;
 
 			var PFromClauseOptionalST =
@@ -919,7 +898,7 @@ namespace DbAnalysis
 					from name in PColumnNameLST
 					from kw_as in SqlToken ("as")
 					from select_exp in PSelectST.InParentsST ()
-					select new SelectStatement (select_exp, name.Value)
+					select new SelectStatement (select_exp, name.ToSourced ())
 				;
 
 			var PCteTopOptionalST =
@@ -1235,7 +1214,7 @@ namespace DbAnalysis
 							).Optional ()
 							from _2 in SqlToken (";")
 							select type.key != null
-								? new NamedTyped (name.Value, type.key)
+								? new NamedTyped (name.ToSourced (), type.key)
 								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.given_as + ") is not supported")
 						).Many ()
 						select vars.ToArray ()
@@ -1351,9 +1330,9 @@ namespace DbAnalysis
 					Arguments = proc.Arguments.Select (a =>
 						new Datasets.Argument
 						{
-							Name = a.Name,
+							Name = a.Name.Value,
 							Type = a.Type.ToString (),
-							PSqlType = a.Type,
+							PSqlType = a.Type.Value,
 							IsOut = a.Direction == Argument.DirectionType.InOut
 						}).ToList (),
 					ResultSets = new List<ResultSet> ()
@@ -1376,7 +1355,7 @@ namespace DbAnalysis
 								// here: issue warning for duplicate names
 								.Where (a => !VarNames.ContainsKey (a.Name))
 							)
-							.ToDictionary (v => v.Name)
+							.ToDictionary (v => v.Name.Value)
 					);
 
 					RequestContext rcProc = new RequestContext (mcProc);
@@ -1406,9 +1385,9 @@ namespace DbAnalysis
 								Comments = Set.Comments.ToList (),
 								Columns = Set.Table.Columns.Select (c => new Column
 								{
-									Name = c.Name,
+									Name = c.Name.Value,
 									Type = c.Type.ToString (),
-									PSqlType = c.Type
+									PSqlType = c.Type.Value
 								}).ToList ()
 							};
 
