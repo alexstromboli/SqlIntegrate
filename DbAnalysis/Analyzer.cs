@@ -527,7 +527,7 @@ namespace DbAnalysis
 							(rc => new NamedTyped (rn.ToSourced (), DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
 					)
 					.Or (
-						from f in AnyTokenST ("sum", "min", "max")
+						from f in AnyTokenST ("sum", "min", "max", "avg")
 						from _1 in SqlToken ("(")
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionRefST.Get
@@ -1358,14 +1358,14 @@ namespace DbAnalysis
 					//
 					var Parse = PProcedureST.Parse (proc.SourceCode);
 
-					var VarNames = Parse.vars.ToDictionary (v => v.Name);
+					var VarNames = Parse.vars.ToDictionary (v => v.Name.Value);
 					ModuleContext mcProc = new ModuleContext (
 						proc.Name,
 						DatabaseContext,
 						Parse.vars
 							.Concat (proc.Arguments
 								// here: issue warning for duplicate names
-								.Where (a => !VarNames.ContainsKey (a.Name))
+								.Where (a => !VarNames.ContainsKey (a.Name.Value))
 							)
 							.ToDictionary (v => v.Name.Value)
 					);
