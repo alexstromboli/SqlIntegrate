@@ -659,11 +659,19 @@ namespace DbAnalysis
 						.Or (PTakePropertyST.Select (prop => new OperatorProcessor (PSqlOperatorPriority.Unary, false,
 							(l, r) => rc =>
 							{
-								var CompositeType = l (rc).Type.Value;
+								var Parent = l (rc);
+								var CompositeType = Parent.Type.Value;
+
+								if (CompositeType.PropertiesDict == null ||
+								    !CompositeType.PropertiesDict.TryGetValue (prop.Value, out var Property))
+								{
+									throw new InvalidOperationException (
+										$"Line {prop?.Start.Line}, column {prop?.Start.Column}, type {CompositeType} does not have property {prop?.Value ?? "???"}");
+								}
+
 								return new NamedTyped (prop.ToSourced (),
-									CompositeType.PropertiesDict[prop.Value].Type
-										.SourcedCompositeType (CompositeType.Schema, CompositeType.OwnName,
-											prop.Value));
+									Property.Type.SourcedCompositeType (CompositeType.Schema, CompositeType.OwnName,
+										prop.Value));
 							})))
 						.Many ()
 						.Optional ()
