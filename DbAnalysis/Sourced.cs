@@ -47,6 +47,7 @@ namespace DbAnalysis.Sources
 
 	public class TableSource : ISource
 	{
+		// here: replace with reference to Table?
 		public string SchemaName { get; } = null;
 		public string TableName { get; } = null;
 		public string TableColumnName { get; } = null;
@@ -56,6 +57,21 @@ namespace DbAnalysis.Sources
 			this.SchemaName = SchemaName;
 			this.TableName = TableName;
 			this.TableColumnName = TableColumnName;
+		}
+	}
+
+	public class CompositeTypeSource : ISource
+	{
+		// here: replace with reference to PSqlType?
+		public string SchemaName { get; } = null;
+		public string TypeName { get; } = null;
+		public string PropertyName { get; } = null;
+
+		public CompositeTypeSource (string SchemaName, string TypeName, string PropertyName)
+		{
+			this.SchemaName = SchemaName;
+			this.TypeName = TypeName;
+			this.PropertyName = PropertyName;
 		}
 	}
 
@@ -109,6 +125,11 @@ namespace DbAnalysis.Sources
 			return new Sourced<T> (Value, new TextSpanSource (Span));
 		}
 
+		public static Sourced<T> SourcedTextSpan<T, N> (this T Value, ITextSpan<N> Span)
+		{
+			return new Sourced<T> (Value, new TextSpanSource (Span.ToTextSpan ()));
+		}
+
 		public static Sourced<T> ToSourced<T> (this ITextSpan<T> Span)
 		{
 			return new Sourced<T> (Span.Value, new TextSpanSource (Span.ToTextSpan ()));
@@ -138,6 +159,12 @@ namespace DbAnalysis.Sources
 			string SchemaName, string TableName, string TableColumnName)
 		{
 			return new Sourced<T> (Value, new TableSource (SchemaName, TableName, TableColumnName));
+		}
+
+		public static Sourced<T> SourcedCompositeType<T> (this T Value,
+			string SchemaName, string TypeName, string PropertyName)
+		{
+			return new Sourced<T> (Value, new CompositeTypeSource (SchemaName, TypeName, PropertyName));
 		}
 	}
 }

@@ -67,9 +67,9 @@ namespace DbAnalysis
 			Func<RequestContext, NamedTyped>, // left
 			Func<RequestContext, NamedTyped>, // right (null for unary)
 			Func<RequestContext, NamedTyped> // result
-		> ProduceType (Sourced<PSqlType> Type)
+		> ProduceType<T> (ITextSpan<T> Span, PSqlType Type)
 		{
-			return (l, r) => rc => new NamedTyped (Type);
+			return (l, r) => rc => new NamedTyped (Type.SourcedCalculated (Span));
 		}
 	}
 }

@@ -114,13 +114,13 @@ namespace DbAnalysis
 					from _3 in SqlToken ("then")
 					from value in Then
 					select value
-				).AtLeastOnce ()
+				).Span ().AtLeastOnce ()
 				from else_c in
 				(
 					from _1 in SqlToken ("else")
 					from value in PExpressionST
 					select value
-				).Optional ()
+				).Span ().Optional ()
 				from _3 in AnyTokenST ("end case", "end")
 				select new CaseBase<T> (case_h, branches, else_c)
 				;
@@ -380,6 +380,7 @@ namespace DbAnalysis
 			);
 
 			var PTypeST =
+				(
 					from t in PTypeTitleST
 					from p in Parse.Number.SqlToken ()
 						.CommaDelimitedST ()
@@ -397,6 +398,7 @@ namespace DbAnalysis
 					select array.IsDefined
 						? new KeyedType (t.given_as + "[]", t.key.ArrayType)
 						: t
+				).Span ()
 				;
 
 			var PSimpleTypeCastST =
@@ -565,11 +567,12 @@ namespace DbAnalysis
 						})
 					)
 					.Or (
+						// value specified by a keyword
 						from kw in PAlphaNumericL.SqlToken ()
 						let type = kw.Value.GetExpressionType ()
 						where type != null
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (kw.ToSourced (), DatabaseContext.GetTypeForName ("pg_catalog", type)))
+							new NamedTyped (kw.ToSourced (), DatabaseContext.GetTypeForName ("pg_catalog", type).SourcedCalculated (kw)))
 					)
 					.Or (
 						(
@@ -592,8 +595,9 @@ namespace DbAnalysis
 					.Or (
 						from case_c in GetCase (PExpressionRefST.Get)
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
-							case_c.ElseC.GetOrDefault ()?.GetResult (rc).Name ?? case_c.CaseH.Value,
-							case_c.Branches.First ().GetResult (rc).Type
+							case_c.ElseC.GetOrDefault ()?.Value.GetResult (rc).Name
+								?? case_c.CaseH.ToSourced (),
+							case_c.Branches.First ().Value.GetResult (rc).Type
 						))
 					)
 					.Or (
@@ -609,7 +613,7 @@ namespace DbAnalysis
 								select 0
 							).InParentsST ()
 							select (Func<RequestContext, NamedTyped>)(rc =>
-								new NamedTyped (kw_ext.ToSourced (), DatabaseContext.TypeMap.Decimal))
+								new NamedTyped (kw_ext.ToSourced (), DatabaseContext.TypeMap.Decimal.SourcedCalculated (kw_ext)))
 						)
 					)
 					.Or (PArrayST)
@@ -620,8 +624,8 @@ namespace DbAnalysis
 						(
 							from t in PTypeST
 							from v in PSingleQuotedString.SqlToken ()
-							select t.key
-						).ProduceType () // here: get default column name
+							select t.Value.key
+						).Span ().ProduceType () // here: get default column name
 					)
 					.Or (PBaseAtomicST)
 				;
@@ -648,14 +652,19 @@ namespace DbAnalysis
 							}))
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast,
 							false,
-							(l, r) => rc => l (rc).WithType (tc.key))))
+							(l, r) => rc => l (rc).WithType (tc.ToSourced ().Select (t => t.key)))))
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is,
 							false,
-							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool))))
+							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool.SourcedCalculated (m)))))
 						.Or (PTakePropertyST.Select (prop => new OperatorProcessor (PSqlOperatorPriority.Unary, false,
-							(l, r) => rc => new NamedTyped (prop.ToSourced (),
-								l (rc).Type.Value.PropertiesDict[prop.Value].Type)
-						)))
+							(l, r) => rc =>
+							{
+								var CompositeType = l (rc).Type.Value;
+								return new NamedTyped (prop.ToSourced (),
+									CompositeType.PropertiesDict[prop.Value].Type
+										.SourcedCompositeType (CompositeType.Schema, CompositeType.OwnName,
+											prop.Value));
+							})))
 						.Many ()
 						.Optional ()
 				;
@@ -676,25 +685,25 @@ namespace DbAnalysis
 							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBinaryComparisonOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.Comparison, true,
-							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
+							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryIncludeOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.In, true,
-							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
+							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryRangeOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Like,
 							true,
-							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
+							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryMatchingOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Is,
 							true,
-							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
+							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryConjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.And, true,
-							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool), IsAnd: true)))
+							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool), IsAnd: true)))
 						.Or (PBinaryDisjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
-							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool))))
+							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.General, true,
 							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBetweenOperatorST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Between, true,
-							OperatorProcessor.ProduceType (DatabaseContext.TypeMap.Bool), true)))
+							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool), true)))
 				;
 
 			var PPolynomST =
@@ -767,13 +776,16 @@ namespace DbAnalysis
 				;
 
 			var PValuesClauseST =
+				(
 					from _1 in SqlToken ("values")
 					from v in PExpressionRefST.Get
 						.Or (SqlToken ("default").Return (new SPolynom ()))
+						.Span ()
 						.CommaDelimitedST ()
 						.InParentsST ()
 						.CommaDelimitedST ()
 					select v.First ()
+				).Span ()
 				;
 
 			var PValuesSourceST =
@@ -782,9 +794,9 @@ namespace DbAnalysis
 					from table_name in
 						PTableAliasLST // here: use PTableAliasClauseOptionalST to exclude selected keywords
 					from column_names in PColumnNameLST.CommaDelimitedST ().InParentsST ().Optional ()
-					select new ValuesBlock (v.ToArray (),
+					select new ValuesBlock (v.Value.ToSourced (),
 						table_name.ToSourced (),
-						column_names.GetOrDefault ()?.Values () ?? Array.Empty<string> ())
+						column_names.GetOrDefault ()?.ToSourced () ?? Array.Empty<Sourced<string>> ())
 				;
 
 			var PFromTableExpressionST =
@@ -1213,9 +1225,9 @@ namespace DbAnalysis
 								select 0
 							).Optional ()
 							from _2 in SqlToken (";")
-							select type.key != null
-								? new NamedTyped (name.ToSourced (), type.key)
-								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.given_as + ") is not supported")
+							select type.Value.key != null
+								? new NamedTyped (name.ToSourced (), type.ToSourced ().Select (t => t.key))
+								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.Value.given_as + ") is not supported")
 						).Many ()
 						select vars.ToArray ()
 					).Optional ()

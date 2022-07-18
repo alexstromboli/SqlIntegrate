@@ -124,6 +124,11 @@ namespace DbAnalysis
 			return Parser.Select<ITextSpan<T>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type.SourcedCalculated (t)));
 		}
 
+		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
+		{
+			return Parser.Span ().ProduceType (Type);
+		}
+
 		public static Parser<Func<RequestContext, NamedTyped>> ProduceType (this Parser<ITextSpan<PSqlType>> Parser)
 		{
 			return Parser.Select<ITextSpan<PSqlType>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (t.ToSourced ()));

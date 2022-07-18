@@ -5,11 +5,11 @@ namespace DbAnalysis
 {
 	public class ValuesBlock : ITableRetriever
 	{
-		public SPolynom[] Values;
+		public Sourced<SPolynom>[] Values;
 		public Sourced<string> TableName;
 		public Sourced<string>[] ColumnNames;
 
-		public ValuesBlock (SPolynom[] Values, Sourced<string> TableName, Sourced<string>[] ColumnNames)
+		public ValuesBlock (Sourced<SPolynom>[] Values, Sourced<string> TableName, Sourced<string>[] ColumnNames)
 		{
 			this.Values = Values;
 			this.TableName = TableName;
@@ -27,7 +27,7 @@ namespace DbAnalysis
 
 				if (ColName != null || !OnlyNamed)
 				{
-					t.AddColumn (ValueExp.Value.GetResult (Context).WithName (ColName));
+					t.AddColumn (ValueExp.Value.Value.GetResult (Context).WithName (ColName));
 				}
 			}
 
