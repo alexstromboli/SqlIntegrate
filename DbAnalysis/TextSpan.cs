@@ -1,5 +1,6 @@
-using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Generic;
+
 using Sprache;		// can be dismissed through redefinition of the types used
 
 namespace DbAnalysis
@@ -18,6 +19,11 @@ namespace DbAnalysis
 			}
 
 			return new TextSpan { Start = Left.Start, End = Right.End, Length = Right.End.Pos - Left.Start.Pos };
+		}
+
+		public override string ToString ()
+		{
+			return $"{Start} + {Length}";
 		}
 	}
 

@@ -68,7 +68,7 @@ namespace DbAnalysis
 				;
 
 			Asterisks["*"] = AllAsteriskedEntries
-					.ToLookup (c => c.Name)
+					.ToLookup (c => c.Name.Value)
 					.Where (g => g.Count () == 1)
 					.Select (g => g.First ())
 					.ToArray ()

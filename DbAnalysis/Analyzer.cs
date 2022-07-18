@@ -1343,7 +1343,7 @@ namespace DbAnalysis
 						new Datasets.Argument
 						{
 							Name = a.Name.Value,
-							Type = a.Type.ToString (),
+							Type = a.Type.Value.ToString (),
 							PSqlType = a.Type.Value,
 							IsOut = a.Direction == Argument.DirectionType.InOut
 						}).ToList (),
@@ -1398,7 +1398,7 @@ namespace DbAnalysis
 								Columns = Set.Table.Columns.Select (c => new Column
 								{
 									Name = c.Name.Value,
-									Type = c.Type.ToString (),
+									Type = c.Type.Value.ToString (),
 									PSqlType = c.Type.Value
 								}).ToList ()
 							};

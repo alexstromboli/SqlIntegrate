@@ -17,6 +17,11 @@ namespace DbAnalysis.Sources
 		protected DefinitionSource ()
 		{
 		}
+
+		public override string ToString ()
+		{
+			return "by definition";
+		}
 	}
 
 	public class TextSpanSource : ISource
@@ -26,6 +31,11 @@ namespace DbAnalysis.Sources
 		public TextSpanSource (TextSpan Span)
 		{
 			this.Span = Span;
+		}
+
+		public override string ToString ()
+		{
+			return Span?.ToString () ?? "???";
 		}
 	}
 
@@ -58,6 +68,11 @@ namespace DbAnalysis.Sources
 			this.TableName = TableName;
 			this.TableColumnName = TableColumnName;
 		}
+
+		public override string ToString ()
+		{
+			return $"table {SchemaName}.{TableName}, column {TableColumnName}";
+		}
 	}
 
 	public class CompositeTypeSource : ISource
@@ -73,6 +88,11 @@ namespace DbAnalysis.Sources
 			this.TypeName = TypeName;
 			this.PropertyName = PropertyName;
 		}
+
+		public override string ToString ()
+		{
+			return $"type {SchemaName}.{TypeName}, property {PropertyName}";
+		}
 	}
 
 	public class Sourced<T>
@@ -85,6 +105,11 @@ namespace DbAnalysis.Sources
 		{
 			this.Value = Value;
 			this.Source = Source;
+		}
+
+		public override string ToString ()
+		{
+			return (Value?.ToString () ?? "null") + ", source: " + Source?.ToString ();
 		}
 
 		public Sourced<N> Select<N> (Func<T, N> Convert)
