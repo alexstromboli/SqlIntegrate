@@ -54,7 +54,7 @@ namespace DbAnalysis
 			return Result;
 		}
 
-		public NamedTyped GetFunction (Sourced<string>[] NameSegments)
+		public NamedTyped GetFunction (IReadOnlyList<Sourced<string>> NameSegments)
 		{
 			Sourced<string> Name = NameSegments[^1].ToLower ();
 			var Span = NameSegments.Range ();

@@ -50,7 +50,7 @@ namespace DbAnalysis
 			return Items.Select (f => f.Value).ToArray ();
 		}
 
-		public static string JoinDot (this IEnumerable<ITextSpan<string>> Fragments)
+		public static string JoinDot (this IEnumerable<Sourced<string>> Fragments)
 		{
 			return Fragments.Values ().JoinDot ();
 		}

@@ -39,7 +39,7 @@ namespace DbAnalysis
 			{
 				foreach (var f in Froms)
 				{
-					ITable Table = f.TableRetriever.GetTable (Context);
+					ITable Table = f.TableRetriever (Context).GetTable (Context);
 					var Refs = Table.GetAllColumnReferences (Context.ModuleContext, f.Alias);
 					AllColumns.AddRange (Refs.Columns.Select (p => new Tuple<string, NamedTyped> (p.Key, p.Value)));
 

@@ -306,7 +306,7 @@ namespace DbAnalysis
 						from n in PAlphaNumericOrQuotedLST
 						select n
 					).Many ()
-					select k1.ToTrivialArray ().Concat (kn).ToArray ()
+					select new QualifiedName (k1.ToTrivialArray ().Concat (kn).ToSourced ())
 				;
 
 			var PSignPrefix =
@@ -430,7 +430,6 @@ namespace DbAnalysis
 					from arg in PExpressionRefST.Get
 						.CommaDelimitedST (true)
 						.InParentsST ()
-						.SqlToken ()
 					select n
 				;
 
@@ -443,12 +442,17 @@ namespace DbAnalysis
 						select qual
 					).Optional ()
 					from ast in SqlToken ("*")
-					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc => rc.GetAsterisk (
-						(qual.IsDefined
-							? qual.Get ().JoinDot () + ".*"
-							: "*"
-						).SourcedTextSpan (qual.GetOrEmpty ().Concat (ast.ToTrivialArray ()).Range ())
-					))
+					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc =>
+					{
+						var Qualifier = qual.GetOrDefault ()?.Get (rc, 2) ?? Array.Empty<Sourced<string>> ();
+
+						return rc.GetAsterisk (
+							(qual.IsDefined
+								? Qualifier.JoinDot () + ".*"
+								: "*"
+							).SourcedTextSpan (Qualifier.Concat (ast.ToSourced ().ToTrivialArray ()).Range ())
+						);
+					})
 				;
 
 			var PGroupByClauseOptionalST =
@@ -499,14 +503,14 @@ namespace DbAnalysis
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (DatabaseContext.TypeMap.VarChar))
 						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
-						.Or (PFunctionCallST.Select<ITextSpan<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
-							rc.ModuleContext.GetFunction (p.ToSourced ())
+						.Or (PFunctionCallST.Select<QualifiedName, Func<RequestContext, NamedTyped>> (p => rc =>
+							rc.ModuleContext.GetFunction (p.Get (rc, 2))
 							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST
-							.Select<ITextSpan<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
+							.Select<QualifiedName, Func<RequestContext, NamedTyped>> (p => rc =>
 							{
-								string Key = p.JoinDot ();
+								string Key = p.Get (rc).JoinDot ();
 								return rc.NamedDict.TryGetValue (Key, out var V) ? V : throw new KeyNotFoundException ("Not found " + Key);
 							}))
 						.Or (PSelectFirstColumnST)
@@ -813,15 +817,17 @@ namespace DbAnalysis
 			var PFromTableExpressionST =
 					from table in
 					(
-						PUnnestST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p =>
-								new UnnestTableRetriever (p))
+						PUnnestST.Select<Func<RequestContext, NamedTyped>, Func<RequestContext, ITableRetriever>> (p =>
+								rc => new UnnestTableRetriever (p))
 							// or-ed after unnest
-							.Or (PFunctionCallST.Select (qi => new NamedTableRetriever (qi.Values ()) // stub
+							.Or (PFunctionCallST.Select<QualifiedName, Func<RequestContext, ITableRetriever>> (qi => rc => new NamedTableRetriever (qi.Get (rc, 2).Values ()) // stub
 							))
 							// or-ed after function calls
-							.Or (PQualifiedIdentifierLST.Select (qi => new NamedTableRetriever (qi.Values ())))
-							.Or (PFullSelectStatementRefST.Get.InParentsST ())
-							.Or (PValuesSourceST)
+							.Or (PQualifiedIdentifierLST.Select<QualifiedName, Func<RequestContext, ITableRetriever>> (qi => rc => new NamedTableRetriever (qi.Get (rc, 2).Values ())))
+							.Or (PFullSelectStatementRefST.Get.InParentsST ()
+								.Select<FullSelectStatement, Func<RequestContext, ITableRetriever>> (t => rc => t)
+							)
+							.Or (PValuesSourceST.Select<ValuesBlock, Func<RequestContext, ITableRetriever>> (t => rc => t))
 					)
 					from alias_cl in PTableAliasClauseOptionalST (
 						new[]
@@ -979,7 +985,7 @@ namespace DbAnalysis
 					select returning.IsDefined
 						? new FullSelectStatement (null,
 							new SelectStatement (returning.Get (),
-								new FromTableExpression (new NamedTableRetriever (table_name.Values ()), null).ToTrivialArray ()))
+								new FromTableExpression (rc => new NamedTableRetriever (table_name.Get (rc, 2).Values ()), null).ToTrivialArray ()))
 						: null
 				;
 
@@ -1000,7 +1006,7 @@ namespace DbAnalysis
 					select returning.IsDefined
 						? new FullSelectStatement (null,
 							new SelectStatement (returning.Get (),
-								new FromTableExpression (new NamedTableRetriever (table_name.Values ()), null).ToTrivialArray ()))
+								new FromTableExpression (rc => new NamedTableRetriever (table_name.Get (rc, 2).Values ()), null).ToTrivialArray ()))
 						: null
 				;
 
