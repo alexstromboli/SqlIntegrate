@@ -17,6 +17,11 @@ namespace DbAnalysis
 				Expected == null ? Array.Empty<string> () : Expected.ToTrivialArray ());
 		}
 
+		public static T[] GetOrEmpty<T> (this IOption<IEnumerable<T>> Input)
+		{
+			return Input.GetOrElse (Array.Empty<T> ()).ToArray ();
+		}
+
 		public static Parser<string> ToLower (this Parser<string> Inner)
 		{
 			return Inner.Select (s => s.ToLower ());
@@ -104,7 +109,7 @@ namespace DbAnalysis
 
 			if (CanBeEmpty)
 			{
-				Result = Result.Optional ().Select (seq => seq.GetOrElse (Array.Empty<T> ()));
+				Result = Result.Optional ().Select (seq => seq.GetOrEmpty ());
 			}
 
 			return Result;

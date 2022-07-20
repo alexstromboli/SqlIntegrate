@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 
-using Sprache;
-
 namespace DbAnalysis
 {
 	public class SPolynom
@@ -11,7 +9,7 @@ namespace DbAnalysis
 		{
 			// ignore prefixes as irrelevant
 			public Func<RequestContext, NamedTyped> Atomic;
-			public IOption<IEnumerable<OperatorProcessor>> Postfixes;
+			public OperatorProcessor[] Postfixes;
 		}
 
 		public List<Operand> Operands;
@@ -44,15 +42,12 @@ namespace DbAnalysis
 			{
 				OperandsStack.Push (arg.Atomic);
 
-				if (arg.Postfixes.IsDefined)
+				foreach (var Postfix in arg.Postfixes)
 				{
-					foreach (var Postfix in arg.Postfixes.Get ())
-					{
-						Perform (Postfix.Precedence);
-						var l = OperandsStack.Pop ();
-						var res = Postfix.Processor (l, null);
-						OperandsStack.Push (res);
-					}
+					Perform (Postfix.Precedence);
+					var l = OperandsStack.Pop ();
+					var res = Postfix.Processor (l, null);
+					OperandsStack.Push (res);
 				}
 			};
 

@@ -447,9 +447,7 @@ namespace DbAnalysis
 						(qual.IsDefined
 							? qual.Get ().JoinDot () + ".*"
 							: "*"
-						).SourcedTextSpan (qual.GetOrElse (new TextSpan<string>[0])
-							.Concat (ast.ToTrivialArray ())
-							.Range ())
+						).SourcedTextSpan (qual.GetOrEmpty ().Concat (ast.ToTrivialArray ()).Range ())
 					))
 				;
 
@@ -733,8 +731,10 @@ namespace DbAnalysis
 					select new SPolynom
 					{
 						Operators = rest.Select (e => e.op).ToList (),
-						Operands = new SPolynom.Operand { Atomic = at1, Postfixes = post1 }.ToTrivialArray ()
-							.Concat (rest.Select (e => new SPolynom.Operand { Atomic = e.atN, Postfixes = e.postN }))
+						Operands = new SPolynom.Operand { Atomic = at1, Postfixes = post1.GetOrEmpty () }
+							.ToTrivialArray ()
+							.Concat (rest.Select (e => new SPolynom.Operand
+								{ Atomic = e.atN, Postfixes = e.postN.GetOrEmpty () }))
 							.ToList ()
 					}
 				;
@@ -1243,7 +1243,7 @@ namespace DbAnalysis
 						select vars.ToArray ()
 					).Optional ()
 					from body in PBeginEndST
-					select new SProcedure (declare.GetOrElse (new NamedTyped[0]), body)
+					select new SProcedure (declare.GetOrEmpty (), body)
 				;
 		}
 
