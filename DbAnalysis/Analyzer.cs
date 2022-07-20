@@ -19,8 +19,8 @@ namespace DbAnalysis
 		protected DatabaseContext DatabaseContext;
 		protected Dictionary<int, string> WordsCache;
 		protected Parser<ITextSpan<string>> PDoubleQuotedString;
-		protected Ref<SPolynom> PExpressionRefST;
-		protected Parser<SPolynom> PExpressionST => PExpressionRefST.Get;
+		protected Ref<Sourced<SPolynom>> PExpressionRefST;
+		protected Parser<Sourced<SPolynom>> PExpressionST => PExpressionRefST.Get;
 		public Parser<SProcedure> PProcedureST { get; }
 
 		protected Parser<ITextSpan<string>> PAlphaNumericL
@@ -120,7 +120,7 @@ namespace DbAnalysis
 					from _1 in SqlToken ("else")
 					from value in PExpressionST
 					select value
-				).Span ().Optional ()
+				).Optional ()
 				from _3 in AnyTokenST ("end case", "end")
 				select new CaseBase<T> (case_h, branches, else_c)
 				;
@@ -215,7 +215,7 @@ namespace DbAnalysis
 		public Analyzer (DatabaseContext DatabaseContext)
 		{
 			this.DatabaseContext = DatabaseContext;
-			PExpressionRefST = new Ref<SPolynom> ();
+			PExpressionRefST = new Ref<Sourced<SPolynom>> ();
 
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
 			PDoubleQuotedString =
@@ -415,9 +415,9 @@ namespace DbAnalysis
 			var PArrayST =
 					from array_kw in SqlToken ("array")
 					from body in PExpressionST.CommaDelimitedST ().InBracketsST ()
-						.Select<IEnumerable<SPolynom>, Func<RequestContext, NamedTyped>> (arr =>
+						.Select<IEnumerable<Sourced<SPolynom>>, Func<RequestContext, NamedTyped>> (arr =>
 							rc =>
-								arr.Select (it => it.GetResult (rc))
+								arr.Select (it => it.Value.GetResult (rc))
 									.FirstOrDefault (nt => nt.Type.Value != DatabaseContext.TypeMap.Null) ??
 								new NamedTyped (DatabaseContext.TypeMap.Null.SourcedTextSpan (array_kw.ToTextSpan ())))
 						.Or (PSelectFirstColumnST)
@@ -491,7 +491,7 @@ namespace DbAnalysis
 					from exp in PExpressionST.Span ()
 					from _3 in AnyTokenST (")")
 					select (Func<RequestContext, NamedTyped>)(rc =>
-						new NamedTyped (f.ToSourced (), exp.Value.GetResult (rc).Type.Select (t => t.BaseType)))
+						new NamedTyped (f.ToSourced (), exp.Value.Value.GetResult (rc).Type.Select (t => t.BaseType)))
 				;
 
 			var PBaseAtomicST =
@@ -501,8 +501,8 @@ namespace DbAnalysis
 						.Or (PInteger.SqlToken ().ProduceType (DatabaseContext.TypeMap.Int))
 						.Or (PBooleanLiteralST.ProduceType (DatabaseContext.TypeMap.Bool))
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (DatabaseContext.TypeMap.VarChar))
-						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
-							rc => p.GetResult (rc)))
+						.Or (PParentsST.Select<Sourced<SPolynom>, Func<RequestContext, NamedTyped>> (p =>
+							rc => p.Value.GetResult (rc)))
 						.Or (PFunctionCallST.Select<QualifiedName, Func<RequestContext, NamedTyped>> (p => rc =>
 							rc.ModuleContext.GetFunction (p.Get (rc, 2))
 							))
@@ -537,7 +537,7 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionST
 						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).WithName (f))
+						select (Func<RequestContext, NamedTyped>)(rc => exp.Value.GetResult (rc).WithName (f))
 					)
 					.Or (
 						from f in SqlToken ("count")
@@ -554,7 +554,7 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionST
 						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
+						select (Func<RequestContext, NamedTyped>)(rc => exp.Value.GetResult (rc).ToArray ().WithName (f))
 					)
 					.Or (PUnnestST)
 					.Or (
@@ -566,8 +566,8 @@ namespace DbAnalysis
 						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc =>
 						{
-							var ExpRes = exp.GetResult (rc);
-							return (ExpRes.Type.Value == DatabaseContext.TypeMap.Null ? subst.GetResult (rc) : ExpRes)
+							var ExpRes = exp.Value.GetResult (rc);
+							return (ExpRes.Type.Value == DatabaseContext.TypeMap.Null ? subst.Value.GetResult (rc) : ExpRes)
 								.WithName (f);
 						})
 					)
@@ -600,9 +600,8 @@ namespace DbAnalysis
 					.Or (
 						from case_c in GetCase (PExpressionST)
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
-							case_c.ElseC.GetOrDefault ()?.Value.GetResult (rc).Name
-								?? case_c.CaseH.ToSourced (),
-							case_c.Branches.First ().Value.GetResult (rc).Type
+							case_c.ElseC?.Value.GetResult (rc).Name ?? case_c.CaseH,
+							case_c.Branches.First ().Value.Value.GetResult (rc).Type
 						))
 					)
 					.Or (
@@ -743,7 +742,7 @@ namespace DbAnalysis
 					}
 				;
 
-			PExpressionRefST.Parser = PPolynomST;
+			PExpressionRefST.Parser = PPolynomST.Span ().Select (p => p.ToSourced ());
 
 			//
 			var PSingleSelectEntryST =
@@ -760,7 +759,7 @@ namespace DbAnalysis
 						).Optional ()
 					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc =>
 							{
-								var nt = exp.GetResult (rc);
+								var nt = exp.Value.GetResult (rc);
 								var res = alias_cl.IsDefined
 									? nt.WithName (alias_cl.Get ())
 									: nt;
@@ -791,16 +790,13 @@ namespace DbAnalysis
 				;
 
 			var PValuesClauseST =
-				(
 					from _1 in SqlToken ("values")
 					from v in PExpressionST
-						.Or (SqlToken ("default").Return (new SPolynom ()))
-						.Span ()
+						.Or (SqlToken ("default").Return (new SPolynom ().SourcedUnknown ()))
 						.CommaDelimitedST ()
 						.InParentsST ()
 						.CommaDelimitedST ()
 					select v.First ()
-				).Span ()
 				;
 
 			var PValuesSourceST =
@@ -809,7 +805,7 @@ namespace DbAnalysis
 					from table_name in
 						PTableAliasLST // here: use PTableAliasClauseOptionalST to exclude selected keywords
 					from column_names in PColumnNameLST.CommaDelimitedST ().InParentsST ().Optional ()
-					select new ValuesBlock (v.Value.ToSourced (),
+					select new ValuesBlock (v.ToArray (),
 						table_name.ToSourced (),
 						column_names.GetOrDefault ()?.ToSourced () ?? Array.Empty<Sourced<string>> ())
 				;

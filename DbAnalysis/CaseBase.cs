@@ -2,19 +2,21 @@ using System.Collections.Generic;
 
 using Sprache;
 
+using DbAnalysis.Sources;
+
 namespace DbAnalysis
 {
 	public class CaseBase<T>
 	{
-		public ITextSpan<string> CaseH { get; }
-		public IEnumerable<ITextSpan<T>> Branches { get; }
-		public IOption<ITextSpan<SPolynom>> ElseC { get; }
+		public Sourced<string> CaseH { get; }
+		public IEnumerable<Sourced<T>> Branches { get; }
+		public Sourced<SPolynom> ElseC { get; }		// can be null
 
-		public CaseBase (ITextSpan<string> CaseH, IEnumerable<ITextSpan<T>> Branches, IOption<ITextSpan<SPolynom>> ElseC)
+		public CaseBase (ITextSpan<string> CaseH, IEnumerable<ITextSpan<T>> Branches, IOption<Sourced<SPolynom>> ElseC)
 		{
-			this.CaseH = CaseH;
-			this.Branches = Branches;
-			this.ElseC = ElseC;
+			this.CaseH = CaseH.ToSourced ();
+			this.Branches = Branches.ToSourced ();
+			this.ElseC = ElseC.GetOrDefault ();
 		}
 	}
 }
