@@ -442,12 +442,15 @@ namespace DbAnalysis
 						from dot in Parse.Char ('.').SqlToken ()
 						select qual
 					).Optional ()
-					from ast in Parse.Char ('*').SqlToken ()
+					from ast in SqlToken ("*")
 					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc => rc.GetAsterisk (
-						qual.IsDefined
+						(qual.IsDefined
 							? qual.Get ().JoinDot () + ".*"
 							: "*"
-						))
+						).SourcedTextSpan (qual.GetOrElse (new TextSpan<string>[0])
+							.Concat (ast.ToTrivialArray ())
+							.Range ())
+					))
 				;
 
 			var PGroupByClauseOptionalST =

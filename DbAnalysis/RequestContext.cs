@@ -1,7 +1,9 @@
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
 using Utils;
+using DbAnalysis.Sources;
 
 namespace DbAnalysis
 {
@@ -58,9 +60,23 @@ namespace DbAnalysis
 			this.Asterisks = Asterisks ?? ParentContext.Asterisks;
 		}
 
-		public IReadOnlyList<NamedTyped> GetAsterisk (string AsteriskEntry)
+		public IReadOnlyList<NamedTyped> GetAsterisk (Sourced<string> AsteriskEntry)
 		{
-			return Asterisks[AsteriskEntry];
+			ReportWarning ("Used '*' selection at " + (AsteriskEntry.Source?.ToString () ?? "???"));
+			return Asterisks[AsteriskEntry.Value];
+		}
+
+		public RequestContext ReportError ()
+		{
+			return this;
+		}
+
+		public RequestContext ReportWarning (string Message)
+		{
+			Console.ForegroundColor = ConsoleColor.Yellow;
+			Console.WriteLine (Message ?? "");
+			Console.ResetColor ();
+			return this;
 		}
 	}
 }
