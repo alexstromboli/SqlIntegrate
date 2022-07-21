@@ -27,47 +27,44 @@ namespace DbAnalysis
 			return Inner.Select (s => s.ToLower ());
 		}
 
-		public static Parser<ITextSpan<string>> ToLower (this Parser<ITextSpan<string>> Inner)
+		public static Parser<Sourced<T>> SpanSourced<T> (this Parser<T> Inner)
 		{
-			return Inner.Select (s =>
-			{
-				string L = s.Value.ToLower ();
-
-				return L == s.Value
-				? s
-				: new TextSpan<string>
-				{
-					Value = L,
-					Start = s.Start,
-					End = s.End,
-					Length = s.Length
-				};
-			});
+			return Inner
+					.Span ()
+					.Select (t => t.Value.SourcedTextSpan (t.ToTextSpan ()))
+				;
 		}
 
+		public static Parser<Sourced<string>> ToLower (this Parser<Sourced<string>> Inner)
+		{
+			return Inner.Select (s => s.ToLower ());
+		}
+
+		/*
 		public static T[] Values<T> (this IEnumerable<ITextSpan<T>> Items)
 		{
 			return Items.Select (f => f.Value).ToArray ();
 		}
+		*/
 
 		public static string JoinDot (this IEnumerable<Sourced<string>> Fragments)
 		{
 			return Fragments.Values ().JoinDot ();
 		}
 
-		public static Parser<ITextSpan<T>> SqlToken<T> (this Parser<T> Inner)
-		{
-			return Inner
-					.Span ()
-					.SqlToken ()
-				;
-		}
-
-		public static Parser<ITextSpan<T>> SqlToken<T> (this Parser<ITextSpan<T>> Inner)
+		public static Parser<Sourced<T>> SqlToken<T> (this Parser<Sourced<T>> Inner)
 		{
 			return Inner
 					.Commented (SqlCommentParser.Instance)
 					.Select (p => p.Value)
+				;
+		}
+
+		public static Parser<Sourced<T>> SqlToken<T> (this Parser<T> Inner)
+		{
+			return Inner
+					.SpanSourced ()
+					.SqlToken ()
 				;
 		}
 
@@ -124,19 +121,19 @@ namespace DbAnalysis
 				;
 		}
 
-		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<ITextSpan<T>> Parser, PSqlType Type)
+		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<Sourced<T>> Parser, PSqlType Type)
 		{
-			return Parser.Select<ITextSpan<T>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type.SourcedCalculated (t)));
+			return Parser.Select<Sourced<T>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type.SourcedCalculated (t)));
 		}
 
 		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
 		{
-			return Parser.Span ().ProduceType (Type);
+			return Parser.SpanSourced ().ProduceType (Type);
 		}
 
-		public static Parser<Func<RequestContext, NamedTyped>> ProduceType (this Parser<ITextSpan<PSqlType>> Parser)
+		public static Parser<Func<RequestContext, NamedTyped>> ProduceType (this Parser<Sourced<PSqlType>> Parser)
 		{
-			return Parser.Select<ITextSpan<PSqlType>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (t.ToSourced ()));
+			return Parser.Select<Sourced<PSqlType>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (t));
 		}
 	}
 }
