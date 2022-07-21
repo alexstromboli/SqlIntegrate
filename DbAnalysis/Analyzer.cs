@@ -14,12 +14,12 @@ namespace DbAnalysis
 {
 	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
 
-	public class IBag
+	public interface IBag
 	{
 		public IReadOnlyList<Sourced<SPolynom>> Polynoms { get; }
 	}
 
-	public class Bag<T> //: IBag
+	public class Bag<T> : IBag
 	{
 		public T Value;
 		protected List<Sourced<SPolynom>> _Polynoms;
@@ -720,8 +720,8 @@ namespace DbAnalysis
 								if (CompositeType.PropertiesDict == null ||
 								    !CompositeType.PropertiesDict.TryGetValue (prop.Value, out var Property))
 								{
-									throw new InvalidOperationException (
-										$"Line {prop?.TextSpan?.Start.Line}, column {prop?.TextSpan?.Start.Column}, type {CompositeType} does not have property {prop?.Value ?? "???"}");
+									rc.ReportError ($"Line {prop?.TextSpan?.Start.Line}, column {prop?.TextSpan?.Start.Column}, type {CompositeType} does not have property {prop?.Value ?? "???"}");
+									throw new InvalidOperationException ();
 								}
 
 								return new NamedTyped (prop,

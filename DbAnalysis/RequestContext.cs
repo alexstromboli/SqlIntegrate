@@ -66,8 +66,11 @@ namespace DbAnalysis
 			return Asterisks[AsteriskEntry.Value];
 		}
 
-		public RequestContext ReportError ()
+		public RequestContext ReportError (string Message)
 		{
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine (Message ?? "");
+			Console.ResetColor ();
 			return this;
 		}
 

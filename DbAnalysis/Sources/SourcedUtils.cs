@@ -1,8 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
 
-using Sprache;
-
 namespace DbAnalysis.Sources
 {
 	public static class SourcedUtils
@@ -37,39 +35,15 @@ namespace DbAnalysis.Sources
 			return new Sourced<T> (Value, new TextSpanSource (Span));
 		}
 
-		/*
-		public static Sourced<T> ToSourced<T> (this ITextSpan<T> Span)
-		{
-			return new Sourced<T> (Span.Value, new TextSpanSource (Span.ToTextSpan ()));
-		}
-
-		public static Sourced<T>[] ToSourced<T> (this IEnumerable<ITextSpan<T>> Spans)
-		{
-			return Spans.Select (s => s.ToSourced ()).ToArray ();
-		}
-		*/
-
 		public static Sourced<T> SourcedCalculated<T> (this T Value, TextSpan Span)
 		{
 			return new Sourced<T> (Value, new CalculatedSource (Span));
-		}
-
-		public static Sourced<T> SourcedCalculated<T> (this T Value, TextSpanSource Source)
-		{
-			return new Sourced<T> (Value, new CalculatedSource (Source.Span));
 		}
 
 		public static Sourced<T> SourcedCalculated<T, C> (this T Value, Sourced<C> Source)
 		{
 			return new Sourced<T> (Value, new CalculatedSource (Source.TextSpan));
 		}
-
-		/*
-		public static Sourced<T> SourcedCalculated<T, N> (this T Value, ITextSpan<N> Span)
-		{
-			return new Sourced<T> (Value, new CalculatedSource (Span.ToTextSpan ()));
-		}
-		*/
 
 		public static Sourced<T> SourcedFunction<T> (this T Value, TextSpan Span)
 		{

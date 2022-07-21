@@ -21,30 +21,16 @@ namespace DbAnalysis
 			return new TextSpan { Start = Left.Start, End = Right.End, Length = Right.End.Pos - Left.Start.Pos };
 		}
 
-		/*
-		public static TextSpan Range<T> (ITextSpan<T> Left, ITextSpan<T> Right)
-		{
-			if (Left == null || Right == null)
-			{
-				return null;
-			}
-
-			return new TextSpan { Start = Left.Start, End = Right.End, Length = Right.End.Pos - Left.Start.Pos };
-		}
-		*/
-
 		public override string ToString ()
 		{
 			return $"{Start} + {Length}";
 		}
 	}
 
-	/*
 	public class TextSpan<T> : TextSpan, ITextSpan<T>
 	{
 		public T Value { get; set; }
 	}
-	*/
 
 	public static class TextSpanUtils
 	{
@@ -59,13 +45,5 @@ namespace DbAnalysis
 		{
 			return TextSpan.Range (Spans.First (), Spans.Last ());
 		}
-
-		/*
-		// proper order presumed
-		public static TextSpan Range<T> (this IEnumerable<ITextSpan<T>> Spans)
-		{
-			return TextSpan.Range (Spans.First (), Spans.Last ());
-		}
-		*/
 	}
 }

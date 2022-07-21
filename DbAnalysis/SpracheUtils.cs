@@ -40,13 +40,6 @@ namespace DbAnalysis
 			return Inner.Select (s => s.ToLower ());
 		}
 
-		/*
-		public static T[] Values<T> (this IEnumerable<ITextSpan<T>> Items)
-		{
-			return Items.Select (f => f.Value).ToArray ();
-		}
-		*/
-
 		public static string JoinDot (this IEnumerable<Sourced<string>> Fragments)
 		{
 			return Fragments.Values ().JoinDot ();
@@ -65,22 +58,6 @@ namespace DbAnalysis
 			return Inner
 					.SpanSourced ()
 					.SqlToken ()
-				;
-		}
-
-		// generally, use of this is a red flag of bad design
-		public static Parser<T> Or<T> (this IEnumerable<Parser<T>> Items)
-		{
-			Items = Items.Where (i => i != null);
-
-			if (!Items.Any ())
-			{
-				return null;
-			}
-
-			return Items
-					.Skip (1)
-					.Aggregate (Items.First (), (ch, i) => ch.Or (i))
 				;
 		}
 
