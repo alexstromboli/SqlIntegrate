@@ -12,6 +12,7 @@ using DbAnalysis.Datasets;
 
 namespace DbAnalysis
 {
+	public record FunctionCall(QualifiedName name, Sourced<SPolynom>[] arg/*exp*/);
 	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
 
 	public interface IBag
@@ -483,7 +484,7 @@ namespace DbAnalysis
 				select (Func<RequestContext, NamedTyped>)(rc =>
 				{
 					var Columns = body (rc);
-					return Columns[0];
+					return Columns[0].ToArray ().WithName (array_kw);
 				});
 
 			var PFunctionCallST =
@@ -565,8 +566,8 @@ namespace DbAnalysis
 						.Or (PExpressionST.InParentsST ()
 							.Select<Sourced<SPolynom>, Func<RequestContext, NamedTyped>> (p =>
 								rc => p.Value.GetResult (rc)))
-						.Or (PFunctionCallST.Select<QualifiedName, Func<RequestContext, NamedTyped>> (p => rc =>
-							rc.ModuleContext.GetFunction (p.Get (rc, 2))
+						.Or (PFunctionCallST.Select<FunctionCall, Func<RequestContext, NamedTyped>> (p => rc =>
+							rc.ModuleContext.GetFunction (p.name.Get (rc, 2))
 						))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST
@@ -881,7 +882,7 @@ namespace DbAnalysis
 						PUnnestST.Select<Func<RequestContext, NamedTyped>, Func<RequestContext, ITableRetriever>> (p =>
 								rc => new UnnestTableRetriever (p))
 							// or-ed after unnest
-							.Or (PFunctionCallST.Select<QualifiedName, Func<RequestContext, ITableRetriever>> (qi => rc => new NamedTableRetriever (qi.Get (rc, 2).Values ()) // stub
+							.Or (PFunctionCallST.Select<FunctionCall, Func<RequestContext, ITableRetriever>> (qi => rc => new NamedTableRetriever (qi.name.Get (rc, 2).Values ()) // stub
 							))
 							// or-ed after function calls
 							.Or (PQualifiedIdentifierLST.Select<QualifiedName, Func<RequestContext, ITableRetriever>> (qi => rc => new NamedTableRetriever (qi.Get (rc, 2).Values ())))
@@ -1557,6 +1558,4 @@ namespace DbAnalysis
 			return ModuleReport;
 		}
 	}
-
-	public record FunctionCall(QualifiedName name, Sourced<SPolynom>[] arg/*exp*/);
 }
