@@ -163,14 +163,14 @@ namespace DbAnalysis
 		{
 			return
 				from case_h in SqlToken ("case")
-				from _2 in PExpressionST.Optional ()
+				from sample in PExpressionST.Optional ()
 				from branches in
 				(
 					from _1 in SqlToken ("when")
-					from _2 in PExpressionST.CommaDelimitedST ().AtLeastOnce ()
+					from cond in PExpressionST.CommaDelimitedST ()
 					from _3 in SqlToken ("then")
 					from value in Then.SpanSourced ()
-					select value
+					select new { cond, value }
 				).AtLeastOnce ()
 				from else_c in
 				(
@@ -179,7 +179,12 @@ namespace DbAnalysis
 					select value
 				).Optional ()
 				from _3 in AnyTokenST ("end case", "end")
-				select new CaseBase<T> (case_h, branches.ToArray (), else_c)
+				select new CaseBase<T> (
+					case_h,
+					sample.GetOrDefault (),
+					branches.Select (b => b.cond).SelectMany (t => t).ToArray (),
+					branches.Select (b => b.value).ToArray (),
+					else_c)
 				;
 		}
 
@@ -375,8 +380,8 @@ namespace DbAnalysis
 
 			Ref<FullSelectStatement> PFullSelectStatementRefST = new Ref<FullSelectStatement> ();
 
-			var PParentsST = PExpressionST.InParentsST ();
-			var PBracketsST = PExpressionST.InBracketsST ();
+			//var PParentsST = PExpressionST.InParentsST ();
+			//var PBracketsST = PExpressionST.InBracketsST ();
 
 			var PBinaryAdditionOperatorsST = AnyTokenST ("+", "-");
 			var PBinaryMultiplicationOperatorsST = AnyTokenST ("/", "*", "%");
@@ -464,24 +469,29 @@ namespace DbAnalysis
 				);
 
 			var PArrayST =
-					from array_kw in SqlToken ("array")
-					from body in PExpressionST.CommaDelimitedST ().InBracketsST ()
-						.Select<IEnumerable<Sourced<SPolynom>>, Func<RequestContext, NamedTyped>> (arr =>
-							rc =>
-								arr.Select (it => it.Value.GetResult (rc))
-									.FirstOrDefault (nt => nt.Type.Value != DatabaseContext.TypeMap.Null) ??
-								new NamedTyped (DatabaseContext.TypeMap.Null.SourcedTextSpan (array_kw.TextSpan)))
-						.Or (PSelectFirstColumnST)
-					select (Func<RequestContext, NamedTyped>)(rc =>
-						body (rc).ToArray ().WithName (array_kw))
-				;
+				from array_kw in SqlToken ("array")
+				from body in PExpressionST.CommaDelimitedST ().InBracketsST ()
+					.Select<IEnumerable<Sourced<SPolynom>>, Func<RequestContext, NamedTyped[]>> (arr =>
+							rc => arr.Select (it => it.Value.GetResult (rc))
+								.ToArray ()
+						/*
+					  .FirstOrDefault (nt => nt.Type.Value != DatabaseContext.TypeMap.Null) ??
+				  new NamedTyped (DatabaseContext.TypeMap.Null.SourcedTextSpan (array_kw.TextSpan))*/)
+					.Or (PSelectFirstColumnST
+						.Select<Func<RequestContext, NamedTyped>, Func<RequestContext, NamedTyped[]>> (t =>
+							rc => t (rc).ToTrivialArray ()))
+				select (Func<RequestContext, NamedTyped>)(rc =>
+				{
+					var Columns = body (rc);
+					return Columns[0];
+				});
 
 			var PFunctionCallST =
-					from n in PQualifiedIdentifierLST
+					from name in PQualifiedIdentifierLST
 					from arg in PExpressionST
 						.CommaDelimitedST (true)
 						.InParentsST ()
-					select n
+					select new FunctionCall (name, arg.ToArray ())
 				;
 
 			//
@@ -510,14 +520,14 @@ namespace DbAnalysis
 				(
 					from kw_groupby in AnyTokenST ("group by")
 					from grp in PExpressionST.CommaDelimitedST ()
-					select 0
+					select grp.ToArray ()/*exp*/
 				).Optional ()
 				;
 
 			var PHavingClauseOptionalST =
 				(
 					from kw_groupby in SqlToken ("having")
-					from cond in PExpressionST
+					from cond in PExpressionST/*exp*/
 					select 0
 				).Optional ()
 				;
@@ -527,7 +537,7 @@ namespace DbAnalysis
 					from f in AnyTokenST ("order by")
 					from grp in
 						(
-							from _1 in PExpressionST
+							from _1 in PExpressionST/*exp*/
 							from _2 in AnyTokenST ("asc", "desc").Optional ()
 							select 0
 						)
@@ -539,10 +549,10 @@ namespace DbAnalysis
 			var PUnnestST =
 					from f in AnyTokenST ("unnest")
 					from _1 in AnyTokenST ("(")
-					from exp in PExpressionST.SpanSourced ()
+					from exp in PExpressionST
 					from _3 in AnyTokenST (")")
 					select (Func<RequestContext, NamedTyped>)(rc =>
-						new NamedTyped (f, exp.Value.Value.GetResult (rc).Type.Select (t => t.BaseType)))
+						new NamedTyped (f, exp.Value.GetResult (rc).Type.Select (t => t.BaseType)))
 				;
 
 			var PBaseAtomicST =
@@ -552,17 +562,20 @@ namespace DbAnalysis
 						.Or (PInteger.SqlToken ().ProduceType (DatabaseContext.TypeMap.Int))
 						.Or (PBooleanLiteralST.ProduceType (DatabaseContext.TypeMap.Bool))
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (DatabaseContext.TypeMap.VarChar))
-						.Or (PParentsST.Select<Sourced<SPolynom>, Func<RequestContext, NamedTyped>> (p =>
-							rc => p.Value.GetResult (rc)))
+						.Or (PExpressionST.InParentsST ()
+							.Select<Sourced<SPolynom>, Func<RequestContext, NamedTyped>> (p =>
+								rc => p.Value.GetResult (rc)))
 						.Or (PFunctionCallST.Select<QualifiedName, Func<RequestContext, NamedTyped>> (p => rc =>
 							rc.ModuleContext.GetFunction (p.Get (rc, 2))
-							))
+						))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST
 							.Select<QualifiedName, Func<RequestContext, NamedTyped>> (p => rc =>
 							{
 								string Key = p.Get (rc, 3).JoinDot ();
-								return rc.NamedDict.TryGetValue (Key, out var V) ? V : throw new KeyNotFoundException ("Not found " + Key);
+								return rc.NamedDict.TryGetValue (Key, out var V)
+									? V
+									: throw new KeyNotFoundException ("Not found " + Key);
 							}))
 						.Or (PSelectFirstColumnST)
 				;
@@ -574,7 +587,7 @@ namespace DbAnalysis
 						from _2 in
 						(
 							from _3 in AnyTokenST ("partition by")
-							from _4 in PExpressionST.CommaDelimitedST ()
+							from _4 in PExpressionST/*exp*/.CommaDelimitedST ()
 							select 0
 						).Optional ()
 						from _5 in POrderByClauseOptionalST
@@ -594,7 +607,7 @@ namespace DbAnalysis
 						from f in SqlToken ("count")
 						from _1 in SqlToken ("(")
 						from _2 in SqlToken ("distinct").Optional ()
-						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionST.Return (0))
+						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionST/*exp*/.Return (0))
 						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc =>
 							new NamedTyped (f, DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
@@ -613,7 +626,7 @@ namespace DbAnalysis
 						from _1 in SqlToken ("(")
 						from exp in PExpressionST
 						from _2 in SqlToken (",")
-						from subst in PExpressionST
+						from subst in PExpressionST/*exp*/
 						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc =>
 						{
@@ -633,7 +646,7 @@ namespace DbAnalysis
 					.Or (
 						(
 							from kw in AnyTokenST ("all", "any", "some")
-							from exp in PExpressionST.Return (0)
+							from exp in PExpressionST/*exp*/.Return (0)
 								.Or (PFullSelectStatementRefST.Get.Return (0))
 								.InParentsST ()
 							select 0
@@ -642,14 +655,14 @@ namespace DbAnalysis
 					.Or (
 						(
 							from kw in SqlToken ("exists")
-							from exp in PExpressionST.Return (0)
+							from exp in PExpressionST/*exp*/.Return (0)
 								.Or (PFullSelectStatementRefST.Get.Return (0))
 								.InParentsST ()
 							select 0
 						).ProduceType (DatabaseContext.TypeMap.Bool)
 					)
 					.Or (
-						from case_c in GetCase (PExpressionST)
+						from case_c in GetCase (PExpressionST/*exp*/)/*exp*/
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
 							case_c.ElseC?.Value.GetResult (rc).Name ?? case_c.CaseH,
 							case_c.Branches.First ().Value.Value.GetResult (rc).Type
@@ -664,7 +677,7 @@ namespace DbAnalysis
 									"month", "quarter", "second", "timezone", "timezone_hour", "timezone_minute",
 									"week", "year")
 								from _from in SqlToken ("from")
-								from exp in PExpressionST
+								from exp in PExpressionST/*exp*/
 								select 0
 							).InParentsST ()
 							select (Func<RequestContext, NamedTyped>)(rc =>
@@ -672,7 +685,7 @@ namespace DbAnalysis
 						)
 					)
 					.Or (PArrayST)
-					.Or (PExpressionST.CommaDelimitedST ().InParentsST () // ('one', 'two', 'three')
+					.Or (PExpressionST/*exp*/.CommaDelimitedST ().InParentsST () // ('one', 'two', 'three')
 						.Where (r => r.Count () > 1)
 						.ProduceType (DatabaseContext.TypeMap.Record))
 					.Or ( // interval '90 days'
@@ -699,7 +712,7 @@ namespace DbAnalysis
 				;
 
 			var PAtomicPostfixOptionalST =
-					PBracketsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.None, false,
+					PExpressionST/*exp*/.InBracketsST ().Select (b => new OperatorProcessor (PSqlOperatorPriority.None, false,
 							(l, r) => rc =>
 							{
 								var NamedTyped = l (rc);
@@ -720,7 +733,8 @@ namespace DbAnalysis
 								if (CompositeType.PropertiesDict == null ||
 								    !CompositeType.PropertiesDict.TryGetValue (prop.Value, out var Property))
 								{
-									rc.ReportError ($"Line {prop?.TextSpan?.Start.Line}, column {prop?.TextSpan?.Start.Column}, type {CompositeType} does not have property {prop?.Value ?? "???"}");
+									rc.ReportError (
+										$"Line {prop?.TextSpan?.Start.Line}, column {prop?.TextSpan?.Start.Column}, type {CompositeType} does not have property {prop?.Value ?? "???"}");
 									throw new InvalidOperationException ();
 								}
 
@@ -842,7 +856,7 @@ namespace DbAnalysis
 
 			var PValuesClauseST =
 					from _1 in SqlToken ("values")
-					from v in PExpressionST
+					from v in PExpressionST/*exp*/
 						.Or (SqlToken ("default").Return (new SPolynom ().SourcedUnknown ()))
 						.CommaDelimitedST ()
 						.InParentsST ()
@@ -895,7 +909,7 @@ namespace DbAnalysis
 							from kw_joinN in AnyTokenST ("join", "inner join", "left join", "right join")
 							from tN in PFromTableExpressionST
 							from kw_onN in SqlToken ("on")
-							from condexpN in PExpressionST
+							from condexpN in PExpressionST/*exp*/
 							select tN
 						)
 						.Or (
@@ -911,7 +925,7 @@ namespace DbAnalysis
 			var PWhereClauseOptionalST =
 				(
 					from kw_where in SqlToken ("where")
-					from cond in PExpressionST
+					from cond in PExpressionST/*exp*/
 					select 0
 				).Optional ()
 				;
@@ -924,7 +938,7 @@ namespace DbAnalysis
 						from _2 in
 						(
 							from _3 in SqlToken ("on")
-							from _4 in PExpressionST.InParentsST ()
+							from _4 in PExpressionST/*exp*/.InParentsST ()
 							select 0
 						).Optional ()
 						select 0
@@ -957,14 +971,14 @@ namespace DbAnalysis
 					from limit in
 					(
 						from kw in SqlToken ("limit")
-						from size in PExpressionST.Return (0)
+						from size in PExpressionST/*exp*/.Return (0)
 							.Or (SqlToken ("limit").Return (0))
 						select 0
 					).Optional ()
 					from offset in
 					(
 						from kw in SqlToken ("offset")
-						from size in PExpressionST
+						from size in PExpressionST/*exp*/
 						select 0
 					).Optional ()
 					select new SelectStatement (seq[0].List, seq[0].FromClause.GetOrDefault ())
@@ -1006,7 +1020,7 @@ namespace DbAnalysis
 					from conflict in
 					(
 						from _on in AnyTokenST ("on conflict")
-						from trg in PExpressionST.InParentsST ().Optional ()
+						from trg in PExpressionST/*exp*/.InParentsST ().Optional ()
 						from _1 in SqlToken ("do")
 						from act in SqlToken ("nothing").Return (0)
 							.Or (
@@ -1015,7 +1029,7 @@ namespace DbAnalysis
 								(
 									from col in PQualifiedIdentifierLST
 									from eq in SqlToken ("=")
-									from val in PExpressionST
+									from val in PExpressionST/*exp*/
 									select 0
 								).CommaDelimitedST ()
 								from wh in PWhereClauseOptionalST
@@ -1089,7 +1103,7 @@ namespace DbAnalysis
 					(
 						(
 							from _1 in SqlToken ("while")
-							from _2 in PExpressionST
+							from _2 in PExpressionST/*exp*/
 							select 0
 						)
 						.Or
@@ -1100,13 +1114,13 @@ namespace DbAnalysis
 							from _4 in SqlToken ("reverse").Optional ()
 							from in_c in
 								(
-									from _5 in PExpressionST
+									from _5 in PExpressionST/*exp*/
 									from _6 in SqlToken ("..")
-									from _7 in PExpressionST
+									from _7 in PExpressionST/*exp*/
 									from _8 in
 									(
 										from _1 in SqlToken ("by")
-										from _2 in PExpressionST
+										from _2 in PExpressionST/*exp*/
 										select 0
 									).Optional ()
 									select 0
@@ -1123,11 +1137,11 @@ namespace DbAnalysis
 							from _3 in
 							(
 								from _4 in SqlToken ("slice")
-								from _5 in PExpressionST
+								from _5 in PExpressionST/*exp*/
 								select 0
 							).Optional ()
 							from _6 in AnyTokenST ("in array")
-							from _7 in PExpressionST
+							from _7 in PExpressionST/*exp*/
 							select 0
 						)
 					).Optional ()
@@ -1141,7 +1155,7 @@ namespace DbAnalysis
 					(
 						from _when in SqlToken ("when")
 						from _stat in SqlToken ("sqlstate").Optional ()
-						from _cond in PExpressionST
+						from _cond in PExpressionST/*exp*/
 						from _then in SqlToken ("then")
 						from _inst in PInstructionRefST.Get.AtLeastOnce ()
 						select _inst
@@ -1174,7 +1188,7 @@ namespace DbAnalysis
 											// variable assignment
 											from _1 in PColumnNameLST
 											from _2 in AnyTokenST (":=", "=")
-											from _3 in PExpressionST
+											from _3 in PExpressionST/*exp*/
 											select 0
 										)
 										.Or (PSelectFullST.Return (0))
@@ -1193,7 +1207,7 @@ namespace DbAnalysis
 											(
 												from _1 in PQualifiedIdentifierLST
 												from _2 in SqlToken ("=")
-												from _3 in PExpressionST
+												from _3 in PExpressionST/*exp*/
 												select 0
 											).CommaDelimitedST ().AtLeastOnce ()
 											from _5 in PFromClauseOptionalST
@@ -1205,7 +1219,7 @@ namespace DbAnalysis
 											from _r in SqlToken ("raise")
 											from _l in AnyTokenST ("debug", "log", "info", "notice", "warning",
 												"exception").Optional ()
-											from _p in PExpressionST.CommaDelimitedST (true)
+											from _p in PExpressionST/*exp*/.CommaDelimitedST (true)
 											from _u in
 											(
 												from kw in SqlToken ("using")
@@ -1213,7 +1227,7 @@ namespace DbAnalysis
 												(
 													from _n in PAlphaNumericOrQuotedLST
 													from _eq in SqlToken ("=")
-													from _p in PExpressionST
+													from _p in PExpressionST/*exp*/
 													select 0
 												).CommaDelimitedST ()
 												select 0
@@ -1223,17 +1237,17 @@ namespace DbAnalysis
 										.Or
 										(
 											from _1 in SqlToken ("return")
-											from _2 in PExpressionST.Optional ()
+											from _2 in PExpressionST/*exp*/.Optional ()
 											select 0
 										)
 										.Or
 										(
 											from _1 in SqlToken ("call")
 											from _2 in PQualifiedIdentifierLST
-											from _3 in PExpressionST.CommaDelimitedST (true).InParentsST ()
+											from _3 in PExpressionST/*exp*/.CommaDelimitedST (true).InParentsST ()
 											select 0
 										)
-										.Or (GetCase (PInstructionRefST.Get).Return (0))
+										.Or (GetCase (PInstructionRefST.Get)/*exp*/.Return (0))
 										.Select (n => DataReturnStatement.Void)
 									)
 							select drs.ToTrivialArray ()
@@ -1241,13 +1255,13 @@ namespace DbAnalysis
 						.Or
 						(
 							from _1 in SqlToken ("if")
-							from _2 in PExpressionST
+							from _2 in PExpressionST/*exp*/
 							from _3 in SqlToken ("then")
 							from ThenIns in PInstructionRefST.Get.Many ()
 							from ElsifC in
 							(
 								from _1 in AnyTokenST ("elsif", "elseif")
-								from _2 in PExpressionST
+								from _2 in PExpressionST/*exp*/
 								from _3 in SqlToken ("then")
 								from ins in PInstructionRefST.Get.AtLeastOnce ()
 								select ins
@@ -1285,7 +1299,7 @@ namespace DbAnalysis
 							from init in
 							(
 								from _1 in AnyTokenST (":=", "=")
-								from _2 in PExpressionST
+								from _2 in PExpressionST/*exp*/
 								select 0
 							).Optional ()
 							from _2 in SqlToken (";")
@@ -1543,4 +1557,6 @@ namespace DbAnalysis
 			return ModuleReport;
 		}
 	}
+
+	public record FunctionCall(QualifiedName name, Sourced<SPolynom>[] arg/*exp*/);
 }
