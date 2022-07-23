@@ -9,24 +9,24 @@ namespace DbAnalysis
 	public class CaseBase<T>
 	{
 		public Sourced<string> CaseH { get; }
-		public Sourced<SPolynom> Sample { get; }
-		public Sourced<SPolynom>[] Conditions { get; }
+		public Sourced<NamedTyped> Sample { get; }
+		public Sourced<NamedTyped>[] Conditions { get; }
 		public Sourced<T>[] Branches { get; }
-		public Sourced<SPolynom> ElseC { get; }		// can be null
+		public Sourced<NamedTyped> ElseC { get; }		// can be null
 
 		public CaseBase (
 			Sourced<string> CaseH,
-			Sourced<SPolynom> Sample,
-			Sourced<SPolynom>[] Conditions,
+			Sourced<NamedTyped> Sample,
+			Sourced<NamedTyped>[] Conditions,
 			Sourced<T>[] Branches,
-			IOption<Sourced<SPolynom>> ElseC
+			Sourced<NamedTyped> ElseC
 			)
 		{
 			this.CaseH = CaseH;
 			this.Sample = Sample;
 			this.Conditions = Conditions;
 			this.Branches = Branches;
-			this.ElseC = ElseC.GetOrDefault ();
+			this.ElseC = ElseC;
 		}
 	}
 }
