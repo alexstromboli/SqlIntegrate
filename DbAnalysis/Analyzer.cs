@@ -19,6 +19,20 @@ namespace DbAnalysis
 
 	public static class BagUtils
 	{
+		public static Parser<RcFunc<int>> TestInContext<T> (this Parser<RcFunc<T>> Parser)
+		{
+			return Parser.Select<RcFunc<T>, RcFunc<int>> (f => rc =>
+			{
+				f (rc);
+				return 0;
+			});
+		}
+
+		public static Parser<RcFunc<int>> TestInContext (this Parser<IEnumerable<RcFunc<NamedTyped>>> Parser)
+		{
+			return Parser.Pack ().TestInContext ();
+		}
+
 		public static IEnumerable<Sourced<SPolynom>> TestExpressionsInContext (this IEnumerable<Sourced<SPolynom>> Expressions, RequestContext rc)
 		{
 			foreach (var e in Expressions)
@@ -376,9 +390,9 @@ namespace DbAnalysis
 					select res;
 
 			Ref<FullSelectStatement> PFullSelectStatementRefST = new Ref<FullSelectStatement> ();
-
-			//var PParentsST = PExpressionST.InParentsST ();
-			//var PBracketsST = PExpressionST.InBracketsST ();
+			var PFullSelectStatementST = PFullSelectStatementRefST.Get
+				.Select<FullSelectStatement, RcFunc<ITable>> (fss => rc =>
+					fss.GetTable (rc, false));
 
 			var PBinaryAdditionOperatorsST = AnyTokenST ("+", "-");
 			var PBinaryMultiplicationOperatorsST = AnyTokenST ("/", "*", "%");
@@ -460,7 +474,7 @@ namespace DbAnalysis
 					select t
 				;
 
-			var PSelectFirstColumnST = PFullSelectStatementRefST.Get.InParentsST ()
+			var PSelectFirstColumnST = PFullSelectStatementST.InParentsST ()
 				.Select<FullSelectStatement, RcFunc<NamedTyped>> (fss => rc =>
 					fss.GetTable (rc, false).Columns[0]);
 
@@ -565,118 +579,133 @@ namespace DbAnalysis
 						.Or (PSelectFirstColumnST)
 				;
 
-			var PAtomicST =
-				(
-					from rn in AnyTokenST ("row_number", "rank")
-					from _1 in AnyTokenST ("( ) over (")
-					from part in
+			var PAtomicST/*exp*/ =
 					(
-						from _3 in AnyTokenST ("partition by")
-						from exp in PExpressionST.CommaDelimitedST ()
-						select exp.Pack ()
-					).Optional () /*exp*/
-					from order_by in POrderByClauseOptionalST /*exp*/
-					from _6 in SqlToken (")")
-					select FromContext
-						(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
-				)
-				.Or (
-					from f in AnyTokenST ("sum", "min", "max", "avg")
-					from _1 in SqlToken ("(")
-					from _2 in SqlToken ("distinct").Optional ()
-					from exp in PExpressionST
-					from _3 in SqlToken (")")
-					select FromContext (rc => exp (rc).WithName (f))
-				)
-				.Or (
-					from f in SqlToken ("count")
-					from _1 in SqlToken ("(")
-					from _2 in SqlToken ("distinct").Optional ()
-					from exp in PAsteriskSelectEntryST /*exp*/.Return (0).Or (PExpressionST /*exp*/.Return (0))
-					from _3 in SqlToken (")")
-					select FromContext (rc =>
-						new NamedTyped (f, DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
-				)
-				.Or (
-					from f in SqlToken ("array_agg")
-					from _1 in SqlToken ("(")
-					from _2 in SqlToken ("distinct").Optional ()
-					from exp in PExpressionST
-					from _3 in SqlToken (")")
-					select FromContext (rc => exp (rc).ToArray ().WithName (f))
-				)
-				.Or (PUnnestST)
-				.Or (
-					from f in SqlToken ("coalesce")
-					from _1 in SqlToken ("(")
-					from exp in PExpressionST
-					from _2 in SqlToken (",")
-					from subst in PExpressionST /*exp*/
-					from _3 in SqlToken (")")
-					select FromContext (rc =>
-					{
-						var ExpRes = exp (rc);
-						return (ExpRes.Type.Value == DatabaseContext.TypeMap.Null ? subst (rc) : ExpRes)
-							.WithName (f);
-					})
-				)
-				.Or (
-					// value specified by a keyword
-					from kw in PAlphaNumericL.SqlToken ()
-					let type = kw.Value.GetExpressionType ()
-					where type != null
-					select FromContext (rc =>
-						new NamedTyped (kw, DatabaseContext.GetTypeForName ("pg_catalog", type).SourcedCalculated (kw)))
-				)
-				.Or (
-					(
-						from kw in AnyTokenST ("all", "any", "some")
-						from exp in PExpressionST /*exp*/.Return (0)
-							.Or (PFullSelectStatementRefST.Get.Return (0))
-							.InParentsST ()
-						select 0
-					).ProduceType (DatabaseContext.TypeMap.Null)
-				)
-				.Or (
-					(
-						from kw in SqlToken ("exists")
-						from exp in PExpressionST /*exp*/.Return (0)
-							.Or (PFullSelectStatementRefST.Get.Return (0))
-							.InParentsST ()
-						select 0
-					).ProduceType (DatabaseContext.TypeMap.Bool)
-				)
-				.Or (
-					from case_c in GetCase (PExpressionST /*exp*/) /*exp*/
-					select FromContext (rc =>
-					{
-						var c = case_c (rc);
-						return new NamedTyped (
-							c.ElseC?.Name ?? c.CaseH,
-							c.Branches.First ().Value (rc).Type
-						);
-					})
+						from rn in AnyTokenST ("row_number", "rank")
+						from _1 in AnyTokenST ("( ) over (")
+						from part in
+						(
+							from _3 in AnyTokenST ("partition by")
+							from exp in PExpressionST.CommaDelimitedST ()
+							select exp.Pack ()
+						).Optional () /*exp*/
+						from order_by in POrderByClauseOptionalST /*exp*/
+						from _6 in SqlToken (")")
+						select FromContext
+							(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
 					)
 					.Or (
-						(
-							from kw_ext in SqlToken ("extract")
-							from p in (
-								from kw_part in AnyTokenST ("century", "day", "decade", "dow", "doy", "epoch", "hour",
-									"isodow", "isoyear", "microseconds", "millennium", "milliseconds", "minute",
-									"month", "quarter", "second", "timezone", "timezone_hour", "timezone_minute",
-									"week", "year")
-								from _from in SqlToken ("from")
-								from exp in PExpressionST/*exp*/
-								select 0
-							).InParentsST ()
-							select (Func<RequestContext, NamedTyped>)(rc =>
-								new NamedTyped (kw_ext, DatabaseContext.TypeMap.Decimal.SourcedCalculated (kw_ext)))
-						)
+						from f in AnyTokenST ("sum", "min", "max", "avg")
+						from _1 in SqlToken ("(")
+						from _2 in SqlToken ("distinct").Optional ()
+						from exp in PExpressionST
+						from _3 in SqlToken (")")
+						select FromContext (rc => exp (rc).WithName (f))
+					)
+					.Or (
+						from f in SqlToken ("count")
+						from _1 in SqlToken ("(")
+						from _2 in SqlToken ("distinct").Optional ()
+						from exp in PAsteriskSelectEntryST /*exp*/.Return (0).Or (PExpressionST /*exp*/.Return (0))
+						from _3 in SqlToken (")")
+						select FromContext (rc =>
+							new NamedTyped (f, DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
+					)
+					.Or (
+						from f in SqlToken ("array_agg")
+						from _1 in SqlToken ("(")
+						from _2 in SqlToken ("distinct").Optional ()
+						from exp in PExpressionST
+						from _3 in SqlToken (")")
+						select FromContext (rc => exp (rc).ToArray ().WithName (f))
+					)
+					.Or (PUnnestST)
+					.Or (
+						from f in SqlToken ("coalesce")
+						from _1 in SqlToken ("(")
+						from exp in PExpressionST
+						from _2 in SqlToken (",")
+						from subst in PExpressionST
+						from _3 in SqlToken (")")
+						select FromContext (rc =>
+						{
+							var ExpRes = exp (rc);
+							var SubstRes = subst (rc);
+							return (ExpRes.Type.Value == DatabaseContext.TypeMap.Null ? SubstRes : ExpRes)
+								.WithName (f);
+						})
+					)
+					.Or (
+						// value specified by a keyword
+						from kw in PAlphaNumericL.SqlToken ()
+						let type = kw.Value.GetExpressionType ()
+						where type != null
+						select FromContext (rc =>
+							new NamedTyped (kw,
+								DatabaseContext.GetTypeForName ("pg_catalog", type).SourcedCalculated (kw)))
+					)
+					.Or (
+						from kw in AnyTokenST ("all", "any", "some")
+						from exp in PExpressionST.TestInContext ()
+							.Or (PFullSelectStatementST.TestInContext ())
+							.InParentsST ()
+						select FromContext (rc =>
+						{
+							exp (rc);
+							return new NamedTyped (DatabaseContext.TypeMap.Null.SourcedCalculated (kw));
+						})
+					)
+					.Or (
+						from kw in SqlToken ("exists")
+						from exp in PExpressionST.TestInContext ()
+							.Or (PFullSelectStatementST.TestInContext ())
+							.InParentsST ()
+						select FromContext (rc =>
+						{
+							exp (rc);
+							return new NamedTyped (DatabaseContext.TypeMap.Bool.SourcedCalculated (kw));
+						})
+					)
+					.Or (
+						from case_c in GetCase (PExpressionST)
+						select FromContext (rc =>
+						{
+							var c = case_c (rc);
+							return new NamedTyped (
+								c.ElseC?.Name ?? c.CaseH,
+								c.Branches.First ().Value (rc).Type
+							);
+						})
+					)
+					.Or (
+						from kw_ext in SqlToken ("extract")
+						from p in (
+							from kw_part in AnyTokenST ("century", "day", "decade", "dow", "doy", "epoch", "hour",
+								"isodow", "isoyear", "microseconds", "millennium", "milliseconds", "minute",
+								"month", "quarter", "second", "timezone", "timezone_hour", "timezone_minute",
+								"week", "year")
+							from _from in SqlToken ("from")
+							from exp in PExpressionST
+							select exp
+						).InParentsST ().TestInContext ()
+						select FromContext (rc =>
+						{
+							p (rc);
+							return new NamedTyped (kw_ext,
+									DatabaseContext.TypeMap.Decimal.SourcedCalculated (kw_ext));
+						})
 					)
 					.Or (PArrayST)
-					.Or (PExpressionST/*exp*/.CommaDelimitedST ().InParentsST () // ('one', 'two', 'three')
+					.Or (PExpressionST.CommaDelimitedST ().InParentsST () // ('one', 'two', 'three')
 						.Where (r => r.Count () > 1)
-						.ProduceType (DatabaseContext.TypeMap.Record))
+						.Pack ()
+						.SpanSourced ()
+						.Select (exp => FromContext (rc =>
+						{
+							exp.Value (rc);
+							return new NamedTyped (DatabaseContext.TypeMap.Record.SourcedCalculated (exp));
+						}))
+					)
 					.Or ( // interval '90 days'
 						(
 							from t in PTypeST
@@ -879,7 +908,7 @@ namespace DbAnalysis
 							))
 							// or-ed after function calls
 							.Or (PQualifiedIdentifierLST.Select<QualifiedName, Func<RequestContext, ITableRetriever>> (qi => rc => new NamedTableRetriever (qi.Get (rc, 2).Values ())))
-							.Or (PFullSelectStatementRefST.Get.InParentsST ()
+							.Or (PFullSelectStatementST.InParentsST ()
 								.Select<FullSelectStatement, Func<RequestContext, ITableRetriever>> (t => rc => t)
 							)
 							.Or (PValuesSourceST.Select<ValuesBlock, Func<RequestContext, ITableRetriever>> (t => rc => t))
@@ -1123,9 +1152,9 @@ namespace DbAnalysis
 									).Optional ()
 									select 0
 								)
-								.Or (PFullSelectStatementRefST.Get.Return (0))
+								.Or (PFullSelectStatementST.Return (0))
 								// just one level of () is provided currently
-								.Or (PFullSelectStatementRefST.Get.InParentsST ().Return (0))
+								.Or (PFullSelectStatementST.InParentsST ().Return (0))
 							select 0
 						)
 						.Or
