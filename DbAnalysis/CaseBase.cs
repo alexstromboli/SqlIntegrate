@@ -9,17 +9,17 @@ namespace DbAnalysis
 	public class CaseBase<T>
 	{
 		public Sourced<string> CaseH { get; }
-		public Sourced<NamedTyped> Sample { get; }
-		public Sourced<NamedTyped>[] Conditions { get; }
+		public NamedTyped Sample { get; }
+		public NamedTyped[] Conditions { get; }
 		public Sourced<T>[] Branches { get; }
-		public Sourced<NamedTyped> ElseC { get; }		// can be null
+		public NamedTyped ElseC { get; }		// can be null
 
 		public CaseBase (
 			Sourced<string> CaseH,
-			Sourced<NamedTyped> Sample,
-			Sourced<NamedTyped>[] Conditions,
+			NamedTyped Sample,
+			NamedTyped[] Conditions,
 			Sourced<T>[] Branches,
-			Sourced<NamedTyped> ElseC
+			NamedTyped ElseC
 			)
 		{
 			this.CaseH = CaseH;

@@ -43,6 +43,7 @@ namespace DbAnalysis
 		// proper order presumed
 		public static TextSpan Range (this IEnumerable<TextSpan> Spans)
 		{
+			// here: consider wrong order
 			return TextSpan.Range (Spans.First (), Spans.Last ());
 		}
 	}

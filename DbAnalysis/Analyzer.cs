@@ -14,72 +14,11 @@ namespace DbAnalysis
 {
 	public delegate TResult RcFunc<TResult>(RequestContext rc);
 	public delegate Sourced<TResult> RcsFunc<TResult>(RequestContext rc);
-	public record FunctionCall(QualifiedName name, Sourced<NamedTyped>[] arg);
+	public record FunctionCall(QualifiedName name, NamedTyped[] arg);
 	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
-
-	public interface IBag
-	{
-		public IReadOnlyList<Sourced<SPolynom>> Polynoms { get; }
-	}
-
-	public class Bag<T> : IBag
-	{
-		public T Value;
-		protected List<Sourced<SPolynom>> _Polynoms;
-		public IReadOnlyList<Sourced<SPolynom>> Polynoms => _Polynoms;
-
-		public Bag (T Value, IEnumerable<Sourced<SPolynom>> Polynoms)
-		{
-			this.Value = Value;
-			this._Polynoms =
-				new List<Sourced<SPolynom>> ((Polynoms ?? Array.Empty<Sourced<SPolynom>> ()).Where (p => p != null));
-		}
-
-		public Bag (T Value, Sourced<SPolynom> Polynom)
-			: this (Value, new[] { Polynom })
-		{
-		}
-
-		public Bag<T> Add (IEnumerable<Sourced<SPolynom>> Polynoms)
-		{
-			_Polynoms.AddRange ((Polynoms ?? Array.Empty<Sourced<SPolynom>> ()).Where (p => p != null));
-			return this;
-		}
-
-		public Bag<T> Add<C> (Bag<C> Other)
-		{
-			this.Add (Other?.Polynoms);
-			return this;
-		}
-
-		public Bag<T> Add (Sourced<SPolynom> Polynom)
-		{
-			if (Polynom != null)
-			{
-				_Polynoms.Add (Polynom);
-			}
-
-			return this;
-		}
-	}
 
 	public static class BagUtils
 	{
-		public static Bag<T> ToBag<T> (this T Value, params Sourced<SPolynom>[] Polynoms)
-		{
-			return new Bag<T> (Value, Polynoms);
-		}
-
-		public static Bag<T> ToBag<T> (this T Value, params IBag[] Bags)
-		{
-			return new Bag<T> (Value, Bags.Select (b => b.Polynoms).SelectMany (p => p));
-		}
-
-		public static T[] Values<T> (this IEnumerable<Bag<T>> Input)
-		{
-			return Input.Select (b => b.Value).ToArray ();
-		}
-
 		public static IEnumerable<Sourced<SPolynom>> TestExpressionsInContext (this IEnumerable<Sourced<SPolynom>> Expressions, RequestContext rc)
 		{
 			foreach (var e in Expressions)
@@ -110,23 +49,25 @@ namespace DbAnalysis
 				rc => opt.IsDefined ? opt.Get () (rc) : default);
 		}
 
+		/*
 		public static Parser<RcsFunc<T>> Optional<T> (this Parser<RcsFunc<T>> Parser)
 		{
 			return Parse.Optional (Parser).Select<IOption<RcsFunc<T>>, RcsFunc<T>> (opt =>
 				rc => opt.IsDefined ? opt.Get () (rc) : default);
 		}
+		*/
 
-		public static RcFunc<Sourced<NamedTyped>[]> Pack (this IEnumerable<RcsFunc<NamedTyped>> Input)
+		public static RcFunc<NamedTyped[]> Pack (this IEnumerable<RcFunc<NamedTyped>> Input)
 		{
 			return rc => Input.Select (arr => arr (rc)).ToArray ();
 		}
 
-		public static Sourced<NamedTyped>[] Pack (this IEnumerable<RcsFunc<NamedTyped>> Input, RequestContext rc)
+		public static NamedTyped[] Pack (this IEnumerable<RcFunc<NamedTyped>> Input, RequestContext rc)
 		{
 			return Input.Pack () (rc);
 		}
 
-		public static Parser<RcFunc<Sourced<NamedTyped>[]>> Pack (this Parser<IEnumerable<RcsFunc<NamedTyped>>> Parser)
+		public static Parser<RcFunc<NamedTyped[]>> Pack (this Parser<IEnumerable<RcFunc<NamedTyped>>> Parser)
 		{
 			return Parser.Select (arr => arr.Pack ());
 		}
@@ -135,13 +76,12 @@ namespace DbAnalysis
 	public class Analyzer
 	{
 		protected DatabaseContext DatabaseContext;
-		protected Dictionary<int, string> WordsCache;
+		protected Dictionary<int, Sourced<string>> WordsCache;
 		protected Parser<Sourced<string>> PDoubleQuotedString;
 		protected Ref<Sourced<SPolynom>> PExpressionRefST;
 
-		protected Parser<RcsFunc<NamedTyped>> PExpressionST =>
-			PExpressionRefST.Get.Select<Sourced<SPolynom>, RcsFunc<NamedTyped>> (p =>
-				rc => p.Value.GetResult (rc).SourcedCalculated (p));
+		protected Parser<RcFunc<NamedTyped>> PExpressionST =>
+			PExpressionRefST.Get.Select<Sourced<SPolynom>, RcFunc<NamedTyped>> (p => rc => p.Value.GetResult (rc));
 		public Parser<SProcedure> PProcedureST { get; }
 
 		public static RcFunc<T> FromContext<T> (RcFunc<T> Proc)
@@ -155,16 +95,11 @@ namespace DbAnalysis
 			{
 				return i =>
 				{
-					if (WordsCache.TryGetValue (i.Position, out string Word))
+					if (WordsCache.TryGetValue (i.Position, out Sourced<string> Word))
 					{
-						int Len = Word.Length;
-						return Result.Success (Word.SourcedTextSpan (new TextSpan
-							{
-								Start = Position.FromInput (i),
-								End = new Position (i.Position + Word.Length, i.Line, i.Column + Word.Length),
-								Length = Word.Length
-							}),
-							new CustomInput (i.Source, i.Position + Len, i.Line, i.Column + Len));
+						return Result.Success (Word,
+							new CustomInput (i.Source, i.Position + Word.Value.Length, i.Line,
+								i.Column + Word.Value.Length));
 					}
 
 					return Result.Failure<Sourced<string>> (i, "No word found", Array.Empty<string> ());
@@ -526,19 +461,15 @@ namespace DbAnalysis
 				;
 
 			var PSelectFirstColumnST = PFullSelectStatementRefST.Get.InParentsST ()
-				.Select<FullSelectStatement, RcFunc<Sourced<NamedTyped>[]>> (fss => rc =>
-					fss.GetTable (rc, false).Columns.Select (c => c.SourcedUnknown ()	// here: make proper source
-					).ToArray ());
+				.Select<FullSelectStatement, RcFunc<NamedTyped>> (fss => rc =>
+					fss.GetTable (rc, false).Columns[0]);
 
 			var PArrayST =
 				from array_kw in SqlToken ("array")
 				from body in PExpressionST.CommaDelimitedST ().InBracketsST ().Pack ()
+					.Select (c => FromContext (rc => c(rc)[0]))
 					.Or (PSelectFirstColumnST)
-				select FromContext (rc =>
-				{
-					var Columns = body (rc);
-					return Columns[0].Value.ToArray ().WithName (array_kw);
-				});
+				select FromContext (rc => body (rc).ToArray ().WithName (array_kw));
 
 			var PFunctionCallST =
 					from name in PQualifiedIdentifierLST
@@ -557,7 +488,7 @@ namespace DbAnalysis
 						select qual
 					).Optional ()
 					from ast in SqlToken ("*")
-					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc =>
+					select FromContext (rc =>
 					{
 						var Qualifier = qual.GetOrDefault ()?.Get (rc, 2) ?? Array.Empty<Sourced<string>> ();
 
@@ -591,22 +522,22 @@ namespace DbAnalysis
 					from f in AnyTokenST ("order by")
 					from grp in
 						(
-							from _1 in PExpressionST/*exp*/
+							from exp in PExpressionST/*exp*/
 							from _2 in AnyTokenST ("asc", "desc").Optional ()
-							select 0
+							select exp
 						)
 						.CommaDelimitedST ()
-					select 0
+					select grp.Pack ()
 				).Optional ()
 				;
 
 			var PUnnestST =
-					from f in AnyTokenST ("unnest")
-					from _1 in AnyTokenST ("(")
+					from f in SqlToken ("unnest")
+					from _1 in SqlToken ("(")
 					from exp in PExpressionST
-					from _3 in AnyTokenST (")")
-					select (Func<RequestContext, NamedTyped>)(rc =>
-						new NamedTyped (f, exp.Value.GetResult (rc).Type.Select (t => t.BaseType)))
+					from _3 in SqlToken (")")
+					select FromContext (rc =>
+						new NamedTyped (f, exp (rc).Type.Select (t => t.BaseType)))
 				;
 
 			var PBaseAtomicST =
@@ -616,17 +547,15 @@ namespace DbAnalysis
 						.Or (PInteger.SqlToken ().ProduceType (DatabaseContext.TypeMap.Int))
 						.Or (PBooleanLiteralST.ProduceType (DatabaseContext.TypeMap.Bool))
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (DatabaseContext.TypeMap.VarChar))
-						.Or (PExpressionST.InParentsST ()
-							.Select<Sourced<SPolynom>, Func<RequestContext, NamedTyped>> (p =>
-								rc => p.Value.GetResult (rc)))
-						.Or (PFunctionCallST.Select<FunctionCall, Func<RequestContext, NamedTyped>> (p => rc =>
+						.Or (PExpressionST.InParentsST ())
+						.Or (PFunctionCallST.Select<RcFunc<FunctionCall>, RcFunc<NamedTyped>> (p => rc =>
 						{
-							p.arg.TestExpressionsInContext (rc);
-							return rc.ModuleContext.GetFunction (p.name.Get (rc, 2));
+							var Function = p (rc).name.Get (rc, 2);
+							return rc.ModuleContext.GetFunction (Function);
 						}))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST
-							.Select<QualifiedName, Func<RequestContext, NamedTyped>> (p => rc =>
+							.Select<QualifiedName, RcFunc<NamedTyped>> (p => rc =>
 							{
 								string Key = p.Get (rc, 3).JoinDot ();
 								return rc.NamedDict.TryGetValue (Key, out var V)
@@ -637,92 +566,96 @@ namespace DbAnalysis
 				;
 
 			var PAtomicST =
+				(
+					from rn in AnyTokenST ("row_number", "rank")
+					from _1 in AnyTokenST ("( ) over (")
+					from part in
 					(
-						from rn in AnyTokenST ("row_number", "rank")
-						from _1 in AnyTokenST ("( ) over (")
-						from _2 in
-						(
-							from _3 in AnyTokenST ("partition by")
-							from _4 in PExpressionST/*exp*/.CommaDelimitedST ()
-							select 0
-						).Optional ()
-						from _5 in POrderByClauseOptionalST
-						from _6 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)
-							(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
-					)
-					.Or (
-						from f in AnyTokenST ("sum", "min", "max", "avg")
-						from _1 in SqlToken ("(")
-						from _2 in SqlToken ("distinct").Optional ()
-						from exp in PExpressionST
-						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.Value.GetResult (rc).WithName (f))
-					)
-					.Or (
-						from f in SqlToken ("count")
-						from _1 in SqlToken ("(")
-						from _2 in SqlToken ("distinct").Optional ()
-						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionST/*exp*/.Return (0))
-						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (f, DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
-					)
-					.Or (
-						from f in SqlToken ("array_agg")
-						from _1 in SqlToken ("(")
-						from _2 in SqlToken ("distinct").Optional ()
-						from exp in PExpressionST
-						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.Value.GetResult (rc).ToArray ().WithName (f))
-					)
-					.Or (PUnnestST)
-					.Or (
-						from f in SqlToken ("coalesce")
-						from _1 in SqlToken ("(")
-						from exp in PExpressionST
-						from _2 in SqlToken (",")
-						from subst in PExpressionST/*exp*/
-						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc =>
-						{
-							var ExpRes = exp.Value.GetResult (rc);
-							return (ExpRes.Type.Value == DatabaseContext.TypeMap.Null ? subst.Value.GetResult (rc) : ExpRes)
-								.WithName (f);
-						})
-					)
-					.Or (
-						// value specified by a keyword
-						from kw in PAlphaNumericL.SqlToken ()
-						let type = kw.Value.GetExpressionType ()
-						where type != null
-						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (kw, DatabaseContext.GetTypeForName ("pg_catalog", type).SourcedCalculated (kw)))
-					)
-					.Or (
-						(
-							from kw in AnyTokenST ("all", "any", "some")
-							from exp in PExpressionST/*exp*/.Return (0)
-								.Or (PFullSelectStatementRefST.Get.Return (0))
-								.InParentsST ()
-							select 0
-						).ProduceType (DatabaseContext.TypeMap.Null)
-					)
-					.Or (
-						(
-							from kw in SqlToken ("exists")
-							from exp in PExpressionST/*exp*/.Return (0)
-								.Or (PFullSelectStatementRefST.Get.Return (0))
-								.InParentsST ()
-							select 0
-						).ProduceType (DatabaseContext.TypeMap.Bool)
-					)
-					.Or (
-						from case_c in GetCase (PExpressionST/*exp*/)/*exp*/
-						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
-							case_c.ElseC?.Value.GetResult (rc).Name ?? case_c.CaseH,
-							case_c.Branches.First ().Value.Value.GetResult (rc).Type
-						))
+						from _3 in AnyTokenST ("partition by")
+						from exp in PExpressionST.CommaDelimitedST ()
+						select exp.Pack ()
+					).Optional () /*exp*/
+					from order_by in POrderByClauseOptionalST /*exp*/
+					from _6 in SqlToken (")")
+					select FromContext
+						(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
+				)
+				.Or (
+					from f in AnyTokenST ("sum", "min", "max", "avg")
+					from _1 in SqlToken ("(")
+					from _2 in SqlToken ("distinct").Optional ()
+					from exp in PExpressionST
+					from _3 in SqlToken (")")
+					select FromContext (rc => exp (rc).WithName (f))
+				)
+				.Or (
+					from f in SqlToken ("count")
+					from _1 in SqlToken ("(")
+					from _2 in SqlToken ("distinct").Optional ()
+					from exp in PAsteriskSelectEntryST /*exp*/.Return (0).Or (PExpressionST /*exp*/.Return (0))
+					from _3 in SqlToken (")")
+					select FromContext (rc =>
+						new NamedTyped (f, DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
+				)
+				.Or (
+					from f in SqlToken ("array_agg")
+					from _1 in SqlToken ("(")
+					from _2 in SqlToken ("distinct").Optional ()
+					from exp in PExpressionST
+					from _3 in SqlToken (")")
+					select FromContext (rc => exp (rc).ToArray ().WithName (f))
+				)
+				.Or (PUnnestST)
+				.Or (
+					from f in SqlToken ("coalesce")
+					from _1 in SqlToken ("(")
+					from exp in PExpressionST
+					from _2 in SqlToken (",")
+					from subst in PExpressionST /*exp*/
+					from _3 in SqlToken (")")
+					select FromContext (rc =>
+					{
+						var ExpRes = exp (rc);
+						return (ExpRes.Type.Value == DatabaseContext.TypeMap.Null ? subst (rc) : ExpRes)
+							.WithName (f);
+					})
+				)
+				.Or (
+					// value specified by a keyword
+					from kw in PAlphaNumericL.SqlToken ()
+					let type = kw.Value.GetExpressionType ()
+					where type != null
+					select FromContext (rc =>
+						new NamedTyped (kw, DatabaseContext.GetTypeForName ("pg_catalog", type).SourcedCalculated (kw)))
+				)
+				.Or (
+					(
+						from kw in AnyTokenST ("all", "any", "some")
+						from exp in PExpressionST /*exp*/.Return (0)
+							.Or (PFullSelectStatementRefST.Get.Return (0))
+							.InParentsST ()
+						select 0
+					).ProduceType (DatabaseContext.TypeMap.Null)
+				)
+				.Or (
+					(
+						from kw in SqlToken ("exists")
+						from exp in PExpressionST /*exp*/.Return (0)
+							.Or (PFullSelectStatementRefST.Get.Return (0))
+							.InParentsST ()
+						select 0
+					).ProduceType (DatabaseContext.TypeMap.Bool)
+				)
+				.Or (
+					from case_c in GetCase (PExpressionST /*exp*/) /*exp*/
+					select FromContext (rc =>
+					{
+						var c = case_c (rc);
+						return new NamedTyped (
+							c.ElseC?.Name ?? c.CaseH,
+							c.Branches.First ().Value (rc).Type
+						);
+					})
 					)
 					.Or (
 						(
@@ -1381,7 +1314,7 @@ namespace DbAnalysis
 
 		protected void BuildWordCache (string SourceCode)
 		{
-			WordsCache = new Dictionary<int, string> ();
+			WordsCache = new Dictionary<int, Sourced<string>> ();
 
 			int Pos = -1;
 			int WordStartPos = -1;
@@ -1420,7 +1353,12 @@ namespace DbAnalysis
 								Word = Word.ToLower ();
 							}
 
-							WordsCache[WordStartPos] = Word;
+							WordsCache[WordStartPos] = Word.SourcedTextSpan (new TextSpan
+							{
+								Start = Position.FromInput (i),
+								End = new Position (i.Position + Word.Length, i.Line, i.Column + Word.Length),
+								Length = Word.Length
+							});
 						}
 
 						WordStartPos = -1;

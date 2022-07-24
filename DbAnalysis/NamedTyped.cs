@@ -27,13 +27,6 @@ namespace DbAnalysis
 			return new NamedTyped (NewName, Type);
 		}
 
-		/*
-		public NamedTyped WithName (ITextSpan<string> NewName)
-		{
-			return WithName (NewName.ToSourced ());
-		}
-		*/
-
 		public NamedTyped WithType (Sourced<PSqlType> NewType)
 		{
 			return new NamedTyped (Name, NewType);

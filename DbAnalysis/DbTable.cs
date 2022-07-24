@@ -142,15 +142,15 @@ namespace DbAnalysis
 			{
 				foreach (var c in Columns)
 				{
-					AvailableColumns[Name + "." + c.Name.Value] = c;
+					AvailableColumns[Name + "." + c.Value.Name.Value] = c;
 				}
 				Asterisks[Name + ".*"] = Asterisks["*"];
 			}
 
 			foreach (var c in Columns)
 			{
-				AvailableColumns[Schema + "." + Name + "." + c.Name.Value] = c;
-				AvailableColumns[ModuleContext.DatabaseContext.DatabaseName + "." + Schema + "." + Name + "." + c.Name.Value] = c;
+				AvailableColumns[Schema + "." + Name + "." + c.Value.Name.Value] = c;
+				AvailableColumns[ModuleContext.DatabaseContext.DatabaseName + "." + Schema + "." + Name + "." + c.Value.Name.Value] = c;
 			}
 			Asterisks[Schema + "." + Name + ".*"] = Asterisks["*"];
 			Asterisks[ModuleContext.DatabaseContext.DatabaseName + "." + Schema + "." + Name + ".*"] = Asterisks["*"];

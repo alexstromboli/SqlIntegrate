@@ -98,19 +98,20 @@ namespace DbAnalysis
 				;
 		}
 
-		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<Sourced<T>> Parser, PSqlType Type)
+		public static Parser<RcFunc<NamedTyped>> ProduceType<T> (this Parser<Sourced<T>> Parser, PSqlType Type)
 		{
-			return Parser.Select<Sourced<T>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type.SourcedCalculated (t)));
+			return Parser.Select<Sourced<T>, RcFunc<NamedTyped>> (t =>
+				rc => new NamedTyped (new Sourced<PSqlType> (Type, t.Source)));
 		}
 
-		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
+		public static Parser<RcFunc<NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
 		{
 			return Parser.SpanSourced ().ProduceType (Type);
 		}
 
-		public static Parser<Func<RequestContext, NamedTyped>> ProduceType (this Parser<Sourced<PSqlType>> Parser)
+		public static Parser<RcFunc<NamedTyped>> ProduceType (this Parser<Sourced<PSqlType>> Parser)
 		{
-			return Parser.Select<Sourced<PSqlType>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (t));
+			return Parser.Select<Sourced<PSqlType>, RcFunc<NamedTyped>> (t => rc => new NamedTyped (t));
 		}
 	}
 }
