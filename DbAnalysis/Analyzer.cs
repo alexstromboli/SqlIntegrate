@@ -71,17 +71,17 @@ namespace DbAnalysis
 		}
 		*/
 
-		public static RcFunc<NamedTyped[]> Pack (this IEnumerable<RcFunc<NamedTyped>> Input)
+		public static RcFunc<T[]> Pack<T> (this IEnumerable<RcFunc<T>> Input)
 		{
 			return rc => Input.Select (arr => arr (rc)).ToArray ();
 		}
 
-		public static NamedTyped[] Pack (this IEnumerable<RcFunc<NamedTyped>> Input, RequestContext rc)
+		public static T[] Pack<T> (this IEnumerable<RcFunc<T>> Input, RequestContext rc)
 		{
 			return Input.Pack () (rc);
 		}
 
-		public static Parser<RcFunc<NamedTyped[]>> Pack (this Parser<IEnumerable<RcFunc<NamedTyped>>> Parser)
+		public static Parser<RcFunc<T[]>> Pack<T> (this Parser<IEnumerable<RcFunc<T>>> Parser)
 		{
 			return Parser.Select (arr => arr.Pack ());
 		}
@@ -391,8 +391,7 @@ namespace DbAnalysis
 
 			Ref<FullSelectStatement> PFullSelectStatementRefST = new Ref<FullSelectStatement> ();
 			var PFullSelectStatementST = PFullSelectStatementRefST.Get
-				.Select<FullSelectStatement, RcFunc<ITable>> (fss => rc =>
-					fss.GetTable (rc, false));
+				.Select<FullSelectStatement, RcFunc<ITableRetriever>> (fss => rc => fss);
 
 			var PBinaryAdditionOperatorsST = AnyTokenST ("+", "-");
 			var PBinaryMultiplicationOperatorsST = AnyTokenST ("/", "*", "%");
@@ -475,8 +474,8 @@ namespace DbAnalysis
 				;
 
 			var PSelectFirstColumnST = PFullSelectStatementST.InParentsST ()
-				.Select<FullSelectStatement, RcFunc<NamedTyped>> (fss => rc =>
-					fss.GetTable (rc, false).Columns[0]);
+				.Select<RcFunc<ITableRetriever>, RcFunc<NamedTyped>> (fss => rc =>
+					fss (rc).GetTable (rc, false).Columns[0]);
 
 			var PArrayST =
 				from array_kw in SqlToken ("array")
@@ -904,10 +903,8 @@ namespace DbAnalysis
 							))
 							// or-ed after function calls
 							.Or (PQualifiedIdentifierLST.Select<QualifiedName, RcFunc<ITableRetriever>> (qi => rc => new NamedTableRetriever (qi.Get (rc, 2).Values ())))
-							.Or (PFullSelectStatementST.InParentsST ()
-								.Select<RcFunc<ITable>, RcFunc<ITableRetriever>> (t => rc => t)
-							)
-							.Or (PValuesSourceST.Select<ValuesBlock, Func<RequestContext, ITableRetriever>> (t => rc => t))
+							.Or (PFullSelectStatementST.InParentsST ())
+							.Or (PValuesSourceST.Select<ValuesBlock, RcFunc<ITableRetriever>> (t => rc => t))
 					from alias_cl in PTableAliasClauseOptionalST (
 						new[]
 						{
@@ -918,48 +915,55 @@ namespace DbAnalysis
 					select new FromTableExpression (table, alias_cl.GetOrDefault ())
 				;
 
-			var PFromClauseOptionalST =
+			var PFromClauseOptionalST /*exp*/ =
 				(
 					from kw_from in SqlToken ("from")
-					from t1 in PFromTableExpressionST
+					from t1 in PFromTableExpressionST.Select (t => FromContext (rc => t))
 					from tail in
 						(
 							from kw_joinN in AnyTokenST ("join", "inner join", "left join", "right join")
 							from tN in PFromTableExpressionST
 							from kw_onN in SqlToken ("on")
-							from condexpN in PExpressionST/*exp*/
-							select tN
+							from condexpN in PExpressionST
+							select FromContext (rc =>
+							{
+								condexpN (rc);
+								return tN;
+							})
 						)
 						.Or (
 							from kw_joinN in AnyTokenST ("cross join", ",")
 							from tN in PFromTableExpressionST
-							select tN
+							select FromContext (rc => tN)
 						)
 						.Many ()
-					select t1.ToTrivialArray ().Concat (tail).ToArray ()
+					select FromContext (rc =>
+						t1.ToTrivialArray ().Concat (tail)
+							.Select (t => t (rc))
+							.ToArray ())
 				).Optional ()
 				;
 
-			var PWhereClauseOptionalST =
+			var PWhereClauseOptionalST /*exp*/ =
 				(
 					from kw_where in SqlToken ("where")
-					from cond in PExpressionST/*exp*/
-					select 0
+					from cond in PExpressionST
+					select cond
 				).Optional ()
 				;
 
-			var POrdinarySelectST =
+			var POrdinarySelectST/*exp*/ =
 					from kw_select in SqlToken ("select")
 					from distinct in
 					(
 						from _1 in SqlToken ("distinct")
-						from _2 in
+						from on_exp in
 						(
 							from _3 in SqlToken ("on")
-							from _4 in PExpressionST /*exp*/.InParentsST ()
-							select 0
+							from on_exp in PExpressionST.InParentsST ()
+							select on_exp
 						).Optional ()
-						select 0
+						select on_exp
 					).Optional ()
 					from list in PSelectListST
 					from into_t1 in
@@ -975,36 +979,45 @@ namespace DbAnalysis
 						from _2 in PQualifiedIdentifierLST.CommaDelimitedST ()
 						select 0
 					).Optional ()
-					from _w in PWhereClauseOptionalST
+					from where_cl in PWhereClauseOptionalST
 					from grp in PGroupByClauseOptionalST
-					from _h in PHavingClauseOptionalST/*exp*/
-					select new OrdinarySelect (list, from_cl).TestExpressions (grp.GetOrDefault ())
+					from having in PHavingClauseOptionalST
+					select FromContext (rc =>
+					{
+						distinct (rc);
+						where_cl (rc);
+						grp (rc);
+						having (rc);
+						return new OrdinarySelect (list (rc), from_cl (rc));
+					})
 				;
 
-			var PSelectST =
-					from seq in POrdinarySelectST/*exp*/
+			var PSelectST/*exp*/ =
+					from seq in POrdinarySelectST
 						.DelimitedBy (AnyTokenST ("union all", "union", "except", "subtract"))
-						.Select (ss => ss.ToArray ())
+						.Pack ()
 					from ord in POrderByClauseOptionalST
 					from limit in
 					(
 						from kw in SqlToken ("limit")
-						from size in PExpressionST/*exp*/.Return (0)
-							.Or (SqlToken ("limit").Return (0))
-						select 0
+						from size in PExpressionST.TestInContext ()
+							//.Or (SqlToken ("limit").Return (0))
+						select size
 					).Optional ()
 					from offset in
 					(
 						from kw in SqlToken ("offset")
-						from size in PExpressionST/*exp*/
-						select 0
+						from size in PExpressionST.TestInContext ()
+						select size
 					).Optional ()
-					select BagUtils.FromContext (rc =>
+					select FromContext (rc =>
 					{
-						var Select = seq[0] (rc);
-						return new SelectStatement (Select.List, Select.FromClause.GetOrDefault ());
-					}, null)
-				;
+						ord (rc);
+						limit (rc);
+						offset (rc);
+						var Select = seq (rc)[0];
+						return new SelectStatement (Select.List, Select.FromClause);
+					});
 
 			var PCteLevelST =
 					from name in PColumnNameLST

@@ -8,12 +8,12 @@ namespace DbAnalysis
 {
 	public class SelectStatement : ITableRetriever
 	{
-		public Func<RequestContext, IReadOnlyList<NamedTyped>> List { get; }
+		public RcFunc<NamedTyped[]> List { get; }
 		// can be null
 		public FromTableExpression[] Froms { get; }
 		public Sourced<string> Name { get; }
 
-		public SelectStatement (Func<RequestContext, IReadOnlyList<NamedTyped>> List, FromTableExpression[] Froms,
+		public SelectStatement (RcFunc<NamedTyped[]> List, FromTableExpression[] Froms,
 			Sourced<string> Name = null)
 		{
 			this.List = List;

@@ -24,7 +24,7 @@ namespace DbAnalysis
 				return ResultNameType;
 			}
 
-			Stack<Func<RequestContext, NamedTyped>> OperandsStack = new Stack<Func<RequestContext, NamedTyped>> ();
+			Stack<RcFunc<NamedTyped>> OperandsStack = new Stack<RcFunc<NamedTyped>> ();
 			Stack<OperatorProcessor> OperatorsStack = new Stack<OperatorProcessor> ();
 			Action<int> Perform = n =>
 			{

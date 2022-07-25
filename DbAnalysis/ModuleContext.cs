@@ -61,7 +61,7 @@ namespace DbAnalysis
 			Sourced<PSqlType> Type = GetSchemaEntity (FunctionsDict, NameSegments.Values ()).SourcedFunction (Span)
 			                ?? DatabaseContext.TypeMap.Null.SourcedTextSpan (Span);
 
-			return new NamedTyped (Name, Type).SourcedTextSpan (Span);
+			return new NamedTyped (Name, Type);
 		}
 
 		public DbTable GetTable (string[] NameSegments)

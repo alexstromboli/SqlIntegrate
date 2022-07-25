@@ -1,16 +1,11 @@
-using System;
-using System.Collections.Generic;
-
-using Sprache;
-
 namespace DbAnalysis
 {
 	public class OrdinarySelect
 	{
-		public Func<RequestContext, IReadOnlyList<NamedTyped>> List { get; }
-		public IOption<FromTableExpression[]> FromClause { get; }
+		public NamedTyped[] List { get; }
+		public FromTableExpression[] FromClause { get; }		// can be null
 
-		public OrdinarySelect (Func<RequestContext, IReadOnlyList<NamedTyped>> List, IOption<FromTableExpression[]> FromClause)
+		public OrdinarySelect (NamedTyped[] List, FromTableExpression[] FromClause)
 		{
 			this.List = List;
 			this.FromClause = FromClause;

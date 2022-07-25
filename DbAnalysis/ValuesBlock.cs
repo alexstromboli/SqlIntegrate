@@ -20,14 +20,14 @@ namespace DbAnalysis
 		{
 			Table t = new Table (TableName);
 
-			foreach (var ValueExp in Values.Indexed ())
+			foreach (var ValueExp in Values (Context).Indexed ())
 			{
 				int Pos = ValueExp.Index;
 				Sourced<string> ColName = Pos < ColumnNames.Length ? ColumnNames[Pos] : null;
 
 				if (ColName != null || !OnlyNamed)
 				{
-					t.AddColumn (ValueExp.Value.Value.GetResult (Context).WithName (ColName));
+					t.AddColumn (ValueExp.Value.WithName (ColName));
 				}
 			}
 
