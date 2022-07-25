@@ -8,7 +8,7 @@ namespace DbAnalysis
 		public class Operand
 		{
 			// ignore prefixes as irrelevant
-			public Func<RequestContext, NamedTyped> Atomic;
+			public RcFunc<NamedTyped> Atomic;
 			public OperatorProcessor[] Postfixes;
 		}
 

@@ -511,7 +511,7 @@ namespace DbAnalysis
 								? Qualifier.JoinDot () + ".*"
 								: "*"
 							).SourcedTextSpan (Qualifier.Concat (ast.ToTrivialArray ()).Range ())
-						);
+						).ToArray ();
 					})
 				;
 
@@ -840,9 +840,9 @@ namespace DbAnalysis
 						(
 							PDirectColumnAliasLST
 						).Optional ()
-					select (Func<RequestContext, IReadOnlyList<NamedTyped>>)(rc =>
+					select FromContext (rc =>
 							{
-								var nt = exp.Value.GetResult (rc);
+								var nt = exp (rc);
 								var res = alias_cl.IsDefined
 									? nt.WithName (alias_cl.Get ())
 									: nt;
@@ -856,7 +856,7 @@ namespace DbAnalysis
 					PAsteriskSelectEntryST
 						.Or (PSingleSelectEntryST)
 						.CommaDelimitedST ()
-						.Select<IEnumerable<Func<RequestContext, IReadOnlyList<NamedTyped>>>, Func<RequestContext, IReadOnlyList<NamedTyped>>> (
+						.Select<IEnumerable<RcFunc<NamedTyped[]>>, RcFunc<NamedTyped[]>> (
 							list => rc => list
 								.SelectMany (e => e (rc))
 								.ToArray ()
@@ -872,15 +872,16 @@ namespace DbAnalysis
 				).Optional ()
 				;
 
-			var PValuesClauseST =
+			var PValuesClauseST/*exp*/ =
 					from _1 in SqlToken ("values")
-					from v in PExpressionST/*exp*/
-						.Or (SqlToken ("default").Return (new SPolynom ().SourcedUnknown ()))
+					from b in PExpressionST
+						.Or (SqlToken ("default").Select (kw => FromContext (rc => new NamedTyped (DatabaseContext.TypeMap.Null.SourcedCalculated (kw)))))
 						.CommaDelimitedST ()
 						.InParentsST ()
 						.CommaDelimitedST ()
-					select v.First ()
-				;
+					select FromContext (rc =>
+						b.Select (r => r.Select (v => v (rc))).First ().ToArray ()
+						);
 
 			var PValuesSourceST =
 					from v in PValuesClauseST.InParentsST ()
@@ -888,31 +889,25 @@ namespace DbAnalysis
 					from table_name in
 						PTableAliasLST // here: use PTableAliasClauseOptionalST to exclude selected keywords
 					from column_names in PColumnNameLST.CommaDelimitedST ().InParentsST ().Optional ()
-					select new ValuesBlock (v.ToArray (),
+					select new ValuesBlock (v,
 						table_name,
-						column_names.GetOrElse (Array.Empty<Sourced<string>> ()).ToArray ())
-				;
+						column_names.GetOrElse (Array.Empty<Sourced<string>> ()).ToArray ()
+						);
 
 			var PFromTableExpressionST =
 					from table in
-					(
-						PUnnestST.Select<Func<RequestContext, NamedTyped>, Func<RequestContext, ITableRetriever>> (p =>
+						PUnnestST.Select<RcFunc<NamedTyped>, RcFunc<ITableRetriever>> (p =>
 								rc => new UnnestTableRetriever (p))
 							// or-ed after unnest
-							.Or (PFunctionCallST.Select<FunctionCall, Func<RequestContext, ITableRetriever>> (qi => rc =>
-								{
-									qi.arg.TestExpressionsInContext (rc);
-									return new NamedTableRetriever (qi.name.Get (rc, 2).Values ());
-								}
+							.Or (PFunctionCallST.Select<RcFunc<FunctionCall>, RcFunc<ITableRetriever>> (qi => rc => new NamedTableRetriever (qi (rc).name.Get (rc, 2).Values ())
 								// stub
 							))
 							// or-ed after function calls
-							.Or (PQualifiedIdentifierLST.Select<QualifiedName, Func<RequestContext, ITableRetriever>> (qi => rc => new NamedTableRetriever (qi.Get (rc, 2).Values ())))
+							.Or (PQualifiedIdentifierLST.Select<QualifiedName, RcFunc<ITableRetriever>> (qi => rc => new NamedTableRetriever (qi.Get (rc, 2).Values ())))
 							.Or (PFullSelectStatementST.InParentsST ()
-								.Select<FullSelectStatement, Func<RequestContext, ITableRetriever>> (t => rc => t)
+								.Select<RcFunc<ITable>, RcFunc<ITableRetriever>> (t => rc => t)
 							)
 							.Or (PValuesSourceST.Select<ValuesBlock, Func<RequestContext, ITableRetriever>> (t => rc => t))
-					)
 					from alias_cl in PTableAliasClauseOptionalST (
 						new[]
 						{

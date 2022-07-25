@@ -5,11 +5,11 @@ namespace DbAnalysis
 {
 	public class ValuesBlock : ITableRetriever
 	{
-		public Sourced<SPolynom>[] Values;
+		public RcFunc<NamedTyped[]> Values;
 		public Sourced<string> TableName;
 		public Sourced<string>[] ColumnNames;
 
-		public ValuesBlock (Sourced<SPolynom>[] Values, Sourced<string> TableName, Sourced<string>[] ColumnNames)
+		public ValuesBlock (RcFunc<NamedTyped[]> Values, Sourced<string> TableName, Sourced<string>[] ColumnNames)
 		{
 			this.Values = Values;
 			this.TableName = TableName;

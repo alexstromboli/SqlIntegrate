@@ -76,9 +76,9 @@ namespace DbAnalysis
 		}
 
 		public Sourced<string> FunctionName;
-		public Func<RequestContext, NamedTyped> Parameter;
+		public RcFunc<NamedTyped> Parameter;
 
-		public UnnestTableRetriever (Func<RequestContext, NamedTyped> Parameter, Sourced<string> FunctionName = null)
+		public UnnestTableRetriever (RcFunc<NamedTyped> Parameter, Sourced<string> FunctionName = null)
 		{
 			this.FunctionName = FunctionName ?? "unnest".SourcedDefinition ();
 			this.Parameter = Parameter;
