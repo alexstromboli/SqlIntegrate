@@ -8,26 +8,34 @@ namespace DbAnalysis
 {
 	public class SelectStatement : ITableRetriever
 	{
-		public RcFunc<NamedTyped[]> List { get; }
+		public RcFunc<OrdinarySelect> RcSelect { get; }
+		//public RcFunc<NamedTyped[]> List { get; }
 		// can be null
-		public FromTableExpression[] Froms { get; }
+		//public FromTableExpression[] Froms { get; }
 		public Sourced<string> Name { get; }
+		protected RcFunc<int> ExpressionsToTest;
 
-		public SelectStatement (RcFunc<NamedTyped[]> List, FromTableExpression[] Froms,
-			Sourced<string> Name = null)
+		public SelectStatement (//RcFunc<NamedTyped[]> List, FromTableExpression[] Froms,
+			RcFunc<OrdinarySelect> RcSelect,
+			Sourced<string> Name,
+			RcFunc<int> ExpressionsToTest/*exp*/)
 		{
-			this.List = List;
-			this.Froms = Froms;
+			this.RcSelect = RcSelect;
+			//this.List = List;
+			//this.Froms = Froms;
 			this.Name = Name;
+			this.ExpressionsToTest = ExpressionsToTest;
 		}
 
-		public SelectStatement (SelectStatement Core, Sourced<string> Name)
-			: this (Core.List, Core.Froms, Name)
+		public SelectStatement (SelectStatement Core, Sourced<string> Name, RcFunc<int> ExpressionsToTest/*exp*/)
+			: this (Core.RcSelect, Name, ExpressionsToTest)
 		{
 		}
 
 		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
 		{
+			ExpressionsToTest (Context);
+
 			// name (simple or qualified) to NamedTyped
 			List<Tuple<string, NamedTyped>> AllColumns = new List<Tuple<string, NamedTyped>> ();
 
@@ -35,12 +43,14 @@ namespace DbAnalysis
 				new Dictionary<string, IReadOnlyList<NamedTyped>> ();
 			List<NamedTyped> AllAsteriskedEntries = new List<NamedTyped> ();
 
-			if (Froms != null && Froms.Length > 0)
+			OrdinarySelect OrdSelect = RcSelect (Context);
+			RequestContext CurrentContext = Context;
+			if (OrdSelect.FromClause != null && OrdSelect.FromClause.Length > 0)
 			{
-				foreach (var f in Froms)
+				foreach (var f in OrdSelect.FromClause)
 				{
-					ITable Table = f.TableRetriever (Context).GetTable (Context);
-					var Refs = Table.GetAllColumnReferences (Context.ModuleContext, f.Alias);
+					ITable Table = f.TableExpression.TableRetriever (Context).GetTable (CurrentContext);
+					var Refs = Table.GetAllColumnReferences (Context.ModuleContext, f.TableExpression.Alias);
 					AllColumns.AddRange (Refs.Columns.Select (p => new Tuple<string, NamedTyped> (p.Key, p.Value)));
 
 					foreach (var ast in Refs.Asterisks)
@@ -55,13 +65,18 @@ namespace DbAnalysis
 							Asterisks[ast.Key] = ast.Value;
 						}
 					}
+
+					CurrentContext = new RequestContext (CurrentContext);	// here: populate other parameters
+
+					// test 'ON' expression
+					f.Condition?.Invoke (CurrentContext);
 				}
 			}
 
 			// found immediate columns
 			// + variables
 			var AllNamedDict = AllColumns
-					.Concat (Context.ModuleContext.VariablesDict.Select (p => new Tuple<string, NamedTyped> (p.Key, p.Value)))
+					.Concat (CurrentContext.ModuleContext.VariablesDict.Select (p => new Tuple<string, NamedTyped> (p.Key, p.Value)))
 					.ToLookup (c => c.Item1)
 					.Where (g => g.Count () == 1)
 					.ToDictionary (g => g.Key, g => g.First ().Item2)
@@ -74,11 +89,11 @@ namespace DbAnalysis
 					.ToArray ()
 				;
 
-			RequestContext NewContext = new RequestContext (Context, null, AllNamedDict, Asterisks);
+			RequestContext NewContext = new RequestContext (CurrentContext, null, AllNamedDict, Asterisks);
 
 			SortedSet<string> FoundNames = new SortedSet<string> ();
 			Table Result = new Table (Name);
-			foreach (var nt in List (NewContext))
+			foreach (var nt in OrdSelect.List)
 			{
 				if (nt.Name != null && !FoundNames.Contains (nt.Name.Value))
 				{

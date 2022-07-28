@@ -13,9 +13,9 @@ using DbAnalysis.Datasets;
 namespace DbAnalysis
 {
 	public delegate TResult RcFunc<TResult>(RequestContext rc);
-	public delegate Sourced<TResult> RcsFunc<TResult>(RequestContext rc);
 	public record FunctionCall(QualifiedName name, NamedTyped[] arg);
 	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
+	public record TableJoin(FromTableExpression TableExpression, RcFunc<NamedTyped> Condition);
 
 	public static class BagUtils
 	{
@@ -33,43 +33,11 @@ namespace DbAnalysis
 			return Parser.Pack ().TestInContext ();
 		}
 
-		public static IEnumerable<Sourced<SPolynom>> TestExpressionsInContext (this IEnumerable<Sourced<SPolynom>> Expressions, RequestContext rc)
-		{
-			foreach (var e in Expressions)
-			{
-				e.Value.GetResult (rc);
-			}
-
-			return Expressions;
-		}
-
-		public static Func<RequestContext, IEnumerable<Sourced<SPolynom>>> TestExpressions (this IEnumerable<Sourced<SPolynom>> Expressions)
-		{
-			return rc => Expressions.TestExpressionsInContext (rc);
-		}
-
-		public static Func<RequestContext, T> TestExpressions<T> (this T Input, Func<RequestContext, IEnumerable<Sourced<SPolynom>>> Expressions)
-		{
-			return rc =>
-			{
-				Expressions?.Invoke (rc);
-				return Input;
-			};
-		}
-
 		public static Parser<RcFunc<T>> Optional<T> (this Parser<RcFunc<T>> Parser)
 		{
 			return Parse.Optional (Parser).Select<IOption<RcFunc<T>>, RcFunc<T>> (opt =>
 				rc => opt.IsDefined ? opt.Get () (rc) : default);
 		}
-
-		/*
-		public static Parser<RcsFunc<T>> Optional<T> (this Parser<RcsFunc<T>> Parser)
-		{
-			return Parse.Optional (Parser).Select<IOption<RcsFunc<T>>, RcsFunc<T>> (opt =>
-				rc => opt.IsDefined ? opt.Get () (rc) : default);
-		}
-		*/
 
 		public static RcFunc<T[]> Pack<T> (this IEnumerable<RcFunc<T>> Input)
 		{
@@ -168,6 +136,19 @@ namespace DbAnalysis
 			}
 
 			return Result;
+		}
+
+		public static RcFunc<int> TestInContext (params RcFunc<int>[] Expressions)
+		{
+			return FromContext (rc =>
+			{
+				foreach (var exp in Expressions)
+				{
+					exp (rc);
+				}
+
+				return 0;
+			});
 		}
 
 		protected Parser<RcFunc<CaseBase<T>>> GetCase<T> (Parser<T> Then)
@@ -871,7 +852,7 @@ namespace DbAnalysis
 				).Optional ()
 				;
 
-			var PValuesClauseST/*exp*/ =
+			var PValuesClauseST =
 					from _1 in SqlToken ("values")
 					from b in PExpressionST
 						.Or (SqlToken ("default").Select (kw => FromContext (rc => new NamedTyped (DatabaseContext.TypeMap.Null.SourcedCalculated (kw)))))
@@ -918,23 +899,19 @@ namespace DbAnalysis
 			var PFromClauseOptionalST /*exp*/ =
 				(
 					from kw_from in SqlToken ("from")
-					from t1 in PFromTableExpressionST.Select (t => FromContext (rc => t))
+					from t1 in PFromTableExpressionST.Select (t => FromContext (rc => new TableJoin (t, null)))
 					from tail in
 						(
 							from kw_joinN in AnyTokenST ("join", "inner join", "left join", "right join")
 							from tN in PFromTableExpressionST
 							from kw_onN in SqlToken ("on")
 							from condexpN in PExpressionST
-							select FromContext (rc =>
-							{
-								condexpN (rc);
-								return tN;
-							})
+							select FromContext (rc => new TableJoin (tN, condexpN/*exp*/))
 						)
 						.Or (
 							from kw_joinN in AnyTokenST ("cross join", ",")
 							from tN in PFromTableExpressionST
-							select FromContext (rc => tN)
+							select FromContext (rc => new TableJoin (tN, null))
 						)
 						.Many ()
 					select FromContext (rc =>
@@ -954,7 +931,7 @@ namespace DbAnalysis
 
 			var POrdinarySelectST/*exp*/ =
 					from kw_select in SqlToken ("select")
-					from distinct in
+					from distinct_tc in		// _fc means 'table context'
 					(
 						from _1 in SqlToken ("distinct")
 						from on_exp in
@@ -964,8 +941,8 @@ namespace DbAnalysis
 							select on_exp
 						).Optional ()
 						select on_exp
-					).Optional ()
-					from list in PSelectListST
+					).Optional ().TestInContext ()
+					from list_tc in PSelectListST
 					from into_t1 in
 					(
 						from _1 in SqlToken ("into")
@@ -979,16 +956,17 @@ namespace DbAnalysis
 						from _2 in PQualifiedIdentifierLST.CommaDelimitedST ()
 						select 0
 					).Optional ()
-					from where_cl in PWhereClauseOptionalST
-					from grp in PGroupByClauseOptionalST
-					from having in PHavingClauseOptionalST
+					from where_clause_tc in PWhereClauseOptionalST.TestInContext ()
+					from group_tc in PGroupByClauseOptionalST.TestInContext ()
+					from having_tc in PHavingClauseOptionalST.TestInContext ()
 					select FromContext (rc =>
 					{
-						distinct (rc);
-						where_cl (rc);
-						grp (rc);
-						having (rc);
-						return new OrdinarySelect (list (rc), from_cl (rc));
+						return new OrdinarySelect (list_tc (rc), from_cl (rc), TestInContext/*exp*/ (
+							distinct_tc,
+							where_clause_tc,
+							group_tc,
+							having_tc
+							));
 					})
 				;
 
@@ -996,7 +974,7 @@ namespace DbAnalysis
 					from seq in POrdinarySelectST
 						.DelimitedBy (AnyTokenST ("union all", "union", "except", "subtract"))
 						.Pack ()
-					from ord in POrderByClauseOptionalST
+					from ord_tc in POrderByClauseOptionalST.TestInContext ()
 					from limit in
 					(
 						from kw in SqlToken ("limit")
@@ -1012,18 +990,18 @@ namespace DbAnalysis
 					).Optional ()
 					select FromContext (rc =>
 					{
-						ord (rc);
 						limit (rc);
 						offset (rc);
-						var Select = seq (rc)[0];
-						return new SelectStatement (Select.List, Select.FromClause);
+						// here: test all selects, not just 0th
+						var Select = FromContext (rc_tc => seq (rc)[0]);
+						return new SelectStatement (Select, null, TestInContext (ord_tc));
 					});
 
 			var PCteLevelST =
 					from name in PColumnNameLST
 					from kw_as in SqlToken ("as")
 					from select_exp in PSelectST.InParentsST ()
-					select new SelectStatement (select_exp, name)
+					select new SelectStatement (select_exp, name, null, null)
 				;
 
 			var PCteTopOptionalST =
@@ -1050,7 +1028,7 @@ namespace DbAnalysis
 					from _3 in PColumnNameLST.CommaDelimitedST ().AtLeastOnce ()
 						.InParentsST ()
 						.Optional ()
-					from _4 in PValuesClauseST.Return (0)
+					from _4 in PValuesClauseST/*exp*/.Return (0)
 						.Or (PSelectST.Return (0))
 					from conflict in
 					(
