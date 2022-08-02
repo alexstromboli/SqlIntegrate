@@ -836,7 +836,9 @@ namespace DbAnalysis
 					from t1 in PFromTableExpressionST
 					from tail in
 						(
-							from kw_joinN in AnyTokenST ("join", "inner join", "left join", "right join")
+							from kw_joinN in AnyTokenST ("join", "inner join", "left join", "right join", "full join",
+								"left outer join", "right outer join", "full outer join"
+								)
 							from tN in PFromTableExpressionST
 							from kw_onN in SqlToken ("on")
 							from condexpN in PExpressionRefST.Get
