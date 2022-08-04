@@ -513,7 +513,7 @@ namespace DbAnalysis
 
 			var PAtomicST =
 					(
-						from rn in AnyTokenST ("row_number", "rank")
+						from rn in AnyTokenST ("row_number", "rank", "dense_rank")
 						from _1 in AnyTokenST ("( ) over (")
 						from _2 in
 						(
