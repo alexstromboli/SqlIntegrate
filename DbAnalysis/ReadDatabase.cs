@@ -279,7 +279,7 @@ SELECT
     type_udt_name::regtype::varchar AS result_type
 FROM information_schema.routines
 WHERE routines.routine_type='FUNCTION'
-    AND type_udt_name NOT IN ('any')
+    AND type_udt_name NOT IN ('any', 'citext')
 ORDER BY routines.routine_schema, routines.routine_name;
 ";
 

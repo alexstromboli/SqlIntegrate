@@ -532,7 +532,40 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionRefST.Get
 						from _3 in SqlToken (")")
-						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).WithName (f))
+						select (Func<RequestContext, NamedTyped>)(rc =>
+						{
+							var Result = exp.GetResult (rc);
+
+							switch (f.Value)
+							{
+								case "sum":
+									switch (Result.Type.Value.NumericLevel)
+									{
+										case PSqlType.NumericOrderLevel.Int:
+										case PSqlType.NumericOrderLevel.SmallInt:
+											Result = Result.WithType (DatabaseContext.TypeMap.BigInt);
+											break;
+
+										case PSqlType.NumericOrderLevel.BigInt:
+											Result = Result.WithType (DatabaseContext.TypeMap.Decimal);
+											break;
+									}
+									break;
+
+								case "avg":
+									switch (Result.Type.Value.NumericLevel)
+									{
+										case PSqlType.NumericOrderLevel.Int:
+										case PSqlType.NumericOrderLevel.SmallInt:
+										case PSqlType.NumericOrderLevel.BigInt:
+											Result = Result.WithType (DatabaseContext.TypeMap.Decimal);
+											break;
+									}
+									break;
+							}
+
+							return Result.WithName (f);
+						})
 					)
 					.Or (
 						from f in SqlToken ("count")

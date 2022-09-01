@@ -108,6 +108,16 @@
           "Name": "result",
           "Type": "refcursor",
           "IsOut": true
+        },
+        {
+          "Name": "ag_sum",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "ag_avg",
+          "Type": "refcursor",
+          "IsOut": true
         }
       ],
       "ResultSets": [
@@ -138,6 +148,62 @@
             {
               "Name": "use_quotes",
               "Type": "varchar"
+            }
+          ]
+        },
+        {
+          "Name": "ag_sum",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "sum_int",
+              "Type": "bigint"
+            },
+            {
+              "Name": "sum_small",
+              "Type": "bigint"
+            },
+            {
+              "Name": "sum_big",
+              "Type": "decimal"
+            },
+            {
+              "Name": "sum_numeric",
+              "Type": "decimal"
+            },
+            {
+              "Name": "sum_money",
+              "Type": "money"
+            },
+            {
+              "Name": "sum_real",
+              "Type": "real"
+            }
+          ]
+        },
+        {
+          "Name": "ag_avg",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "avg_int",
+              "Type": "decimal"
+            },
+            {
+              "Name": "avg_small",
+              "Type": "decimal"
+            },
+            {
+              "Name": "avg_big",
+              "Type": "decimal"
+            },
+            {
+              "Name": "avg_numeric",
+              "Type": "decimal"
+            },
+            {
+              "Name": "avg_real",
+              "Type": "real"
             }
           ]
         }

@@ -161,17 +161,45 @@ namespace Generated
 			public string use_quotes;
 		}
 
-		public List<get_aggregates_Result_result> get_aggregates (float? coef)
+		public class get_aggregates_Result_ag_sum
 		{
-			List<get_aggregates_Result_result> Result = null;
+			public long? sum_int;
+			public long? sum_small;
+			public decimal? sum_big;
+			public decimal? sum_numeric;
+			public decimal? sum_money;
+			public float? sum_real;
+		}
+
+		public class get_aggregates_Result_ag_avg
+		{
+			public decimal? avg_int;
+			public decimal? avg_small;
+			public decimal? avg_big;
+			public decimal? avg_numeric;
+			public float? avg_real;
+		}
+
+		public class get_aggregates_Result
+		{
+			public List<get_aggregates_Result_result> result;
+			public List<get_aggregates_Result_ag_sum> ag_sum;
+			public List<get_aggregates_Result_ag_avg> ag_avg;
+		}
+
+		public get_aggregates_Result get_aggregates (float? coef)
+		{
+			get_aggregates_Result Result = new get_aggregates_Result ();
 
 			using (var Tran = Conn.BeginTransaction ())
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"get_aggregates\" (@coef, @result);";
+					Cmd.CommandText = "call \"alexey\".\"get_aggregates\" (@coef, @result, @ag_sum, @ag_avg);";
 					Cmd.Parameters.AddWithValue ("@coef", (object)coef ?? DBNull.Value);
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@ag_sum", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "ag_sum" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@ag_avg", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "ag_avg" });
 
 					Cmd.ExecuteNonQuery ();
 
@@ -196,7 +224,54 @@ namespace Generated
 							}
 						}
 
-						Result = Set;
+						Result.result = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"ag_sum\";";
+						List<get_aggregates_Result_ag_sum> Set = new List<get_aggregates_Result_ag_sum> ();
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_aggregates_Result_ag_sum
+								{
+									sum_int = Rdr["sum_int"] as long?,
+									sum_small = Rdr["sum_small"] as long?,
+									sum_big = Rdr["sum_big"] as decimal?,
+									sum_numeric = Rdr["sum_numeric"] as decimal?,
+									sum_money = Rdr["sum_money"] as decimal?,
+									sum_real = Rdr["sum_real"] as float?
+								});
+							}
+						}
+
+						Result.ag_sum = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"ag_avg\";";
+						List<get_aggregates_Result_ag_avg> Set = new List<get_aggregates_Result_ag_avg> ();
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_aggregates_Result_ag_avg
+								{
+									avg_int = Rdr["avg_int"] as decimal?,
+									avg_small = Rdr["avg_small"] as decimal?,
+									avg_big = Rdr["avg_big"] as decimal?,
+									avg_numeric = Rdr["avg_numeric"] as decimal?,
+									avg_real = Rdr["avg_real"] as float?
+								});
+							}
+						}
+
+						Result.ag_avg = Set;
 					}
 
 					Tran.Commit ();
@@ -206,17 +281,19 @@ namespace Generated
 			return Result;
 		}
 
-		public async Task<List<get_aggregates_Result_result>> get_aggregatesAsync (float? coef)
+		public async Task<get_aggregates_Result> get_aggregatesAsync (float? coef)
 		{
-			List<get_aggregates_Result_result> Result = null;
+			get_aggregates_Result Result = new get_aggregates_Result ();
 
 			using (var Tran = await Conn.BeginTransactionAsync ())
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"get_aggregates\" (@coef, @result);";
+					Cmd.CommandText = "call \"alexey\".\"get_aggregates\" (@coef, @result, @ag_sum, @ag_avg);";
 					Cmd.Parameters.AddWithValue ("@coef", (object)coef ?? DBNull.Value);
 					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@ag_sum", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "ag_sum" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@ag_avg", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "ag_avg" });
 
 					await Cmd.ExecuteNonQueryAsync ();
 
@@ -241,7 +318,54 @@ namespace Generated
 							}
 						}
 
-						Result = Set;
+						Result.result = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"ag_sum\";";
+						List<get_aggregates_Result_ag_sum> Set = new List<get_aggregates_Result_ag_sum> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_aggregates_Result_ag_sum
+								{
+									sum_int = Rdr["sum_int"] as long?,
+									sum_small = Rdr["sum_small"] as long?,
+									sum_big = Rdr["sum_big"] as decimal?,
+									sum_numeric = Rdr["sum_numeric"] as decimal?,
+									sum_money = Rdr["sum_money"] as decimal?,
+									sum_real = Rdr["sum_real"] as float?
+								});
+							}
+						}
+
+						Result.ag_sum = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"ag_avg\";";
+						List<get_aggregates_Result_ag_avg> Set = new List<get_aggregates_Result_ag_avg> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_aggregates_Result_ag_avg
+								{
+									avg_int = Rdr["avg_int"] as decimal?,
+									avg_small = Rdr["avg_small"] as decimal?,
+									avg_big = Rdr["avg_big"] as decimal?,
+									avg_numeric = Rdr["avg_numeric"] as decimal?,
+									avg_real = Rdr["avg_real"] as float?
+								});
+							}
+						}
+
+						Result.ag_avg = Set;
 					}
 
 					await Tran.CommitAsync ();

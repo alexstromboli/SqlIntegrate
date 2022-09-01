@@ -129,6 +129,16 @@ INSERT INTO financial_history VALUES
     )
 );
 
+CREATE TABLE Aggre
+(
+    v_int int,
+    v_small smallint,
+    v_big bigint,
+    v_numeric numeric,
+    v_money money,
+    v_real real
+);
+
 INSERT INTO Depts VALUES (1, null, 'Administration');
 INSERT INTO Depts VALUES (2, 1, 'Operation');
 INSERT INTO Depts VALUES (3, 1, 'Strategy');
@@ -160,6 +170,25 @@ INSERT INTO Own VALUES ('4EF2FCF9-8F5B-41C3-8127-1A1C464BB10A', 20);
 INSERT INTO Own VALUES ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 12);
 INSERT INTO Own VALUES ('9CF9848C-E056-4E58-895F-B7C428B81FBA', 20);
 INSERT INTO Own VALUES ('A581E1EB-24DF-4C31-A428-14857EC29E7D', 2);
+
+INSERT INTO Aggre
+(
+    v_int,
+    v_small,
+    v_big,
+    v_numeric,
+    v_money,
+    v_real
+)
+VALUES
+(
+    1, -- v_int,
+    1, -- v_small,
+    1, -- v_big,
+    1, -- v_numeric,
+    1, -- v_money,
+    1  -- v_real
+);
 
 -- DROP PROCEDURE Persons_GetAll;
 CREATE PROCEDURE Persons_GetAll (INOUT Users refcursor, INOUT ownership refcursor)
@@ -872,7 +901,9 @@ $$;
 CREATE PROCEDURE get_aggregates
 (
     coef real,
-    INOUT result refcursor
+    INOUT result refcursor,
+    INOUT ag_sum refcursor,
+    INOUT ag_avg refcursor
 )
 LANGUAGE 'plpgsql'
 AS $$
@@ -929,6 +960,26 @@ BEGIN
     ORDER BY ext.Persons.id
     LIMIT a * b OFFSET N
     ;
+
+    OPEN ag_sum FOR
+    SELECT
+        sum(v_int) AS sum_int,
+        SUM(v_small) AS sum_small,
+        sum(v_big) AS sum_big,
+        sum(v_numeric) AS sum_numeric,
+        sum(v_money) AS sum_money,
+        sum(v_real) AS sum_real
+    FROM Aggre;
+
+    OPEN ag_avg FOR
+    SELECT
+        AVG(v_int) AS avg_int,
+        AVG(v_small) AS avg_small,
+        AVG(v_big) AS avg_big,
+        AVG(v_numeric) AS avg_numeric,
+        --avg(v_money),
+        AVG(v_real) AS avg_real
+    FROM Aggre;
 END;
 $$;
 

@@ -37,6 +37,11 @@ namespace DbAnalysis
 			return new NamedTyped (Name, NewType);
 		}
 
+		public NamedTyped WithType (PSqlType NewType)
+		{
+			return new NamedTyped (Name, Type.Select (t => NewType));
+		}
+
 		public NamedTyped ToArray ()	// here: trace back the source
 		{
 			return new NamedTyped (Name, Type.Select (t => t.ArrayType));
