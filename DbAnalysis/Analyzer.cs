@@ -584,6 +584,11 @@ namespace DbAnalysis
 						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
 					)
+					.Or (
+						from f in SqlToken ("enum_range")
+						from exp in PExpressionRefST.Get.InParentsST ()
+						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
+					)
 					.Or (PUnnestST)
 					.Or (
 						from f in SqlToken ("coalesce")

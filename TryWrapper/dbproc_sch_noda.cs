@@ -383,6 +383,7 @@ namespace Generated
 			public bool[] array;
 			public string[] names;
 			public int[] order;
+			public string[] enum_range;
 			public int[] array_plus_item;
 			public int[] array_plus_array;
 			public int[] item_plus_array;
@@ -439,6 +440,7 @@ namespace Generated
 									array = Rdr["array"] as bool[],
 									names = Rdr["names"] as string[],
 									order = Rdr["order"] as int[],
+									enum_range = Rdr["enum_range"] as string[],
 									array_plus_item = Rdr["array_plus_item"] as int[],
 									array_plus_array = Rdr["array_plus_array"] as int[],
 									item_plus_array = Rdr["item_plus_array"] as int[]
@@ -528,6 +530,7 @@ namespace Generated
 									array = Rdr["array"] as bool[],
 									names = Rdr["names"] as string[],
 									order = Rdr["order"] as int[],
+									enum_range = Rdr["enum_range"] as string[],
 									array_plus_item = Rdr["array_plus_item"] as int[],
 									array_plus_array = Rdr["array_plus_array"] as int[],
 									item_plus_array = Rdr["item_plus_array"] as int[]

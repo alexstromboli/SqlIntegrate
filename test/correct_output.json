@@ -251,6 +251,10 @@
               "Type": "int[]"
             },
             {
+              "Name": "enum_range",
+              "Type": "USER.app_status[]"
+            },
+            {
               "Name": "array_plus_item",
               "Type": "int[]"
             },

@@ -426,6 +426,7 @@ BEGIN
             array[true, false],
             array(with r as (select name from Depts) select distinct * from r) as names,
             '{5, 8, 2}'::int[] "order",
+            enum_range(NULL::app_status),
             array[7, 3, 1]||12 array_plus_item,
             array[7, 3, 1] || array[4, 0] array_plus_array,
             12||array[7, 3, 1] item_plus_array
