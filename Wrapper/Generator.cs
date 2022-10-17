@@ -97,8 +97,8 @@ namespace Wrapper
 			{
 				if (t.Value.ReportedType?.MapTo != null)
 				{
-					t.Value.CsTypeName = () => t.Value.ReportedType.MapTo
-						+ (t.Value.ReportedType.GenerateEnum ? "?" : "");
+					t.Value.CsTypeName = fnu => t.Value.ReportedType.MapTo
+						+ (fnu && t.Value.ReportedType.GenerateEnum ? "?" : "");
 				}
 			}
 
@@ -212,7 +212,7 @@ namespace Wrapper
 
 											if (Set.IsSingleColumn)
 											{
-												Set.RowCsClassName = Set.Properties[0].TypeMapping.CsTypeName ();
+												Set.RowCsClassName = Set.Properties[0].TypeMapping.CsTypeName (true);
 											}
 
 											Set.SetCsTypeName = Set.IsSingleRow
@@ -331,7 +331,7 @@ namespace Wrapper
 								if (MapMethod != null)
 								{
 									sb.AppendLine (
-										$"Conn.TypeMapper.{MapMethod}<{TypeMap[$"{t.Schema}.{t.Name}"].CsTypeName ()}> (\"{t.Schema}.{t.Name}\");");
+										$"Conn.TypeMapper.{MapMethod}<{TypeMap[$"{t.Schema}.{t.Name}"].CsTypeName (false)}> (\"{t.Schema}.{t.Name}\");");
 								}
 							}
 						}
@@ -382,7 +382,7 @@ namespace Wrapper
 							{
 								foreach (var p in ct.Properties)
 								{
-									sb.AppendLine ($"public {p.TypeMapping.CsTypeName ()} {p.CsName};");
+									sb.AppendLine ($"public {p.TypeMapping.CsTypeName (true)} {p.CsName};");
 								}
 							}
 
@@ -427,7 +427,7 @@ namespace Wrapper
 									.Where (a => !a.IsCursor)
 									.Select (a =>
 									{
-										string ArgumentType = a.TypeMapping.CsTypeName ();
+										string ArgumentType = a.TypeMapping.CsTypeName (true);
 										Processors.Act (p =>
 											p.OnEncodingParameter (Database, ns, pi.Value, a, ref ArgumentType));
 
@@ -447,7 +447,7 @@ namespace Wrapper
 								{
 									foreach (var P in Set.Properties)
 									{
-										string ColumnCsType = P.TypeMapping.CsTypeName ();
+										string ColumnCsType = P.TypeMapping.CsTypeName (true);
 										Processors.Act (p =>
 											p.OnEncodingResultSetColumn (Database, ns, pi.Value, Set, P,
 												ref ColumnCsType));

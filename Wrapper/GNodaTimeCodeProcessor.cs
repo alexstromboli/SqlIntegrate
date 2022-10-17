@@ -31,9 +31,11 @@ namespace Wrapper
 				         new { sql_type = "date", clr_type = "LocalDate?" }
 			         })
 			{
+				string Nullable = cm.clr_type;
+				string Origin = cm.clr_type.TrimEnd ('?');
 				foreach (var prefix in new[] { "", PgCatalogPrefix })
 				{
-					TypeMap[prefix + cm.sql_type].CsTypeName = () => cm.clr_type;
+					TypeMap[prefix + cm.sql_type].CsTypeName = fnu => fnu ? Nullable : Origin;
 				}
 			}
 		}

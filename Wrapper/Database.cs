@@ -22,7 +22,7 @@ namespace Wrapper
 			{
 				TypeMap[Synonym + "[]"] = TypeMap[SourceName + "[]"];
 			}
-			
+
 			return TypeMap;
 		}
 
@@ -37,10 +37,10 @@ namespace Wrapper
 			var Single = new TypeMapping<TSqlType, TColumn>
 			{
 				SqlTypeName = SqlTypeName,
-				CsTypeName = () => CsNullableName,
+				CsTypeName = fnu => CsNullableName,
 				PSqlType = PSqlType
 			};
-			Single.GetValue = v => $"{v} as {Single.CsTypeName ()}";		// use closure
+			Single.GetValue = v => $"{v} as {Single.CsTypeName (true)}";		// use closure
 			TypeMap[SqlTypeName] = Single;
 
 			if (PSqlType.ArrayType != null)
@@ -50,10 +50,10 @@ namespace Wrapper
 				var Array = new TypeMapping<TSqlType, TColumn>
 				{
 					SqlTypeName = ArrKey,
-					CsTypeName = () => Single.CsTypeName ().TrimEnd ('?') + "[]",
+					CsTypeName = fnu => Single.CsTypeName (false).TrimEnd ('?') + "[]",
 					PSqlType = PSqlType.ArrayType
 				};
-				Array.GetValue = v => $"{v} as {Single.CsTypeName ().TrimEnd ('?')}[]";
+				Array.GetValue = v => $"{v} as {Single.CsTypeName (false).TrimEnd ('?')}[]";
 				TypeMap[ArrKey] = Array;
 			}
 
@@ -78,7 +78,7 @@ namespace Wrapper
 	{
 		// here: store PSqlType?
 		public string SqlTypeName;
-		public Func<string> CsTypeName;
+		public Func<bool, string> CsTypeName;		// bool ForceNullability => string display
 		public PSqlType PSqlType;
 		public TSqlType ReportedType;
 		public Func<string, string> SetValue = v => v;
@@ -106,7 +106,7 @@ namespace Wrapper
 
 					public override string ToString ()
 					{
-						return (CsName ?? NativeName) + " " + (TypeMapping?.CsTypeName () ?? "???");
+						return (CsName ?? NativeName) + " " + (TypeMapping?.CsTypeName (true) ?? "???");
 					}
 				}
 

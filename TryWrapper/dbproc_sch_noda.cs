@@ -78,7 +78,7 @@ namespace Generated
 			Conn.TypeMapper.MapComposite<TryWrapper.Town> ("alexey.city_locale");
 			Conn.TypeMapper.MapEnum<alexey.indirectly_used_enum> ("alexey.indirectly_used_enum");
 			Conn.TypeMapper.MapComposite<alexey.indirectly_used_type> ("alexey.indirectly_used_type");
-			Conn.TypeMapper.MapEnum<TryWrapper.CardType?> ("alexey.mapped");
+			Conn.TypeMapper.MapEnum<TryWrapper.CardType> ("alexey.mapped");
 			Conn.TypeMapper.MapComposite<alexey.monetary> ("alexey.monetary");
 			Conn.TypeMapper.MapComposite<alexey.payment> ("alexey.payment");
 		}

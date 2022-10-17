@@ -55,6 +55,14 @@
     },
     {
       "Schema": "USER",
+      "Name": "mapped", "MapTo": "TryWrapper.CardType", "GenerateEnum": true,
+      "Enum": [
+        "debit",
+        "credit"
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "monetary", "Tag": "financial",
       "Properties": [
         {
@@ -1112,6 +1120,10 @@
               "Type": "bigint"
             },
             {
+              "Name": "card_type",
+              "Type": "USER.mapped"
+            },
+            {
               "Name": "full_qual",
               "Type": "no_proc.package"
             },
@@ -1427,6 +1439,10 @@
           "Name": "get_array",
           "Type": "int[]",
           "IsOut": true
+        },
+        {
+          "Name": "card_type",
+          "Type": "USER.mapped"
         },
         {
           "Name": "name",
