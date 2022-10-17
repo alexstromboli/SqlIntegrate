@@ -19,6 +19,12 @@ namespace TryWrapper
 		}
 	}
 
+	public enum CardType
+	{
+		debit,
+		credit
+	}
+
 	public class Payer
 	{
 		public string PostalCode;

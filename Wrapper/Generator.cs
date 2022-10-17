@@ -97,7 +97,8 @@ namespace Wrapper
 			{
 				if (t.Value.ReportedType?.MapTo != null)
 				{
-					t.Value.CsTypeName = () => t.Value.ReportedType.MapTo;
+					t.Value.CsTypeName = () => t.Value.ReportedType.MapTo
+						+ (t.Value.ReportedType.GenerateEnum ? "?" : "");
 				}
 			}
 

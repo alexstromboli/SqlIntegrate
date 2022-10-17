@@ -11,6 +11,12 @@ CREATE TYPE app_status AS ENUM
     '13 digits'
 );
 
+CREATE TYPE mapped AS ENUM
+(
+    'debit',
+    'credit'
+);
+
 CREATE TYPE no_proc.package AS ENUM
 (
     'open',
@@ -302,6 +308,7 @@ CREATE PROCEDURE RoomsForPerson (
         INOUT res02 refcursor,
         bwahaha int[],
         INOUT get_array int[],
+        card_type mapped,
         name varchar(100) = 'none',
         over bool = true,
         dt01 date = null,
@@ -535,6 +542,7 @@ BEGIN
             'hold'::app_status as last_status,
             array['enclosed', 'sealed']::no_proc.package[] packages,
             owner_sum,
+            'debit'::mapped AS card_type,
             'open'::no_proc.package AS full_qual,
             'sealed'::"no_proc"."package" AS full_qual_quot,
             'enclosed'::"no_proc".package AS full_qual_quot_2

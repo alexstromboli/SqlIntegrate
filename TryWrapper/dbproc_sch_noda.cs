@@ -78,6 +78,7 @@ namespace Generated
 			Conn.TypeMapper.MapComposite<TryWrapper.Town> ("alexey.city_locale");
 			Conn.TypeMapper.MapEnum<alexey.indirectly_used_enum> ("alexey.indirectly_used_enum");
 			Conn.TypeMapper.MapComposite<alexey.indirectly_used_type> ("alexey.indirectly_used_type");
+			Conn.TypeMapper.MapEnum<TryWrapper.CardType?> ("alexey.mapped");
 			Conn.TypeMapper.MapComposite<alexey.monetary> ("alexey.monetary");
 			Conn.TypeMapper.MapComposite<alexey.payment> ("alexey.payment");
 		}
@@ -1934,6 +1935,7 @@ namespace Generated
 			public string last_status;
 			public string[] packages;
 			public long? owner_sum;
+			public TryWrapper.CardType? card_type;
 			public string full_qual;
 			public string full_qual_quot;
 			public string full_qual_quot_2;
@@ -2028,6 +2030,7 @@ namespace Generated
 									last_status = Rdr["last_status"] as string,
 									packages = Rdr["packages"] as string[],
 									owner_sum = Rdr["owner_sum"] as long?,
+									card_type = Rdr["card_type"] as TryWrapper.CardType?,
 									full_qual = Rdr["full_qual"] as string,
 									full_qual_quot = Rdr["full_qual_quot"] as string,
 									full_qual_quot_2 = Rdr["full_qual_quot_2"] as string
@@ -2155,6 +2158,7 @@ namespace Generated
 									last_status = Rdr["last_status"] as string,
 									packages = Rdr["packages"] as string[],
 									owner_sum = Rdr["owner_sum"] as long?,
+									card_type = Rdr["card_type"] as TryWrapper.CardType?,
 									full_qual = Rdr["full_qual"] as string,
 									full_qual_quot = Rdr["full_qual_quot"] as string,
 									full_qual_quot_2 = Rdr["full_qual_quot_2"] as string
@@ -2558,10 +2562,12 @@ namespace Generated
 			public List<roomsforperson_Result_res02> res02;
 		}
 
+		/// <param name="card_type">Value from alexey.mapped</param>
 		public roomsforperson_Result roomsforperson (
 				Guid? id_person,
 				int[] bwahaha,
 				ref int[] get_array,
+				TryWrapper.CardType? card_type,
 				string name,
 				bool? over,
 				LocalDate? dt01,
@@ -2580,12 +2586,13 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"roomsforperson\" (@id_person, @res01, @res02, @bwahaha, @get_array, @name, @over, @dt01, @dt02, @dt03, @dt04, @txt, @amount, @came, @done);";
+					Cmd.CommandText = "call \"alexey\".\"roomsforperson\" (@id_person, @res01, @res02, @bwahaha, @get_array, @card_type::\"alexey\".\"mapped\", @name, @over, @dt01, @dt02, @dt03, @dt04, @txt, @amount, @came, @done);";
 					Cmd.Parameters.AddWithValue ("@id_person", (object)id_person ?? DBNull.Value);
 					Cmd.Parameters.Add (new NpgsqlParameter ("@res01", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "res01" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@res02", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "res02" });
 					Cmd.Parameters.AddWithValue ("@bwahaha", (object)bwahaha ?? DBNull.Value);
 					Cmd.Parameters.AddWithValue ("@get_array", (object)get_array ?? DBNull.Value).Direction = ParameterDirection.InputOutput;
+					Cmd.Parameters.AddWithValue ("@card_type", (object)card_type ?? DBNull.Value);
 					Cmd.Parameters.AddWithValue ("@name", (object)name ?? DBNull.Value);
 					Cmd.Parameters.AddWithValue ("@over", (object)over ?? DBNull.Value);
 					Cmd.Parameters.AddWithValue ("@dt01", (object)dt01 ?? DBNull.Value);

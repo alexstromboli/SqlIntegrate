@@ -7,11 +7,13 @@ cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 export DBNAME=dummy01
 export USER="$(whoami)"
 
-psql -d postgres -c "DROP DATABASE $DBNAME;" || true
-psql -d postgres -c "CREATE DATABASE $DBNAME;"
+if [ "${1:-}" != '-c' ]; then
+    psql -d postgres -c "DROP DATABASE $DBNAME;" || true
+    psql -d postgres -c "CREATE DATABASE $DBNAME;"
 
-psql -q -d "$DBNAME" -v owner="$USER" -f dummy01.sql
-cat dummy01_2.sql | sed "s/SCHEMA/$USER/g" | sed "s/DBNAME/$DBNAME/g" | psql -q -d "$DBNAME"
+    psql -q -d "$DBNAME" -v owner="$USER" -f dummy01.sql
+    cat dummy01_2.sql | sed "s/SCHEMA/$USER/g" | sed "s/DBNAME/$DBNAME/g" | psql -q -d "$DBNAME"
+fi
 
 export OUTPUT_JSON_FILE="$(realpath temp_"$(tr -dc a-f0-9 </dev/urandom | dd bs=32 count=1 2>/dev/null)".json)"
 # path /var/run/postgresql is taken from section unix_socket_directories
@@ -22,6 +24,7 @@ if [ -f "$OUTPUT_JSON_FILE" ]; then
     sed -i "s/\"Name\": \"indirectly_used_enum\",/\"Name\": \"indirectly_used_enum\", \"GenerateEnum\": true,/g" "$OUTPUT_JSON_FILE"
     sed -i "s/\"Name\": \"monetary\",/\"Name\": \"monetary\", \"Tag\": \"financial\",/g" "$OUTPUT_JSON_FILE"
     sed -i "s/\"Name\": \"city_locale\",/\"Name\": \"city_locale\", \"MapTo\": \"TryWrapper.Town\",/g" "$OUTPUT_JSON_FILE"
+    sed -i "s/\"Name\": \"mapped\",/\"Name\": \"mapped\", \"MapTo\": \"TryWrapper.CardType\", \"GenerateEnum\": true,/g" "$OUTPUT_JSON_FILE"
 
     pushd ../TestWrapper/bin/Debug/net5.0 >/dev/null
     ./TestWrapper "$OUTPUT_JSON_FILE"
