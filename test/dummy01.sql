@@ -13,8 +13,8 @@ CREATE TYPE app_status AS ENUM
 
 CREATE TYPE mapped AS ENUM
 (
-    'debit',
-    'credit'
+    'Debit',
+    'Credit'
 );
 
 CREATE TYPE no_proc.package AS ENUM
@@ -542,7 +542,7 @@ BEGIN
             'hold'::app_status as last_status,
             array['enclosed', 'sealed']::no_proc.package[] packages,
             owner_sum,
-            'debit'::mapped AS card_type,
+            'Debit'::mapped AS card_type,
             'open'::no_proc.package AS full_qual,
             'sealed'::"no_proc"."package" AS full_qual_quot,
             'enclosed'::"no_proc".package AS full_qual_quot_2
@@ -584,6 +584,7 @@ BEGIN
             null::timestamp without time zone as timestamp,
             null::date as date,
             null::bool as bool,
+            null::mapped AS card_type,
             coalesce(true, false) AS coalesce_first,
             coalesce(null, 1e-2) AS coalesce_second
         ;

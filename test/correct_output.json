@@ -57,8 +57,8 @@
       "Schema": "USER",
       "Name": "mapped", "MapTo": "TryWrapper.CardType", "GenerateEnum": true,
       "Enum": [
-        "debit",
-        "credit"
+        "Debit",
+        "Credit"
       ]
     },
     {
@@ -1270,6 +1270,10 @@
             {
               "Name": "bool",
               "Type": "bool"
+            },
+            {
+              "Name": "card_type",
+              "Type": "USER.mapped"
             },
             {
               "Name": "coalesce_first",

@@ -117,7 +117,8 @@ namespace Wrapper
 					"using System.Threading.Tasks;",
 					"using System.Collections.Generic;",
 					"using Npgsql;",
-					"using NpgsqlTypes;"
+					"using NpgsqlTypes;",
+					"using Npgsql.NameTranslation;"
 				},
 				CsNamespace = "Generated",
 				CsClassName = "DbProc",
@@ -319,19 +320,22 @@ namespace Wrapper
 							foreach (var t in Module.Types.OrderBy (t => t.Schema).ThenBy (t => t.Name))
 							{
 								string MapMethod = null;
+								string SecondParam = null;
 								if (t.Enum != null && t.GenerateEnum)
 								{
 									MapMethod = "MapEnum";
+									SecondParam = ", new NpgsqlNullNameTranslator ()";
 								}
 								else if (t.Properties != null)
 								{
 									MapMethod = "MapComposite";
+									SecondParam = "";
 								}
 
 								if (MapMethod != null)
 								{
 									sb.AppendLine (
-										$"Conn.TypeMapper.{MapMethod}<{TypeMap[$"{t.Schema}.{t.Name}"].CsTypeName (false)}> (\"{t.Schema}.{t.Name}\");");
+										$"Conn.TypeMapper.{MapMethod}<{TypeMap[$"{t.Schema}.{t.Name}"].CsTypeName (false)}> (\"{t.Schema}.{t.Name}\"{SecondParam});");
 								}
 							}
 						}

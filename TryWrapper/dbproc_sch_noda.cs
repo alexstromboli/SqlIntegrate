@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Npgsql;
 using NpgsqlTypes;
+using Npgsql.NameTranslation;
 using NodaTime;
 using System.Text;
 using Newtonsoft.Json;
@@ -76,9 +77,9 @@ namespace Generated
 			}
 
 			Conn.TypeMapper.MapComposite<TryWrapper.Town> ("alexey.city_locale");
-			Conn.TypeMapper.MapEnum<alexey.indirectly_used_enum> ("alexey.indirectly_used_enum");
+			Conn.TypeMapper.MapEnum<alexey.indirectly_used_enum> ("alexey.indirectly_used_enum", new NpgsqlNullNameTranslator ());
 			Conn.TypeMapper.MapComposite<alexey.indirectly_used_type> ("alexey.indirectly_used_type");
-			Conn.TypeMapper.MapEnum<TryWrapper.CardType> ("alexey.mapped");
+			Conn.TypeMapper.MapEnum<TryWrapper.CardType> ("alexey.mapped", new NpgsqlNullNameTranslator ());
 			Conn.TypeMapper.MapComposite<alexey.monetary> ("alexey.monetary");
 			Conn.TypeMapper.MapComposite<alexey.payment> ("alexey.payment");
 		}
@@ -1977,6 +1978,7 @@ namespace Generated
 			public LocalDateTime? timestamp;
 			public LocalDate? date;
 			public bool? _bool;
+			public TryWrapper.CardType? card_type;
 			public bool? coalesce_first;
 			public decimal? coalesce_second;
 		}
@@ -2100,6 +2102,7 @@ namespace Generated
 									timestamp = Rdr["timestamp"] as LocalDateTime?,
 									date = Rdr["date"] as LocalDate?,
 									_bool = Rdr["bool"] as bool?,
+									card_type = Rdr["card_type"] as TryWrapper.CardType?,
 									coalesce_first = Rdr["coalesce_first"] as bool?,
 									coalesce_second = Rdr["coalesce_second"] as decimal?
 								};
@@ -2228,6 +2231,7 @@ namespace Generated
 									timestamp = Rdr["timestamp"] as LocalDateTime?,
 									date = Rdr["date"] as LocalDate?,
 									_bool = Rdr["bool"] as bool?,
+									card_type = Rdr["card_type"] as TryWrapper.CardType?,
 									coalesce_first = Rdr["coalesce_first"] as bool?,
 									coalesce_second = Rdr["coalesce_second"] as decimal?
 								};

@@ -21,8 +21,8 @@ namespace TryWrapper
 
 	public enum CardType
 	{
-		debit,
-		credit
+		Debit,
+		Credit
 	}
 
 	public class Payer
