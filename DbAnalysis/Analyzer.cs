@@ -18,12 +18,12 @@ namespace DbAnalysis
 	{
 		protected DatabaseContext DatabaseContext;
 		protected Dictionary<int, string> WordsCache;
-		protected Parser<ITextSpan<string>> PDoubleQuotedString;
+		protected Parser<Sourced<string>> PDoubleQuotedString;
 		protected Ref<SPolynom> PExpressionRefST;
 		protected Parser<SPolynom> PExpressionST => PExpressionRefST.Get;
 		public Parser<SProcedure> PProcedureST { get; }
 
-		protected Parser<ITextSpan<string>> PAlphaNumericL
+		protected Parser<Sourced<string>> PAlphaNumericL
 		{
 			get
 			{
@@ -33,22 +33,22 @@ namespace DbAnalysis
 					{
 						int Len = Word.Length;
 						return Result.Success (
-							new TextSpan<string>
+							new Sourced<string> (Word, new TextSpanSource (new TextSpan<string>
 							{
 								Value = Word,
 								Start = Position.FromInput (i),
 								End = new Position (i.Position + Word.Length, i.Line, i.Column + Word.Length),
 								Length = Word.Length
-							},
+							})),
 							new CustomInput (i.Source, i.Position + Len, i.Line, i.Column + Len));
 					}
 
-					return Result.Failure<ITextSpan<string>> (i, "No word found", Array.Empty<string> ());
+					return Result.Failure<Sourced<string>> (i, "No word found", Array.Empty<string> ());
 				};
 			}
 		}
 
-		public Parser<ITextSpan<string>> SqlToken (string LineL)
+		public Parser<Sourced<string>> SqlToken (string LineL)
 		{
 			if (LineL.All (c => char.IsLetterOrDigit (c) || c == '_'))
 			{
@@ -70,12 +70,12 @@ namespace DbAnalysis
 
 		// postfix ST means that the result is 'SQL token',
 		// i.e. duly processes comments and whitespaces
-		public Parser<ITextSpan<string>> AnyTokenST (params string[] Options)
+		public Parser<Sourced<string>> AnyTokenST (params string[] Options)
 		{
-			Parser<ITextSpan<string>> Result = null;
+			Parser<Sourced<string>> Result = null;
 			foreach (string[] Tokens in Options.Select (s => s.Split (' ', StringSplitOptions.RemoveEmptyEntries)))
 			{
-				Parser<ITextSpan<string>> Line = null;
+				Parser<Sourced<string>> Line = null;
 				foreach (string Token in Tokens)
 				{
 					var PT = SqlToken (Token);
@@ -83,13 +83,7 @@ namespace DbAnalysis
 							? PT
 							: (from f in Line
 								from n in PT
-								select new TextSpan<string>
-								{
-									Value = f + " " + n,
-									Start = f.Start,
-									End = n.End,
-									Length = n.End.Pos - f.Start.Pos
-								})
+								select (f + " " + n).SourcedTextSpan (TextSpan.Range (f.TextSpan, n.TextSpan)))
 						;
 				}
 
@@ -114,13 +108,13 @@ namespace DbAnalysis
 					from _3 in SqlToken ("then")
 					from value in Then
 					select value
-				).Span ().AtLeastOnce ()
+				).SpanSourced ().AtLeastOnce ()
 				from else_c in
 				(
 					from _1 in SqlToken ("else")
 					from value in PExpressionST
 					select value
-				).Span ().Optional ()
+				).SpanSourced ().Optional ()
 				from _3 in AnyTokenST ("end case", "end")
 				select new CaseBase<T> (case_h, branches, else_c)
 				;
@@ -185,7 +179,7 @@ namespace DbAnalysis
 
 			var FindWordST = PAlphaNumericL
 					.Or (PDoubleQuotedString)
-					.Or (Parse.Chars ('[', ']', '.').Select (c => c.ToString ()).Span ())
+					.Or (Parse.Chars ('[', ']', '.').Select (c => c.ToString ()).SpanSourced ())
 					.SqlToken ()
 				;
 
@@ -205,7 +199,7 @@ namespace DbAnalysis
 		}
 
 		// immediate, i.e. no comments or whitespace
-		protected Parser<ITextSpan<string>> ReadKeywordL (params string[] ValuesL)
+		protected Parser<Sourced<string>> ReadKeywordL (params string[] ValuesL)
 		{
 			return PAlphaNumericL
 					.Where (r => ValuesL.Any (v => v == r.Value))
@@ -219,15 +213,15 @@ namespace DbAnalysis
 
 			// https://www.postgresql.org/docs/12/sql-syntax-lexical.html
 			PDoubleQuotedString =
-					from _1 in Parse.Char ('"')
-					from s in Parse.CharExcept ('"')
-						//.Or (Parse.Char ('\\').Then (c => Parse.AnyChar))
-						.Or (Parse.String ("\"\"").Return ('"'))
-						.Many ()
-						.Text ()
-						.Span ()
-					from _2 in Parse.Char ('"')
-					select s
+				from _1 in Parse.Char ('"')
+				from s in Parse.CharExcept ('"')
+					//.Or (Parse.Char ('\\').Then (c => Parse.AnyChar))
+					.Or (Parse.String ("\"\"").Return ('"'))
+					.Many ()
+					.Text ()
+					.SpanSourced ()
+				from _2 in Parse.Char ('"')
+				select s
 				;
 
 			// postfix ST means that the result is 'SQL token',
@@ -310,17 +304,11 @@ namespace DbAnalysis
 				;
 
 			var PSignPrefix =
-					from c in Parse.Chars ('+', '-').Span ()
-					from sp in Parse.Chars ('+', '-').Or (Parse.WhiteSpace).Many ().Text ().Span ()
+					from c in Parse.Chars ('+', '-').SpanSourced ()
+					from sp in Parse.Chars ('+', '-').Or (Parse.WhiteSpace).Many ().Text ().SpanSourced ()
 					let res = c.Value + sp.Value
 					where !res.Contains ("--")
-					select (ITextSpan<string>)new TextSpan<string>
-					{
-						Value = res,
-						Start = c.Start,
-						End = sp.End,
-						Length = sp.End.Pos - c.Start.Pos
-					};
+					select res.SourcedTextSpan (c, sp);
 
 			Ref<FullSelectStatement> PFullSelectStatementRefST = new Ref<FullSelectStatement> ();
 
@@ -419,7 +407,7 @@ namespace DbAnalysis
 							rc =>
 								arr.Select (it => it.GetResult (rc))
 									.FirstOrDefault (nt => nt.Type.Value != DatabaseContext.TypeMap.Null) ??
-								new NamedTyped (DatabaseContext.TypeMap.Null.SourcedTextSpan (array_kw.ToTextSpan ())))
+								new NamedTyped (DatabaseContext.TypeMap.Null.SourcedTextSpan (array_kw.TextSpan)))
 						.Or (PSelectFirstColumnST)
 					select (Func<RequestContext, NamedTyped>)(rc =>
 						body (rc).ToArray ().WithName (array_kw))
@@ -486,7 +474,7 @@ namespace DbAnalysis
 					from exp in PExpressionRefST.Get.Span ()
 					from _3 in AnyTokenST (")")
 					select (Func<RequestContext, NamedTyped>)(rc =>
-						new NamedTyped (f.ToSourced (), exp.Value.GetResult (rc).Type.Select (t => t.BaseType)))
+						new NamedTyped (f, exp.Value.GetResult (rc).Type.Select (t => t.BaseType)))
 				;
 
 			var PBaseAtomicST =
@@ -498,12 +486,12 @@ namespace DbAnalysis
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (DatabaseContext.TypeMap.VarChar))
 						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
-						.Or (PFunctionCallST.Select<ITextSpan<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
-							rc.ModuleContext.GetFunction (p.ToSourced ())
+						.Or (PFunctionCallST.Select<Sourced<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
+							rc.ModuleContext.GetFunction (p)
 							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST
-							.Select<ITextSpan<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
+							.Select<Sourced<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
 							{
 								string Key = p.JoinDot ();
 								return rc.NamedDict.TryGetValue (Key, out var V) ? V : throw new KeyNotFoundException ("Not found " + Key);
@@ -524,7 +512,7 @@ namespace DbAnalysis
 						from _5 in POrderByClauseOptionalST
 						from _6 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)
-							(rc => new NamedTyped (rn.ToSourced (), DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
+							(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
 					)
 					.Or (
 						from f in AnyTokenST ("sum", "min", "max", "avg")
@@ -574,7 +562,7 @@ namespace DbAnalysis
 						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (f.ToSourced (), DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
+							new NamedTyped (f, DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
 					)
 					.Or (
 						from f in SqlToken ("array_agg")
@@ -610,7 +598,7 @@ namespace DbAnalysis
 						let type = kw.Value.GetExpressionType ()
 						where type != null
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (kw.ToSourced (), DatabaseContext.GetTypeForName ("pg_catalog", type).SourcedCalculated (kw)))
+							new NamedTyped (kw, DatabaseContext.GetTypeForName ("pg_catalog", type).SourcedCalculated (kw)))
 					)
 					.Or (
 						(
@@ -634,7 +622,7 @@ namespace DbAnalysis
 						from case_c in GetCase (PExpressionRefST.Get)
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
 							case_c.ElseC.GetOrDefault ()?.Value.GetResult (rc).Name
-								?? case_c.CaseH.ToSourced (),
+								?? case_c.CaseH,
 							case_c.Branches.First ().Value.GetResult (rc).Type
 						))
 					)
@@ -651,7 +639,7 @@ namespace DbAnalysis
 								select 0
 							).InParentsST ()
 							select (Func<RequestContext, NamedTyped>)(rc =>
-								new NamedTyped (kw_ext.ToSourced (), DatabaseContext.TypeMap.Decimal.SourcedCalculated (kw_ext)))
+								new NamedTyped (kw_ext, DatabaseContext.TypeMap.Decimal.SourcedCalculated (kw_ext)))
 						)
 					)
 					.Or (PArrayST)
@@ -704,10 +692,10 @@ namespace DbAnalysis
 								    !CompositeType.PropertiesDict.TryGetValue (prop.Value, out var Property))
 								{
 									throw new InvalidOperationException (
-										$"Line {prop?.Start.Line}, column {prop?.Start.Column}, type {CompositeType} does not have property {prop?.Value ?? "???"}");
+										$"Line {prop?.TextSpan?.Start.Line}, column {prop?.TextSpan?.Start.Column}, type {CompositeType} does not have property {prop?.Value ?? "???"}");
 								}
 
-								return new NamedTyped (prop.ToSourced (),
+								return new NamedTyped (prop,
 									Property.Type.SourcedCompositeType (CompositeType.Schema, CompositeType.OwnName,
 										prop.Value));
 							})))
@@ -812,7 +800,7 @@ namespace DbAnalysis
 							)
 				;
 
-			Func<IEnumerable<string>, Parser<IOption<ITextSpan<string>>>> PTableAliasClauseOptionalST = excl =>
+			Func<IEnumerable<string>, Parser<IOption<Sourced<string>>>> PTableAliasClauseOptionalST = excl =>
 				(
 					from kw_as in SqlToken ("as").Optional ()
 					from id in PTableAliasLST
@@ -826,12 +814,12 @@ namespace DbAnalysis
 					from _1 in SqlToken ("values")
 					from v in PExpressionRefST.Get
 						.Or (SqlToken ("default").Return (new SPolynom ()))
-						.Span ()
+						.SpanSourced ()
 						.CommaDelimitedST ()
 						.InParentsST ()
 						.CommaDelimitedST ()
 					select v.First ()
-				).Span ()
+				).SpanSourced ()
 				;
 
 			var PValuesSourceST =
@@ -840,9 +828,9 @@ namespace DbAnalysis
 					from table_name in
 						PTableAliasLST // here: use PTableAliasClauseOptionalST to exclude selected keywords
 					from column_names in PColumnNameLST.CommaDelimitedST ().InParentsST ().Optional ()
-					select new ValuesBlock (v.Value.ToSourced (),
-						table_name.ToSourced (),
-						column_names.GetOrDefault ()?.ToSourced () ?? Array.Empty<Sourced<string>> ())
+					select new ValuesBlock (v.Value.ToArray (),
+						table_name,
+						column_names.GetOrEmpty ())
 				;
 
 			var PFromTableExpressionST =
@@ -865,7 +853,7 @@ namespace DbAnalysis
 							"having"
 						}
 					) // stub, for cases like 'for ... in select * from mytable loop ... end loop'
-					select new FromTableExpression (table, alias_cl.GetOrDefault ()?.ToSourced ())
+					select new FromTableExpression (table, alias_cl.GetOrDefault ())
 				;
 
 			var PFromClauseOptionalST =
@@ -958,7 +946,7 @@ namespace DbAnalysis
 					from name in PColumnNameLST
 					from kw_as in SqlToken ("as")
 					from select_exp in PSelectST.InParentsST ()
-					select new SelectStatement (select_exp, name.ToSourced ())
+					select new SelectStatement (select_exp, name)
 				;
 
 			var PCteTopOptionalST =
@@ -1274,7 +1262,7 @@ namespace DbAnalysis
 							).Optional ()
 							from _2 in SqlToken (";")
 							select type.Value.key != null
-								? new NamedTyped (name.ToSourced (), type.ToSourced ().Select (t => t.key))
+								? new NamedTyped (name, type.ToSourced ().Select (t => t.key))
 								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.Value.given_as + ") is not supported")
 						).Many ()
 						select vars.ToArray ()

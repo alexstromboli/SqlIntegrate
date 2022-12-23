@@ -17,26 +17,40 @@ namespace DbAnalysis
 				Expected == null ? Array.Empty<string> () : Expected.ToTrivialArray ());
 		}
 
+		public static T[] GetOrEmpty<T> (this IOption<IEnumerable<T>> Input)
+		{
+			return Input.GetOrElse (Array.Empty<T> ()).ToArray ();
+		}
+
+		public static Parser<Sourced<T>> SpanSourced<T> (this Parser<T> Inner)
+		{
+			return Inner
+					.Span ()
+					.Select (t => t.Value.SourcedTextSpan (t.ToTextSpan ()))
+				;
+		}
+
 		public static Parser<string> ToLower (this Parser<string> Inner)
 		{
 			return Inner.Select (s => s.ToLower ());
 		}
 
-		public static Parser<ITextSpan<string>> ToLower (this Parser<ITextSpan<string>> Inner)
+		public static Parser<Sourced<string>> ToLower (this Parser<Sourced<string>> Inner)
 		{
 			return Inner.Select (s =>
 			{
 				string L = s.Value.ToLower ();
+				TextSpan sp = s.TextSpan;
 
 				return L == s.Value
 				? s
-				: new TextSpan<string>
+				: L.SourcedTextSpan (new TextSpan<string>
 				{
 					Value = L,
-					Start = s.Start,
-					End = s.End,
-					Length = s.Length
-				};
+					Start = sp.Start,
+					End = sp.End,
+					Length = sp.Length
+				});
 			});
 		}
 
@@ -45,40 +59,24 @@ namespace DbAnalysis
 			return Items.Select (f => f.Value).ToArray ();
 		}
 
-		public static string JoinDot (this IEnumerable<ITextSpan<string>> Fragments)
+		public static string JoinDot (this IEnumerable<Sourced<string>> Fragments)
 		{
 			return Fragments.Values ().JoinDot ();
 		}
 
-		public static Parser<ITextSpan<T>> SqlToken<T> (this Parser<T> Inner)
+		public static Parser<Sourced<T>> SqlToken<T> (this Parser<T> Inner)
 		{
 			return Inner
-					.Span ()
+					.SpanSourced ()
 					.SqlToken ()
 				;
 		}
 
-		public static Parser<ITextSpan<T>> SqlToken<T> (this Parser<ITextSpan<T>> Inner)
+		public static Parser<Sourced<T>> SqlToken<T> (this Parser<Sourced<T>> Inner)
 		{
 			return Inner
 					.Commented (SqlCommentParser.Instance)
 					.Select (p => p.Value)
-				;
-		}
-
-		// generally, use of this is a red flag of bad design
-		public static Parser<T> Or<T> (this IEnumerable<Parser<T>> Items)
-		{
-			Items = Items.Where (i => i != null);
-
-			if (!Items.Any ())
-			{
-				return null;
-			}
-
-			return Items
-					.Skip (1)
-					.Aggregate (Items.First (), (ch, i) => ch.Or (i))
 				;
 		}
 
@@ -119,14 +117,14 @@ namespace DbAnalysis
 				;
 		}
 
-		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<ITextSpan<T>> Parser, PSqlType Type)
+		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<Sourced<T>> Parser, PSqlType Type)
 		{
-			return Parser.Select<ITextSpan<T>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type.SourcedCalculated (t)));
+			return Parser.Select<Sourced<T>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (Type.SourcedCalculated (t)));
 		}
 
 		public static Parser<Func<RequestContext, NamedTyped>> ProduceType<T> (this Parser<T> Parser, PSqlType Type)
 		{
-			return Parser.Span ().ProduceType (Type);
+			return Parser.SpanSourced ().ProduceType (Type);
 		}
 
 		public static Parser<Func<RequestContext, NamedTyped>> ProduceType (this Parser<ITextSpan<PSqlType>> Parser)

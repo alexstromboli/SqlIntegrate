@@ -37,9 +37,19 @@ namespace DbAnalysis.Sources
 			return new Sourced<T> (Value, new TextSpanSource (Span));
 		}
 
-		public static Sourced<T> SourcedTextSpan<T, N> (this T Value, ITextSpan<N> Span)
+		public static Sourced<T> SourcedTextSpan<T> (this T Value, Position Start, Position End, int Length)
 		{
-			return new Sourced<T> (Value, new TextSpanSource (Span.ToTextSpan ()));
+			return SourcedTextSpan (Value, new TextSpan (Start, End, Length));
+		}
+
+		public static Sourced<T> SourcedTextSpan<T> (this T Value, TextSpan Left, TextSpan Right)
+		{
+			return SourcedTextSpan (Value, TextSpan.Range (Left, Right));
+		}
+
+		public static Sourced<T> SourcedTextSpan<T, L, R> (this T Value, Sourced<L> Left, Sourced<R> Right)
+		{
+			return SourcedTextSpan (Value, TextSpan.Range (Left.TextSpan, Right.TextSpan));
 		}
 
 		public static Sourced<T> ToSourced<T> (this ITextSpan<T> Span)
@@ -47,19 +57,14 @@ namespace DbAnalysis.Sources
 			return new Sourced<T> (Span.Value, new TextSpanSource (Span.ToTextSpan ()));
 		}
 
-		public static Sourced<T>[] ToSourced<T> (this IEnumerable<ITextSpan<T>> Spans)
+		public static Sourced<T> SourcedCalculated<T, S> (this T Value, Sourced<S> Source)
 		{
-			return Spans.Select (s => s.ToSourced ()).ToArray ();
+			return new Sourced<T> (Value, new CalculatedSource (Source.TextSpan));
 		}
 
 		public static Sourced<T> SourcedCalculated<T> (this T Value, TextSpan Span)
 		{
 			return new Sourced<T> (Value, new CalculatedSource (Span));
-		}
-
-		public static Sourced<T> SourcedCalculated<T, N> (this T Value, ITextSpan<N> Span)
-		{
-			return new Sourced<T> (Value, new CalculatedSource (Span.ToTextSpan ()));
 		}
 
 		public static Sourced<T> SourcedFunction<T> (this T Value, TextSpan Span)

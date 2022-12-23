@@ -58,16 +58,7 @@ namespace DbAnalysis
 			Func<RequestContext, NamedTyped>, // left
 			Func<RequestContext, NamedTyped>, // right (null for unary)
 			Func<RequestContext, NamedTyped> // result
-		> GetForBinaryOperator (SqlTypeMap Typemap, ITextSpan<string> Operator)
-		{
-			return GetForBinaryOperator (Typemap, Operator.ToSourced ());
-		}
-
-		public static Func<
-			Func<RequestContext, NamedTyped>, // left
-			Func<RequestContext, NamedTyped>, // right (null for unary)
-			Func<RequestContext, NamedTyped> // result
-		> ProduceType<T> (ITextSpan<T> Span, PSqlType Type)
+		> ProduceType<T> (Sourced<T> Span, PSqlType Type)
 		{
 			return (l, r) => rc => new NamedTyped (Type.SourcedCalculated (Span));
 		}

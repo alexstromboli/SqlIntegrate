@@ -11,6 +11,18 @@ namespace DbAnalysis
 		public Position End { get; set; }
 		public int Length { get; set; }
 
+		public TextSpan ()
+		{
+		}
+
+		public TextSpan (Position Start, Position End, int Length)
+		{
+			// here: verify correctness
+			this.Start = Start;
+			this.End = End;
+			this.Length = Length;
+		}
+
 		public static TextSpan Range (TextSpan Left, TextSpan Right)
 		{
 			if (Left == null || Right == null)
