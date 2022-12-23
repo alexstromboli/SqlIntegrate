@@ -40,23 +40,11 @@ namespace DbAnalysis
 			return Inner.Select (s =>
 			{
 				string L = s.Value.ToLower ();
-				TextSpan sp = s.TextSpan;
 
 				return L == s.Value
 				? s
-				: L.SourcedTextSpan (new TextSpan<string>
-				{
-					Value = L,
-					Start = sp.Start,
-					End = sp.End,
-					Length = sp.Length
-				});
+				: L.SourcedTextSpan (s.TextSpan);
 			});
-		}
-
-		public static T[] Values<T> (this IEnumerable<ITextSpan<T>> Items)
-		{
-			return Items.Select (f => f.Value).ToArray ();
 		}
 
 		public static string JoinDot (this IEnumerable<Sourced<string>> Fragments)
@@ -127,9 +115,9 @@ namespace DbAnalysis
 			return Parser.SpanSourced ().ProduceType (Type);
 		}
 
-		public static Parser<Func<RequestContext, NamedTyped>> ProduceType (this Parser<ITextSpan<PSqlType>> Parser)
+		public static Parser<Func<RequestContext, NamedTyped>> ProduceType (this Parser<Sourced<PSqlType>> Parser)
 		{
-			return Parser.Select<ITextSpan<PSqlType>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (t.ToSourced ()));
+			return Parser.Select<Sourced<PSqlType>, Func<RequestContext, NamedTyped>> (t => rc => new NamedTyped (t));
 		}
 	}
 }

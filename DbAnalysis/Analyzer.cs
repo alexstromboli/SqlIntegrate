@@ -33,13 +33,8 @@ namespace DbAnalysis
 					{
 						int Len = Word.Length;
 						return Result.Success (
-							new Sourced<string> (Word, new TextSpanSource (new TextSpan<string>
-							{
-								Value = Word,
-								Start = Position.FromInput (i),
-								End = new Position (i.Position + Word.Length, i.Line, i.Column + Word.Length),
-								Length = Word.Length
-							})),
+							Word.SourcedTextSpan (Position.FromInput (i),
+								new Position (i.Position + Word.Length, i.Line, i.Column + Word.Length), Word.Length),
 							new CustomInput (i.Source, i.Position + Len, i.Line, i.Column + Len));
 					}
 
@@ -386,7 +381,7 @@ namespace DbAnalysis
 					select array.IsDefined
 						? new KeyedType (t.given_as + "[]", t.key.ArrayType)
 						: t
-				).Span ()
+				).SpanSourced ()
 				;
 
 			var PSimpleTypeCastST =
@@ -650,8 +645,8 @@ namespace DbAnalysis
 						(
 							from t in PTypeST
 							from v in PSingleQuotedString.SqlToken ()
-							select t.Value.key
-						).Span ().ProduceType () // here: get default column name
+							select t.Select (kt => kt.key)
+						).ProduceType () // here: get default column name
 					)
 					.Or (PBaseAtomicST)
 				;
@@ -678,7 +673,7 @@ namespace DbAnalysis
 							}))
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast,
 							false,
-							(l, r) => rc => l (rc).WithType (tc.ToSourced ().Select (t => t.key)))))
+							(l, r) => rc => l (rc).WithType (tc.Select (t => t.key)))))
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is,
 							false,
 							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool.SourcedCalculated (m)))))
@@ -1262,7 +1257,7 @@ namespace DbAnalysis
 							).Optional ()
 							from _2 in SqlToken (";")
 							select type.Value.key != null
-								? new NamedTyped (name, type.ToSourced ().Select (t => t.key))
+								? new NamedTyped (name, type.Select (t => t.key))
 								: throw new InvalidOperationException ("Type of variable " + name + " (" + type.Value.given_as + ") is not supported")
 						).Many ()
 						select vars.ToArray ()

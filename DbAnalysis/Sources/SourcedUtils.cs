@@ -52,11 +52,6 @@ namespace DbAnalysis.Sources
 			return SourcedTextSpan (Value, TextSpan.Range (Left.TextSpan, Right.TextSpan));
 		}
 
-		public static Sourced<T> ToSourced<T> (this ITextSpan<T> Span)
-		{
-			return new Sourced<T> (Span.Value, new TextSpanSource (Span.ToTextSpan ()));
-		}
-
 		public static Sourced<T> SourcedCalculated<T, S> (this T Value, Sourced<S> Source)
 		{
 			return new Sourced<T> (Value, new CalculatedSource (Source.TextSpan));

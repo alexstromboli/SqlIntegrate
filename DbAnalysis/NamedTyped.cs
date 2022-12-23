@@ -1,5 +1,3 @@
-using Sprache;	// for utility
-
 using DbAnalysis.Sources;
 
 namespace DbAnalysis
@@ -25,11 +23,6 @@ namespace DbAnalysis
 		public NamedTyped WithName (Sourced<string> NewName)
 		{
 			return new NamedTyped (NewName, Type);
-		}
-
-		public NamedTyped WithName (ITextSpan<string> NewName)
-		{
-			return WithName (NewName.ToSourced ());
 		}
 
 		public NamedTyped WithType (Sourced<PSqlType> NewType)
