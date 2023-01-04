@@ -101,7 +101,10 @@ namespace DbAnalysis
 			return SqlCommentParser.Instance.AnyComment
 					.Or (Parse.WhiteSpace.Return ((string)null))
 					.Many ()
-					.Select (seq => seq.Where (l => l != null))
+					.Select (seq => seq
+						.Where (l => l != null)
+						.Select (l => l.Replace ("\r", ""))
+					)
 				;
 		}
 

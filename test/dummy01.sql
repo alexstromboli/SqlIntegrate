@@ -2,6 +2,8 @@ CREATE SCHEMA ext;
 CREATE SCHEMA no_proc;      -- no procedures in this schema, only types
 CREATE SCHEMA :owner;     -- for test, needs to match the username
 
+SET search_path to :owner;
+
 CREATE TYPE app_status AS ENUM
 (
     'pending',
