@@ -234,8 +234,9 @@ namespace Wrapper
 
 			//
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
+			List<string> DbProcInterfaces = new List<string> ();
 			List<DbProcProperty> DbProcProperties = new List<DbProcProperty> ();
-			Processors.Act (p => p.OnCodeGenerationStarted (Database, sb, DbProcProperties));
+			Processors.Act (p => p.OnCodeGenerationStarted (Database, sb, DbProcInterfaces, DbProcProperties));
 
 			if (!string.IsNullOrWhiteSpace (Database.TitleComment))
 			{
@@ -256,7 +257,8 @@ namespace Wrapper
 				bool HasCustomMapping = Module.Types.Any (t => t.Enum != null && t.GenerateEnum
 				                                               || t.Properties != null);
 
-				using (sb.UseCurlyBraces ($"public class {Database.CsClassName}"))
+				string InterfacesDecl = DbProcInterfaces.Count == 0 ? "" : " : " + string.Join (", ", DbProcInterfaces);
+				using (sb.UseCurlyBraces ($"public class {Database.CsClassName}{InterfacesDecl}"))
 				{
 					sb.AppendLine ("public NpgsqlConnection Conn;");
 					foreach (var p in DbProcProperties)

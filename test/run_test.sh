@@ -11,7 +11,7 @@ if [ "${1:-}" != '-c' ]; then
     psql -d postgres -c "DROP DATABASE $DBNAME;" || true
     psql -d postgres -c "CREATE DATABASE $DBNAME;"
 
-    psql -q -d "$DBNAME" -v owner="$USER" -f dummy01.sql
+    psql -q -d "$DBNAME" -v dbname="$DBNAME" -v owner="$USER" -f dummy01.sql
     cat dummy01_2.sql | sed "s/SCHEMA/$USER/g" | sed "s/DBNAME/$DBNAME/g" | psql -q -d "$DBNAME"
 fi
 

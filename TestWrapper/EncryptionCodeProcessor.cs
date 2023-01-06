@@ -10,7 +10,7 @@ namespace TestWrapper
 	class EncryptionCodeProcessor : AugCodeProcessor
 	{
 		public const string TargetCsTypeName = "TryWrapper.Payer";
-		
+
 		public override void OnHaveWrapper (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database)
 		{
 			// here: check if not added yet
@@ -18,7 +18,9 @@ namespace TestWrapper
 			Database.Usings.Add ("using Newtonsoft.Json;");
 		}
 
-		public override void OnCodeGenerationStarted (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database, IndentedTextBuilder Builder, List<DbProcProperty> DbProcProperties)
+		public override void OnCodeGenerationStarted (
+			Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database, IndentedTextBuilder Builder,
+			List<string> DbProcInterfaces, List<DbProcProperty> DbProcProperties)
 		{
 			DbProcProperties.Add (new DbProcProperty { Type = "Func<byte[], byte[]>", Name = "Encryptor" });
 			DbProcProperties.Add (new DbProcProperty { Type = "Func<byte[], byte[]>", Name = "Decryptor" });

@@ -11,7 +11,7 @@ namespace Wrapper
 		public string Type;
 		public string Name;
 	}
-	
+
 	public class GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
 			where TColumn : Column, new()
 			where TArgument : Argument, new()
@@ -33,7 +33,7 @@ namespace Wrapper
 		}
 
 		public virtual void OnCodeGenerationStarted (Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database,
-			IndentedTextBuilder Builder, List<DbProcProperty> DbProcProperties)
+			IndentedTextBuilder Builder, List<string> DbProcInterfaces, List<DbProcProperty> DbProcProperties)
 		{
 		}
 
