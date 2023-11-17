@@ -738,6 +738,20 @@ public ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 													}
 												}
 
+												// close refcursors
+												foreach (var rc in p.Arguments.Where (a => a.IsCursor && a.IsOut))
+												{
+													sb.AppendLine ();
+													using (sb.UseCurlyBraces ("using (var cmdClose = Conn.CreateCommand ())"))
+													{
+														sb.AppendLine (
+															$"cmdClose.CommandText = \"CLOSE \\\"{rc.CallParamName}\\\";\";");
+														sb.AppendLine (
+															$"{Await}cmdClose.ExecuteNonQuery{Async} ();");
+													}
+												}
+
+												//
 												if (UseTransaction)
 												{
 													sb.AppendLine ()
