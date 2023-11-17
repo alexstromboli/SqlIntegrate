@@ -754,8 +754,11 @@ public ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 												//
 												if (UseTransaction)
 												{
-													sb.AppendLine ()
-														.AppendLine ($"{Await}Tran?.Commit{Async} ();");
+													sb.AppendLine ();
+													using (sb.UseCurlyBraces ("if (Tran != null)"))
+													{
+														sb.AppendLine ($"{Await}Tran.Commit{Async} ();");
+													}
 												}
 											}
 										}

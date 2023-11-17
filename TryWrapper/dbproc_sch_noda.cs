@@ -311,7 +311,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -459,7 +462,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -564,7 +570,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -629,7 +638,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -688,7 +700,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -749,7 +764,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -948,7 +966,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -1011,7 +1032,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -1147,7 +1171,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -1196,7 +1223,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -1257,7 +1287,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -1353,7 +1386,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -1579,7 +1615,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -1643,7 +1682,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -1776,7 +1818,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -1925,7 +1970,10 @@ namespace Generated
 						cmdClose.ExecuteNonQuery ();
 					}
 
-					Tran?.Commit ();
+					if (Tran != null)
+					{
+						Tran.Commit ();
+					}
 				}
 			}
 
@@ -2014,7 +2062,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -2094,7 +2145,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -2145,7 +2199,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
@@ -2261,7 +2318,10 @@ namespace Generated
 						cmdClose.ExecuteNonQuery ();
 					}
 
-					Tran?.Commit ();
+					if (Tran != null)
+					{
+						Tran.Commit ();
+					}
 				}
 			}
 
@@ -2322,7 +2382,10 @@ namespace Generated
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
-					await Tran?.CommitAsync ();
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
 				}
 			}
 
