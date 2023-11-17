@@ -1184,7 +1184,7 @@ END;
 $$;
 
 -- DROP PROCEDURE test_read_encrypted;
-CREATE PROCEDURE test_read_encrypted (INOUT sample refcursor)
+CREATE PROCEDURE test_read_encrypted (INOUT sample refcursor, INOUT single_column refcursor)
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
@@ -1193,6 +1193,26 @@ BEGIN
     SELECT  id,
             hash,
             enc_pi_payer
+    FROM sensitive
+    LIMIT 1
+    ;
+
+    OPEN single_column FOR
+    SELECT  enc_pi_payer
+    FROM sensitive
+    LIMIT 1
+    ;
+END;
+$$;
+
+-- DROP PROCEDURE test_read_single_encrypted;
+CREATE PROCEDURE test_read_single_encrypted (INOUT single_column refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN single_column FOR
+    -- # 1
+    SELECT  enc_pi_payer
     FROM sensitive
     LIMIT 1
     ;

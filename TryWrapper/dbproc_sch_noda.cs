@@ -3121,16 +3121,23 @@ namespace Generated
 			public TryWrapper.Payer enc_pi_payer;
 		}
 
-		public test_read_encrypted_Result_sample test_read_encrypted ()
+		public class test_read_encrypted_Result
 		{
-			test_read_encrypted_Result_sample Result = null;
+			public test_read_encrypted_Result_sample sample;
+			public List<byte[]> single_column;
+		}
+
+		public test_read_encrypted_Result test_read_encrypted ()
+		{
+			test_read_encrypted_Result Result = new test_read_encrypted_Result ();
 
 			using (var Tran = Conn.BeginTransaction ())
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"test_read_encrypted\" (@sample);";
+					Cmd.CommandText = "call \"alexey\".\"test_read_encrypted\" (@sample, @single_column);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@sample", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "sample" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@single_column", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "single_column" });
 
 					Cmd.ExecuteNonQuery ();
 
@@ -3152,7 +3159,23 @@ namespace Generated
 							}
 						}
 
-						Result = Set;
+						Result.sample = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"single_column\";";
+						List<byte[]> Set = new List<byte[]> ();
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (DbProc.ReadEncrypted<TryWrapper.Payer> (Rdr["enc_pi_payer"] as byte[]));
+							}
+						}
+
+						Result.single_column = Set;
 					}
 
 					Tran.Commit ();
@@ -3162,16 +3185,17 @@ namespace Generated
 			return Result;
 		}
 
-		public async Task<test_read_encrypted_Result_sample> test_read_encryptedAsync ()
+		public async Task<test_read_encrypted_Result> test_read_encryptedAsync ()
 		{
-			test_read_encrypted_Result_sample Result = null;
+			test_read_encrypted_Result Result = new test_read_encrypted_Result ();
 
 			using (var Tran = await Conn.BeginTransactionAsync ())
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"test_read_encrypted\" (@sample);";
+					Cmd.CommandText = "call \"alexey\".\"test_read_encrypted\" (@sample, @single_column);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@sample", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "sample" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@single_column", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "single_column" });
 
 					await Cmd.ExecuteNonQueryAsync ();
 
@@ -3190,6 +3214,96 @@ namespace Generated
 									hash = Rdr["hash"] as byte[],
 									enc_pi_payer = DbProc.ReadEncrypted<TryWrapper.Payer> (Rdr["enc_pi_payer"] as byte[])
 								};
+							}
+						}
+
+						Result.sample = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"single_column\";";
+						List<byte[]> Set = new List<byte[]> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (DbProc.ReadEncrypted<TryWrapper.Payer> (Rdr["enc_pi_payer"] as byte[]));
+							}
+						}
+
+						Result.single_column = Set;
+					}
+
+					await Tran.CommitAsync ();
+				}
+			}
+
+			return Result;
+		}
+		#endregion
+
+		#region test_read_single_encrypted
+		public TryWrapper.Payer test_read_single_encrypted ()
+		{
+			TryWrapper.Payer Result = null;
+
+			using (var Tran = Conn.BeginTransaction ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_read_single_encrypted\" (@single_column);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@single_column", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "single_column" });
+
+					Cmd.ExecuteNonQuery ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"single_column\";";
+						TryWrapper.Payer Set = null;
+
+						using (var Rdr = ResCmd.ExecuteReader ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = DbProc.ReadEncrypted<TryWrapper.Payer> (Rdr["enc_pi_payer"] as byte[]);
+							}
+						}
+
+						Result = Set;
+					}
+
+					Tran.Commit ();
+				}
+			}
+
+			return Result;
+		}
+
+		public async Task<TryWrapper.Payer> test_read_single_encryptedAsync ()
+		{
+			TryWrapper.Payer Result = null;
+
+			using (var Tran = await Conn.BeginTransactionAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_read_single_encrypted\" (@single_column);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@single_column", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "single_column" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"single_column\";";
+						TryWrapper.Payer Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = DbProc.ReadEncrypted<TryWrapper.Payer> (Rdr["enc_pi_payer"] as byte[]);
 							}
 						}
 

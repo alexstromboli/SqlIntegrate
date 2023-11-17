@@ -454,9 +454,11 @@ namespace Wrapper
 									foreach (var P in Set.Properties)
 									{
 										string ColumnCsType = P.TypeMapping.CsTypeName (true);
+										/*
 										Processors.Act (p =>
 											p.OnEncodingResultSetColumn (Database, ns, pi.Value, Set, P,
 												ref ColumnCsType));
+												*/
 
 										if (ColumnCsType != null)
 										{

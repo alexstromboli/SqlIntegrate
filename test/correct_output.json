@@ -1820,6 +1820,11 @@
           "Name": "sample",
           "Type": "refcursor",
           "IsOut": true
+        },
+        {
+          "Name": "single_column",
+          "Type": "refcursor",
+          "IsOut": true
         }
       ],
       "ResultSets": [
@@ -1837,6 +1842,41 @@
               "Name": "hash",
               "Type": "bytea"
             },
+            {
+              "Name": "enc_pi_payer",
+              "Type": "bytea"
+            }
+          ]
+        },
+        {
+          "Name": "single_column",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "enc_pi_payer",
+              "Type": "bytea"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "test_read_single_encrypted",
+      "Arguments": [
+        {
+          "Name": "single_column",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "single_column",
+          "Comments": [
+            " # 1"
+          ],
+          "Columns": [
             {
               "Name": "enc_pi_payer",
               "Type": "bytea"
