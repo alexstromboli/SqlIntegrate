@@ -745,7 +745,7 @@ public ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 													using (sb.UseCurlyBraces ("using (var cmdClose = Conn.CreateCommand ())"))
 													{
 														sb.AppendLine (
-															$"cmdClose.CommandText = \"CLOSE \\\"{rc.CallParamName}\\\";\";");
+															$"cmdClose.CommandText = \"CLOSE \\\"{rc.CsName}\\\";\";");
 														sb.AppendLine (
 															$"{Await}cmdClose.ExecuteNonQuery{Async} ();");
 													}

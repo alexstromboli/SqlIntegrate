@@ -295,19 +295,19 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@result\";";
+						cmdClose.CommandText = "CLOSE \"result\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@ag_sum\";";
+						cmdClose.CommandText = "CLOSE \"ag_sum\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@ag_avg\";";
+						cmdClose.CommandText = "CLOSE \"ag_avg\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -446,19 +446,19 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@names\";";
+						cmdClose.CommandText = "CLOSE \"names\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@by_person\";";
+						cmdClose.CommandText = "CLOSE \"by_person\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@unnest\";";
+						cmdClose.CommandText = "CLOSE \"unnest\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -560,13 +560,13 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@result\";";
+						cmdClose.CommandText = "CLOSE \"result\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@matched\";";
+						cmdClose.CommandText = "CLOSE \"matched\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -634,7 +634,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@own\";";
+						cmdClose.CommandText = "CLOSE \"own\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -696,7 +696,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@inserted\";";
+						cmdClose.CommandText = "CLOSE \"inserted\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -760,7 +760,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@joined\";";
+						cmdClose.CommandText = "CLOSE \"joined\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -962,7 +962,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@result\";";
+						cmdClose.CommandText = "CLOSE \"result\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -1028,7 +1028,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@result\";";
+						cmdClose.CommandText = "CLOSE \"result\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -1155,19 +1155,19 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@insert_result_1\";";
+						cmdClose.CommandText = "CLOSE \"insert_result_1\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@insert_result_2\";";
+						cmdClose.CommandText = "CLOSE \"insert_result_2\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@delete_result_1\";";
+						cmdClose.CommandText = "CLOSE \"delete_result_1\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -1219,7 +1219,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@partial\";";
+						cmdClose.CommandText = "CLOSE \"partial\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -1283,7 +1283,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@partial\";";
+						cmdClose.CommandText = "CLOSE \"partial\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -1376,13 +1376,13 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@user\";";
+						cmdClose.CommandText = "CLOSE \"user\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@details\";";
+						cmdClose.CommandText = "CLOSE \"details\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -1599,19 +1599,19 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@result\";";
+						cmdClose.CommandText = "CLOSE \"result\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@expressions_2\";";
+						cmdClose.CommandText = "CLOSE \"expressions_2\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@nulls\";";
+						cmdClose.CommandText = "CLOSE \"nulls\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -1678,7 +1678,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@res01\";";
+						cmdClose.CommandText = "CLOSE \"res01\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -1808,13 +1808,13 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@users\";";
+						cmdClose.CommandText = "CLOSE \"users\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@ownership\";";
+						cmdClose.CommandText = "CLOSE \"ownership\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -1960,13 +1960,13 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@res01\";";
+						cmdClose.CommandText = "CLOSE \"res01\";";
 						cmdClose.ExecuteNonQuery ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@res02\";";
+						cmdClose.CommandText = "CLOSE \"res02\";";
 						cmdClose.ExecuteNonQuery ();
 					}
 
@@ -2052,13 +2052,13 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@scalar\";";
+						cmdClose.CommandText = "CLOSE \"scalar\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@single\";";
+						cmdClose.CommandText = "CLOSE \"single\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -2141,7 +2141,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@result\";";
+						cmdClose.CommandText = "CLOSE \"result\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -2195,7 +2195,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@sample\";";
+						cmdClose.CommandText = "CLOSE \"sample\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
@@ -2314,7 +2314,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@result_1\";";
+						cmdClose.CommandText = "CLOSE \"result_1\";";
 						cmdClose.ExecuteNonQuery ();
 					}
 
@@ -2378,7 +2378,7 @@ namespace Generated
 
 					using (var cmdClose = Conn.CreateCommand ())
 					{
-						cmdClose.CommandText = "CLOSE \"@sample\";";
+						cmdClose.CommandText = "CLOSE \"sample\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
