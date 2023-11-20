@@ -22,15 +22,15 @@ namespace Generated
 		public Func<byte[], byte[]> Encryptor;
 		public Func<byte[], byte[]> Decryptor;
 
-		public ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
+		public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 		{
 			try
 			{
-				return Conn.BeginTransactionAsync ();
+				return await Conn.BeginTransactionAsync ();
 			}
 			catch (InvalidOperationException)
 			{
-				return ValueTask.FromResult<NpgsqlTransaction> (null);
+				return await ValueTask.FromResult<NpgsqlTransaction> (null);
 			}
 		}
 
