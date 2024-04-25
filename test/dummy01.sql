@@ -1210,3 +1210,22 @@ BEGIN
     ;
 END;
 $$;
+
+-- DROP PROCEDURE test_temp_table;
+CREATE PROCEDURE test_temp_table (INOUT sample refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    CREATE TEMP TABLE Artists AS
+    SELECT  id::varchar(40),
+            lastname,
+            true AS is_artist,
+            now ()
+    FROM Persons;
+
+    OPEN sample FOR
+    SELECT  *
+    FROM Artists
+    ;
+END;
+$$;

@@ -1847,6 +1847,41 @@
     },
     {
       "Schema": "USER",
+      "Name": "test_temp_table",
+      "Arguments": [
+        {
+          "Name": "sample",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "sample",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id",
+              "Type": "varchar"
+            },
+            {
+              "Name": "lastname",
+              "Type": "varchar"
+            },
+            {
+              "Name": "is_artist",
+              "Type": "bool"
+            },
+            {
+              "Name": "now",
+              "Type": "timestamptz"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "test_write_encrypted",
       "Arguments": [
         {

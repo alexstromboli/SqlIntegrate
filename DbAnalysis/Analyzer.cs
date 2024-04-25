@@ -1035,12 +1035,25 @@ namespace DbAnalysis
 					select new OpenDataset (name.Value, _cm2.ToArray ())
 				;
 
+			var PFullReturnableST = PSelectFullST
+				.Or (PInsertFullST)
+				.Or (PDeleteFullST);
+
 			var PDataReturnStatementST =
 					from open in POpenDatasetST
-					from p_select in PSelectFullST
-						.Or (PInsertFullST)
-						.Or (PDeleteFullST)
+					from p_select in PFullReturnableST
 					select new DataReturnStatement (open, p_select)
+				;
+
+			var PCreateTempTableST =
+					from _1 in SqlToken ("create")
+					from _2 in SqlToken ("global").Optional ()
+					from _3 in AnyTokenST ("temporary", "temp")
+					from _4 in SqlToken ("table")
+					from name in PColumnNameLST
+					from _5 in SqlToken ("as")
+					from drs in PFullReturnableST
+					select new { name, drs }
 				;
 
 			//
@@ -1138,6 +1151,11 @@ namespace DbAnalysis
 							from drs in
 								// open-for-select
 								PDataReturnStatementST.Select (s => s?.ToStatement ())
+									. Or (PCreateTempTableST.Select (ctt => new SStatement (null, rc =>
+									{
+										var TempTable = ctt.drs.GetTable (rc, true);
+										return new RequestContext (rc, new Dictionary<string, ITable> { [ctt.name.Value] = TempTable });
+									})))
 									.Or (
 										(
 											// variable assignment

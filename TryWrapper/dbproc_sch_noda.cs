@@ -2393,6 +2393,72 @@ namespace Generated
 		}
 		#endregion
 
+		#region test_temp_table
+		public class test_temp_table_Result_sample
+		{
+			public string id;
+			public string lastname;
+			public bool? is_artist;
+			public Instant? now;
+		}
+
+		public List<test_temp_table_Result_sample> test_temp_table ()
+		{
+			return test_temp_tableAsync ().Result;
+		}
+
+		public async Task<List<test_temp_table_Result_sample>> test_temp_tableAsync ()
+		{
+			List<test_temp_table_Result_sample> Result = null;
+
+			using (var Tran = await DbProc.BeginTransactionOptionalAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_temp_table\" (@sample);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@sample", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "sample" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"sample\";";
+						List<test_temp_table_Result_sample> Set = new List<test_temp_table_Result_sample> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new test_temp_table_Result_sample
+								{
+									id = Rdr["id"] as string,
+									lastname = Rdr["lastname"] as string,
+									is_artist = Rdr["is_artist"] as bool?,
+									now = Rdr["now"] as Instant?
+								});
+							}
+						}
+
+						Result = Set;
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"sample\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
+				}
+			}
+
+			return Result;
+		}
+		#endregion
+
 		#region test_write_encrypted
 		public void test_write_encrypted (byte[] p_hash, TryWrapper.Payer p_enc_pi_payer)
 		{
