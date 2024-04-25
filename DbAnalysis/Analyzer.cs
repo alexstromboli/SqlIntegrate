@@ -12,7 +12,9 @@ using DbAnalysis.Datasets;
 
 namespace DbAnalysis
 {
-	public record SProcedure(NamedTyped[] vars, DataReturnStatement[] body);
+	public record SStatement (DataReturnStatement DataReturnStatement, Func<RequestContext, RequestContext> RequestContextUpdater);
+
+	public record SProcedure (NamedTyped[] vars, SStatement[] body);
 
 	public class Analyzer
 	{
@@ -1042,7 +1044,7 @@ namespace DbAnalysis
 				;
 
 			//
-			Ref<DataReturnStatement[]> PInstructionRefST = new Ref<DataReturnStatement[]> ();
+			Ref<SStatement[]> PInstructionRefST = new Ref<SStatement[]> ();
 
 			var PLoopST =
 					from _1 in SqlToken ("loop")
@@ -1135,7 +1137,7 @@ namespace DbAnalysis
 						(
 							from drs in
 								// open-for-select
-								PDataReturnStatementST
+								PDataReturnStatementST.Select (s => s?.ToStatement ())
 									.Or (
 										(
 											// variable assignment
@@ -1201,7 +1203,7 @@ namespace DbAnalysis
 											select 0
 										)
 										.Or (GetCase (PInstructionRefST.Get).Return (0))
-										.Select (n => DataReturnStatement.Void)
+										.Select (n => DataReturnStatement.VoidStatement)
 									)
 							select drs.ToTrivialArray ()
 						)
@@ -1406,37 +1408,47 @@ namespace DbAnalysis
 					// to make sure each name is only taken once
 					Dictionary<string, ResultSet> ResultSetsDict = new Dictionary<string, ResultSet> ();
 
-					foreach (var drs in Parse.body
+					foreach (var st in Parse.body
 						         .Where (s => s != null)
 					        )
 					{
-						NamedDataReturn Set = drs.GetResult (rcProc);
-
-						ResultSet ResultSetReport;
-						if (ResultSetsDict.TryGetValue (Set.Name, out ResultSetReport))
+						// modify context
+						if (st.RequestContextUpdater != null)
 						{
-							if (ResultSetReport.Comments.Count == 0)
-							{
-								ResultSetReport.Comments = Set.Comments.ToList ();
-							}
+							rcProc = st.RequestContextUpdater (rcProc);
 						}
-						else
+
+						// get data
+						if (st.DataReturnStatement != null)
 						{
-							ResultSetReport = new ResultSet
+							NamedDataReturn Set = st.DataReturnStatement.GetResult (rcProc);
+
+							ResultSet ResultSetReport;
+							if (ResultSetsDict.TryGetValue (Set.Name, out ResultSetReport))
 							{
-								Name = Set.Name,
-								Comments = Set.Comments.ToList (),
-								Columns = Set.Table.Columns.Select (c => new Column
+								if (ResultSetReport.Comments.Count == 0)
 								{
-									Name = c.Name.Value,
-									Type = c.Type.Value.ToString (),
-									PSqlType = c.Type.Value
-								}).ToList ()
-							};
+									ResultSetReport.Comments = Set.Comments.ToList ();
+								}
+							}
+							else
+							{
+								ResultSetReport = new ResultSet
+								{
+									Name = Set.Name,
+									Comments = Set.Comments.ToList (),
+									Columns = Set.Table.Columns.Select (c => new Column
+									{
+										Name = c.Name.Value,
+										Type = c.Type.Value.ToString (),
+										PSqlType = c.Type.Value
+									}).ToList ()
+								};
 
-							ResultSetsDict[Set.Name] = ResultSetReport;
+								ResultSetsDict[Set.Name] = ResultSetReport;
 
-							ProcedureReport.ResultSets.Add (ResultSetReport);
+								ProcedureReport.ResultSets.Add (ResultSetReport);
+							}
 						}
 					}
 

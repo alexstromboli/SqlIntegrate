@@ -3,6 +3,7 @@ namespace DbAnalysis
 	public class DataReturnStatement
 	{
 		public static readonly DataReturnStatement Void = null;
+		public static readonly SStatement VoidStatement = null;
 
 		public OpenDataset Open { get; }
 		public FullSelectStatement FullSelect { get; }
@@ -23,6 +24,11 @@ namespace DbAnalysis
 			};
 
 			return Result;
+		}
+
+		public SStatement ToStatement ()
+		{
+			return new SStatement (this, rc => rc);
 		}
 	}
 }
