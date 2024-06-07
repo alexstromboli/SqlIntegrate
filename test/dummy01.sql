@@ -1223,6 +1223,20 @@ BEGIN
             now ()
     FROM Persons;
 
+    CREATE TEMP TABLE Drain ON   COMMIT   DROP   AS
+    SELECT  id::varchar(40),
+            lastname,
+            true AS is_artist,
+            now ()
+    FROM Persons;
+
+    CREATE TEMP TABLE Plain ON   COMMIT  delete  ROWS   AS
+    SELECT  id::varchar(40),
+            lastname,
+            true AS is_artist,
+            now ()
+    FROM Persons;
+
     OPEN sample FOR
     SELECT  *
     FROM Artists

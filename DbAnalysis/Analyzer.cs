@@ -1051,7 +1051,15 @@ namespace DbAnalysis
 					from _3 in AnyTokenST ("temporary", "temp")
 					from _4 in SqlToken ("table")
 					from name in PColumnNameLST
-					from _5 in SqlToken ("as")
+					from a_5 in
+						(
+							from _1 in AnyTokenST ("on commit")
+							from _2 in AnyTokenST ("preserve rows")
+								.Or (AnyTokenST ("delete rows"))
+								.Or (AnyTokenST ("drop"))
+							select 0
+						).Optional ()
+					from _6 in SqlToken ("as")
 					from drs in PFullReturnableST
 					select new { name, drs }
 				;
