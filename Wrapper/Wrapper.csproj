@@ -9,6 +9,15 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Compile Include="..\CodeTypes\CodeContext.cs">
+        <Link>CodeTypes\CodeContext.cs</Link>
+      </Compile>
+      <Compile Include="..\CodeTypes\TypeLike.cs">
+        <Link>CodeTypes\TypeLike.cs</Link>
+      </Compile>
+      <Compile Include="..\CodeTypes\TypeLikeUtils.cs">
+        <Link>CodeTypes\TypeLikeUtils.cs</Link>
+      </Compile>
       <Compile Include="..\DbAnalysis\DatasetStructs.cs">
         <Link>DatasetStructs.cs</Link>
       </Compile>

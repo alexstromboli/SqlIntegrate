@@ -138,9 +138,9 @@ namespace Generated
 
 		public class indirectly_used_type
 		{
-			public string sign;
+			public string? sign;
 			public bool? is_on;
-			public alexey.indirectly_used_enum order;
+			public alexey.indirectly_used_enum? order;
 		}
 
 		public class monetary
@@ -151,9 +151,9 @@ namespace Generated
 
 		public class payment
 		{
-			public alexey.monetary paid;
+			public alexey.monetary? paid;
 			public LocalDate? date;
-			public alexey.indirectly_used_type[] indi;
+			public alexey.indirectly_used_type[]? indi;
 		}
 
 		public DbProc DbProc;
@@ -167,12 +167,12 @@ namespace Generated
 		#region get_aggregates
 		public class get_aggregates_Result_result
 		{
-			public string id_agent;
-			public string lastname;
+			public string? id_agent;
+			public string? lastname;
 			public double? input;
 			public long? count;
 			public LocalDate? first;
-			public string use_quotes;
+			public string? use_quotes;
 		}
 
 		public class get_aggregates_Result_ag_sum
@@ -325,28 +325,28 @@ namespace Generated
 		#region get_array
 		public class get_array_Result_names
 		{
-			public int[] extents;
-			public bool[] array;
-			public string[] names;
-			public int[] order;
-			public string[] enum_range;
-			public int[] array_plus_item;
-			public int[] array_plus_array;
-			public int[] item_plus_array;
+			public int[]? extents;
+			public bool[]? array;
+			public string[]? names;
+			public int[]? order;
+			public string[]? enum_range;
+			public int[]? array_plus_item;
+			public int[]? array_plus_array;
+			public int[]? item_plus_array;
 		}
 
 		public class get_array_Result_by_person
 		{
-			public Guid? id_person;
-			public int[] array_agg;
+			public System.Guid? id_person;
+			public int[]? array_agg;
 		}
 
 		public class get_array_Result_unnest
 		{
 			public int? unnest;
 			public int? e;
-			public string w;
-			public string qw;
+			public string? w;
+			public string? qw;
 		}
 
 		public class get_array_Result
@@ -413,7 +413,7 @@ namespace Generated
 							{
 								Set.Add (new get_array_Result_by_person
 								{
-									id_person = Rdr["id_person"] as Guid?,
+									id_person = Rdr["id_person"] as System.Guid?,
 									array_agg = Rdr["array_agg"] as int[]
 								});
 							}
@@ -477,15 +477,15 @@ namespace Generated
 		public class get_composite_Result_result
 		{
 			public int? id;
-			public alexey.payment as_block;
+			public alexey.payment? as_block;
 			public LocalDate? date;
-			public alexey.monetary paid;
+			public alexey.monetary? paid;
 			public decimal? amount;
 			public decimal? double_amount;
-			public string last_status;
-			public string aux_status;
-			public TryWrapper.Town town;
-			public TryWrapper.Town[] locations;
+			public string? last_status;
+			public string? aux_status;
+			public TryWrapper.Town? town;
+			public TryWrapper.Town[]? locations;
 		}
 
 		public class get_composite_Result
@@ -494,12 +494,12 @@ namespace Generated
 			public TryWrapper.Town matched;
 		}
 
-		public get_composite_Result get_composite (TryWrapper.Town destination)
+		public get_composite_Result get_composite (TryWrapper.Town? destination)
 		{
 			return get_compositeAsync (destination).Result;
 		}
 
-		public async Task<get_composite_Result> get_compositeAsync (TryWrapper.Town destination)
+		public async Task<get_composite_Result> get_compositeAsync (TryWrapper.Town? destination)
 		{
 			get_composite_Result Result = new get_composite_Result ();
 
@@ -526,15 +526,15 @@ namespace Generated
 								Set.Add (new get_composite_Result_result
 								{
 									id = Rdr["id"] as int?,
-									as_block = Rdr["as_block"] as alexey.payment,
+									as_block = Rdr["as_block"] as alexey.payment?,
 									date = Rdr["date"] as LocalDate?,
-									paid = Rdr["paid"] as alexey.monetary /* financial */,
+									paid = Rdr["paid"] as alexey.monetary? /* financial */,
 									amount = Rdr["amount"] as decimal?,
 									double_amount = Rdr["double_amount"] as decimal?,
 									last_status = Rdr["last_status"] as string,
 									aux_status = Rdr["aux_status"] as string,
 									town = Rdr["town"] as TryWrapper.Town,
-									locations = Rdr["locations"] as TryWrapper.Town[]
+									locations = Rdr["locations"] as alexey.city_locale[]
 								});
 							}
 						}
@@ -584,11 +584,11 @@ namespace Generated
 		#region get_db_qualified
 		public class get_db_qualified_Result_own
 		{
-			public Guid? id_person;
+			public System.Guid? id_person;
 			public int? id_room;
 			public int? id;
-			public string name;
-			public int[] extents;
+			public string? name;
+			public int[]? extents;
 		}
 
 		public List<get_db_qualified_Result_own> get_db_qualified ()
@@ -620,7 +620,7 @@ namespace Generated
 							{
 								Set.Add (new get_db_qualified_Result_own
 								{
-									id_person = Rdr["id_person"] as Guid?,
+									id_person = Rdr["id_person"] as System.Guid?,
 									id_room = Rdr["id_room"] as int?,
 									id = Rdr["id"] as int?,
 									name = Rdr["name"] as string,
@@ -652,7 +652,7 @@ namespace Generated
 		#region get_inserted
 		public class get_inserted_Result_inserted
 		{
-			public Guid? id_person;
+			public System.Guid? id_person;
 			public int? id_room;
 		}
 
@@ -685,7 +685,7 @@ namespace Generated
 							{
 								Set.Add (new get_inserted_Result_inserted
 								{
-									id_person = Rdr["id_person"] as Guid?,
+									id_person = Rdr["id_person"] as System.Guid?,
 									id_room = Rdr["id_room"] as int?
 								});
 							}
@@ -714,7 +714,7 @@ namespace Generated
 		#region get_join_single
 		public class get_join_single_Result_joined
 		{
-			public string title;
+			public string? title;
 			public int? document_id;
 			public LocalDate? date;
 		}
@@ -779,77 +779,77 @@ namespace Generated
 		public class get_numeric_types_math_Result_result
 		{
 			public decimal? res_numeric_numeric;
-			public string type_numeric_numeric;
+			public string? type_numeric_numeric;
 			public double? res_numeric_real;
-			public string type_numeric_real;
+			public string? type_numeric_real;
 			public double? res_numeric_float;
-			public string type_numeric_float;
+			public string? type_numeric_float;
 			public decimal? res_numeric_int;
-			public string type_numeric_int;
+			public string? type_numeric_int;
 			public decimal? res_numeric_smallint;
-			public string type_numeric_smallint;
+			public string? type_numeric_smallint;
 			public decimal? res_numeric_bigint;
-			public string type_numeric_bigint;
+			public string? type_numeric_bigint;
 			public double? res_real_numeric;
-			public string type_real_numeric;
+			public string? type_real_numeric;
 			public float? res_real_real;
-			public string type_real_real;
+			public string? type_real_real;
 			public double? res_real_float;
-			public string type_real_float;
+			public string? type_real_float;
 			public double? res_real_int;
-			public string type_real_int;
+			public string? type_real_int;
 			public double? res_real_smallint;
-			public string type_real_smallint;
+			public string? type_real_smallint;
 			public double? res_real_bigint;
-			public string type_real_bigint;
+			public string? type_real_bigint;
 			public double? res_float_numeric;
-			public string type_float_numeric;
+			public string? type_float_numeric;
 			public double? res_float_real;
-			public string type_float_real;
+			public string? type_float_real;
 			public double? res_float_float;
-			public string type_float_float;
+			public string? type_float_float;
 			public double? res_float_int;
-			public string type_float_int;
+			public string? type_float_int;
 			public double? res_float_smallint;
-			public string type_float_smallint;
+			public string? type_float_smallint;
 			public double? res_float_bigint;
-			public string type_float_bigint;
+			public string? type_float_bigint;
 			public decimal? res_int_numeric;
-			public string type_int_numeric;
+			public string? type_int_numeric;
 			public double? res_int_real;
-			public string type_int_real;
+			public string? type_int_real;
 			public double? res_int_float;
-			public string type_int_float;
+			public string? type_int_float;
 			public int? res_int_int;
-			public string type_int_int;
+			public string? type_int_int;
 			public int? res_int_smallint;
-			public string type_int_smallint;
+			public string? type_int_smallint;
 			public long? res_int_bigint;
-			public string type_int_bigint;
+			public string? type_int_bigint;
 			public decimal? res_smallint_numeric;
-			public string type_smallint_numeric;
+			public string? type_smallint_numeric;
 			public double? res_smallint_real;
-			public string type_smallint_real;
+			public string? type_smallint_real;
 			public double? res_smallint_float;
-			public string type_smallint_float;
+			public string? type_smallint_float;
 			public int? res_smallint_int;
-			public string type_smallint_int;
+			public string? type_smallint_int;
 			public short? res_smallint_smallint;
-			public string type_smallint_smallint;
+			public string? type_smallint_smallint;
 			public long? res_smallint_bigint;
-			public string type_smallint_bigint;
+			public string? type_smallint_bigint;
 			public decimal? res_bigint_numeric;
-			public string type_bigint_numeric;
+			public string? type_bigint_numeric;
 			public double? res_bigint_real;
-			public string type_bigint_real;
+			public string? type_bigint_real;
 			public double? res_bigint_float;
-			public string type_bigint_float;
+			public string? type_bigint_float;
 			public long? res_bigint_int;
-			public string type_bigint_int;
+			public string? type_bigint_int;
 			public long? res_bigint_smallint;
-			public string type_bigint_smallint;
+			public string? type_bigint_smallint;
 			public long? res_bigint_bigint;
-			public string type_bigint_bigint;
+			public string? type_bigint_bigint;
 		}
 
 		public get_numeric_types_math_Result_result get_numeric_types_math ()
@@ -1047,20 +1047,20 @@ namespace Generated
 		public class get_returning_Result_insert_result_1
 		{
 			public int? notch;
-			public string category;
+			public string? category;
 		}
 
 		public class get_returning_Result_insert_result_2
 		{
 			public int? id;
-			public string category;
+			public string? category;
 			public int? height;
 			public int? stub;
 		}
 
 		public class get_returning_Result_delete_result_1
 		{
-			public Guid? id_person;
+			public System.Guid? id_person;
 			public int? id_room;
 		}
 
@@ -1144,7 +1144,7 @@ namespace Generated
 							{
 								Set.Add (new get_returning_Result_delete_result_1
 								{
-									id_person = Rdr["id_person"] as Guid?,
+									id_person = Rdr["id_person"] as System.Guid?,
 									id_room = Rdr["id_room"] as int?
 								});
 							}
@@ -1238,8 +1238,8 @@ namespace Generated
 		public class get_single_row_Result_partial
 		{
 			public int? id;
-			public string name;
-			public string _float;
+			public string? name;
+			public string? _float;
 		}
 
 		public get_single_row_Result_partial get_single_row ()
@@ -1301,9 +1301,9 @@ namespace Generated
 		#region get_user_and_details
 		public class get_user_and_details_Result_details
 		{
-			public Guid? id;
-			public string lastname;
-			public string firstname;
+			public System.Guid? id;
+			public string? lastname;
+			public string? firstname;
 			public LocalDate? dob;
 			public long? tab_num;
 			public int? effect;
@@ -1361,7 +1361,7 @@ namespace Generated
 							{
 								Set.Add (new get_user_and_details_Result_details
 								{
-									id = Rdr["id"] as Guid?,
+									id = Rdr["id"] as System.Guid?,
 									lastname = Rdr["lastname"] as string,
 									firstname = Rdr["firstname"] as string,
 									dob = Rdr["dob"] as LocalDate?,
@@ -1408,18 +1408,18 @@ namespace Generated
 			public float? real;
 			public double? _float;
 			public decimal? money;
-			public string varchar;
-			public string given;
+			public string? varchar;
+			public string? given;
 			public LocalDateTime? remote;
 			public bool? _bool;
 			public uint? regtype;
-			public string last_status;
-			public string[] packages;
+			public string? last_status;
+			public string[]? packages;
 			public long? owner_sum;
 			public TryWrapper.CardType? card_type;
-			public string full_qual;
-			public string full_qual_quot;
-			public string full_qual_quot_2;
+			public string? full_qual;
+			public string? full_qual_quot;
+			public string? full_qual_quot_2;
 		}
 
 		public class get_value_types_Result_expressions_2
@@ -1428,20 +1428,20 @@ namespace Generated
 			public decimal? money;
 			public LocalDateTime? timestamp_2;
 			public LocalDateTime? timestamp_3;
-			public Period interval;
+			public Period? interval;
 			public bool? _bool;
 			public bool? bool_2;
 			public bool? bool_3;
-			public string varchar_1;
-			public string varchar_2;
-			public string varchar_3;
+			public string? varchar_1;
+			public string? varchar_2;
+			public string? varchar_3;
 			public long? bigint;
 			public bool? between_2;
-			public byte[] loop;
+			public byte[]? loop;
 			public decimal? money_2;
 			public long? array_agg;
-			public string array_agg_2;
-			public string _case;
+			public string? array_agg_2;
+			public string? _case;
 		}
 
 		public class get_value_types_Result_nulls
@@ -1453,8 +1453,8 @@ namespace Generated
 			public long? bigint;
 			public short? smallint;
 			public decimal? money;
-			public string varchar;
-			public Guid? uuid;
+			public string? varchar;
+			public System.Guid? uuid;
 			public LocalDateTime? timestamp;
 			public LocalDate? date;
 			public bool? _bool;
@@ -1583,7 +1583,7 @@ namespace Generated
 									smallint = Rdr["smallint"] as short?,
 									money = Rdr["money"] as decimal?,
 									varchar = Rdr["varchar"] as string,
-									uuid = Rdr["uuid"] as Guid?,
+									uuid = Rdr["uuid"] as System.Guid?,
 									timestamp = Rdr["timestamp"] as LocalDateTime?,
 									date = Rdr["date"] as LocalDate?,
 									_bool = Rdr["bool"] as bool?,
@@ -1630,7 +1630,7 @@ namespace Generated
 		public class getdeptchain_Result_res01
 		{
 			public int? id;
-			public string name;
+			public string? name;
 			public int? _float;
 			public decimal? extract;
 		}
@@ -1714,22 +1714,22 @@ namespace Generated
 		public class persons_getall_Result_users
 		{
 			public int? num;
-			public Guid? id;
-			public string lastname;
-			public string firstname;
+			public System.Guid? id;
+			public string? lastname;
+			public string? firstname;
 			public LocalDate? dob;
 			public long? tab_num;
-			public string status;
+			public string? status;
 			public int? effect;
 		}
 
 		public class persons_getall_Result_ownership
 		{
-			public string lastname;
+			public string? lastname;
 			public int? num;
 			public int? id;
-			public string name;
-			public int[] extents;
+			public string? name;
+			public int[]? extents;
 		}
 
 		public class persons_getall_Result
@@ -1769,7 +1769,7 @@ namespace Generated
 								Set.Add (new persons_getall_Result_users
 								{
 									num = Rdr["num"] as int?,
-									id = Rdr["id"] as Guid?,
+									id = Rdr["id"] as System.Guid?,
 									lastname = Rdr["lastname"] as string,
 									firstname = Rdr["firstname"] as string,
 									dob = Rdr["dob"] as LocalDate?,
@@ -1832,25 +1832,25 @@ namespace Generated
 		#region roomsforperson
 		public class roomsforperson_Result_res01
 		{
-			public Guid? id;
-			public string lastname;
-			public string firstname;
+			public System.Guid? id;
+			public string? lastname;
+			public string? firstname;
 			public LocalDate? dob;
 			public long? tab_num;
-			public int[] them_all;
+			public int[]? them_all;
 			public int? piece;
 			public int? sample;
 			public int? had_it;
-			public string status;
+			public string? status;
 		}
 
 		public class roomsforperson_Result_res02
 		{
 			public int? id;
-			public string name;
-			public int[] extents;
-			public int[] ord;
-			public string json;
+			public string? name;
+			public int[]? extents;
+			public int[]? ord;
+			public string? json;
 		}
 
 		public class roomsforperson_Result
@@ -1861,20 +1861,20 @@ namespace Generated
 
 		/// <param name="card_type">Value from alexey.mapped</param>
 		public roomsforperson_Result roomsforperson (
-				Guid? id_person,
-				int[] bwahaha,
-				ref int[] get_array,
+				System.Guid? id_person,
+				int[]? bwahaha,
+				ref int[]? get_array,
 				TryWrapper.CardType? card_type,
-				string name,
+				string? name,
 				bool? over,
 				LocalDate? dt01,
 				LocalDateTime? dt02,
-				Period dt03,
+				Period? dt03,
 				LocalTime? dt04,
-				string txt,
+				string? txt,
 				decimal? amount,
 				ref long? came,
-				ref string done
+				ref string? done
 			)
 		{
 			roomsforperson_Result Result = new roomsforperson_Result ();
@@ -1918,7 +1918,7 @@ namespace Generated
 							{
 								Set.Add (new roomsforperson_Result_res01
 								{
-									id = Rdr["id"] as Guid?,
+									id = Rdr["id"] as System.Guid?,
 									lastname = Rdr["lastname"] as string,
 									firstname = Rdr["firstname"] as string,
 									dob = Rdr["dob"] as LocalDate?,
@@ -1985,12 +1985,12 @@ namespace Generated
 		public class test_duplicate_open_Result_single
 		{
 			public int? id;
-			public string name;
+			public string? name;
 		}
 
 		public class test_duplicate_open_Result
 		{
-			public int? scalar;
+			public int scalar;
 			public test_duplicate_open_Result_single single;
 		}
 
@@ -2017,7 +2017,7 @@ namespace Generated
 					using (var ResCmd = Conn.CreateCommand ())
 					{
 						ResCmd.CommandText = "FETCH ALL IN \"scalar\";";
-						int? Set = null;
+						int Set = null;
 
 						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
 						{
@@ -2074,12 +2074,12 @@ namespace Generated
 		#endregion
 
 		#region test_exception
-		public void test_exception (string message, int? retry)
+		public void test_exception (string? message, int? retry)
 		{
 			test_exceptionAsync (message, retry).Wait ();
 		}
 
-		public async Task test_exceptionAsync (string message, int? retry)
+		public async Task test_exceptionAsync (string? message, int? retry)
 		{
 			using (var Cmd = Conn.CreateCommand ())
 			{
@@ -2095,9 +2095,9 @@ namespace Generated
 		#region test_from_select
 		public class test_from_select_Result_result
 		{
-			public string lastname;
-			public string room;
-			public string own;
+			public string? lastname;
+			public string? room;
+			public string? own;
 		}
 
 		public List<test_from_select_Result_result> test_from_select ()
@@ -2157,14 +2157,14 @@ namespace Generated
 		#endregion
 
 		#region test_json
-		public int? test_json (string data, string data_b)
+		public int test_json (string? data, string? data_b)
 		{
 			return test_jsonAsync (data, data_b).Result;
 		}
 
-		public async Task<int?> test_jsonAsync (string data, string data_b)
+		public async Task<int> test_jsonAsync (string? data, string? data_b)
 		{
-			int? Result = null;
+			int Result = null;
 
 			using (var Tran = await DbProc.BeginTransactionOptionalAsync ())
 			{
@@ -2180,7 +2180,7 @@ namespace Generated
 					using (var ResCmd = Conn.CreateCommand ())
 					{
 						ResCmd.CommandText = "FETCH ALL IN \"sample\";";
-						int? Set = null;
+						int Set = null;
 
 						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
 						{
@@ -2230,27 +2230,27 @@ namespace Generated
 		#region test_out
 		/// <param name="p_status">Value from alexey.app_status</param>
 		/// <param name="p_valid_statuses">Value from alexey.app_status</param>
-		public int? test_out (
+		public int test_out (
 				ref int? p_int,
-				ref int[] p_int_arr,
+				ref int[]? p_int_arr,
 				ref bool? p_bool,
-				ref bool[] p_bool_arr,
+				ref bool[]? p_bool_arr,
 				ref LocalDate? p_date,
-				ref LocalDate[] p_date_arr,
+				ref System.DateTime[]? p_date_arr,
 				ref Instant? p_instant,
-				ref Instant[] p_instant_arr,
+				ref System.DateTime[]? p_instant_arr,
 				ref LocalDateTime? p_datetime,
-				ref LocalDateTime[] p_datetime_arr,
-				ref string p_varchar,
-				ref string[] p_varchar_arr,
-				ref byte[] p_bytea,
-				ref string p_status,
-				ref string[] p_valid_statuses,
-				ref TryWrapper.Town p_city,
+				ref System.DateTime[]? p_datetime_arr,
+				ref string? p_varchar,
+				ref string[]? p_varchar_arr,
+				ref byte[]? p_bytea,
+				ref string? p_status,
+				ref string[]? p_valid_statuses,
+				ref TryWrapper.Town? p_city,
 				ref TryWrapper.Payer p_enc_pi_payer
 			)
 		{
-			int? Result = null;
+			int Result = null;
 
 			using (var Tran = DbProc.BeginTransactionOptionalAsync ().Result)
 			{
@@ -2283,11 +2283,11 @@ namespace Generated
 					p_bool = Cmd.Parameters["@p_bool"].Value as bool?;
 					p_bool_arr = Cmd.Parameters["@p_bool_arr"].Value as bool[];
 					p_date = Cmd.Parameters["@p_date"].Value as LocalDate?;
-					p_date_arr = Cmd.Parameters["@p_date_arr"].Value as LocalDate[];
+					p_date_arr = Cmd.Parameters["@p_date_arr"].Value as System.DateTime[];
 					p_instant = Cmd.Parameters["@p_instant"].Value as Instant?;
-					p_instant_arr = Cmd.Parameters["@p_instant_arr"].Value as Instant[];
+					p_instant_arr = Cmd.Parameters["@p_instant_arr"].Value as System.DateTime[];
 					p_datetime = Cmd.Parameters["@p_datetime"].Value as LocalDateTime?;
-					p_datetime_arr = Cmd.Parameters["@p_datetime_arr"].Value as LocalDateTime[];
+					p_datetime_arr = Cmd.Parameters["@p_datetime_arr"].Value as System.DateTime[];
 					p_varchar = Cmd.Parameters["@p_varchar"].Value as string;
 					p_varchar_arr = Cmd.Parameters["@p_varchar_arr"].Value as string[];
 					p_bytea = Cmd.Parameters["@p_bytea"].Value as byte[];
@@ -2299,7 +2299,7 @@ namespace Generated
 					using (var ResCmd = Conn.CreateCommand ())
 					{
 						ResCmd.CommandText = "FETCH ALL IN \"result_1\";";
-						int? Set = null;
+						int Set = null;
 
 						using (var Rdr = ResCmd.ExecuteReader ())
 						{
@@ -2333,7 +2333,7 @@ namespace Generated
 		public class test_read_encrypted_Result_sample
 		{
 			public int? id;
-			public byte[] hash;
+			public byte[]? hash;
 			public TryWrapper.Payer enc_pi_payer;
 		}
 
@@ -2396,8 +2396,8 @@ namespace Generated
 		#region test_temp_table
 		public class test_temp_table_Result_sample
 		{
-			public string id;
-			public string lastname;
+			public string? id;
+			public string? lastname;
 			public bool? is_artist;
 			public Instant? now;
 		}
@@ -2460,12 +2460,12 @@ namespace Generated
 		#endregion
 
 		#region test_write_encrypted
-		public void test_write_encrypted (byte[] p_hash, TryWrapper.Payer p_enc_pi_payer)
+		public void test_write_encrypted (byte[]? p_hash, TryWrapper.Payer p_enc_pi_payer)
 		{
 			test_write_encryptedAsync (p_hash, p_enc_pi_payer).Wait ();
 		}
 
-		public async Task test_write_encryptedAsync (byte[] p_hash, TryWrapper.Payer p_enc_pi_payer)
+		public async Task test_write_encryptedAsync (byte[]? p_hash, TryWrapper.Payer p_enc_pi_payer)
 		{
 			using (var Cmd = Conn.CreateCommand ())
 			{

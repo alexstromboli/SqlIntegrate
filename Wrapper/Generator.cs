@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 using Utils;
+using CodeTypes;
 using DbAnalysis;
 using DbAnalysis.Datasets;
 using Utils.CodeGeneration;
@@ -70,7 +71,7 @@ namespace Wrapper
 			{
 				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
 				{
-					TypeMap.Add (p.Key, ct.CsNullableName, p.Value);
+					TypeMap.Add (p.Key, ct, p.Value);
 
 					if (p.Value.ShortName != null)
 					{
@@ -78,7 +79,8 @@ namespace Wrapper
 					}
 				}
 			}
-			TypeMap.Add ("bytea", "byte[]", DbTypeMap.GetTypeForName ("bytea"));
+
+			TypeMap.Add ("bytea", new TypeLike (typeof(byte[])), DbTypeMap.GetTypeForName ("bytea"));
 			TypeMap.AddSynonym ("bytea", "pg_catalog.bytea");
 
 			foreach (var t in Module.Types.Where (ct => ct.Properties != null
@@ -87,8 +89,9 @@ namespace Wrapper
 				string PsqlKey = t.Schema + "." + t.Name;
 				// must match names filled in Wrapper below
 				string ClrKey = t.Schema.ValidCsName () + "." + t.Name.ValidCsName ();
+				TypeLike TypeLike = new TypeLike (ClrKey, true);
 
-				TypeMap.Add (PsqlKey, ClrKey, DbTypeMap.GetTypeForName (PsqlKey));
+				TypeMap.Add (PsqlKey, TypeLike, DbTypeMap.GetTypeForName (PsqlKey));
 				TypeMap[PsqlKey].ReportedType = t;
 			}
 
@@ -97,8 +100,10 @@ namespace Wrapper
 			{
 				if (t.Value.ReportedType?.MapTo != null)
 				{
-					t.Value.CsTypeName = fnu => t.Value.ReportedType.MapTo
-						+ (fnu && t.Value.ReportedType.GenerateEnum ? "?" : "");
+					TypeLike TypeLike = new TypeLike (t.Value.ReportedType.MapTo,
+						IsValueType: t.Value.ReportedType.GenerateEnum);
+					t.Value.CoreTypeLike = TypeLike;
+					TypeMap[t.Value.SqlTypeName + "[]"].CoreTypeLike = TypeLike.MakeArray ();
 				}
 			}
 
@@ -112,13 +117,13 @@ namespace Wrapper
 				TitleComment = CodeGenerationUtils.AutomaticWarning,
 				Usings = new List<string>
 				{
-					"using System;",
-					"using System.Data;",
-					"using System.Threading.Tasks;",
-					"using System.Collections.Generic;",
-					"using Npgsql;",
-					"using NpgsqlTypes;",
-					"using Npgsql.NameTranslation;"
+					"System",
+					"System.Data",
+					"System.Threading.Tasks",
+					"System.Collections.Generic",
+					"Npgsql",
+					"NpgsqlTypes",
+					"Npgsql.NameTranslation"
 				},
 				CsNamespace = "Generated",
 				CsClassName = "DbProc",
@@ -213,7 +218,7 @@ namespace Wrapper
 
 											if (Set.IsSingleColumn)
 											{
-												Set.RowCsClassName = Set.Properties[0].TypeMapping.CsTypeName (true);
+												Set.RowCsClassName = Set.Properties[0].TypeMapping.CoreTypeLike.ProduceName (CodeContext.Simple);
 											}
 
 											Set.SetCsTypeName = Set.IsSingleRow
@@ -231,6 +236,7 @@ namespace Wrapper
 			};
 
 			Processors.Act (p => p.OnHaveWrapper (Database));
+			Database.CodeContext = new CodeContext (Database.Usings.ToArray ());
 
 			//
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
@@ -245,7 +251,7 @@ namespace Wrapper
 
 			foreach (var u in Database.Usings)
 			{
-				sb.AppendLine (u);
+				sb.AppendLine ("using " + u + ";");
 			}
 
 			sb.AppendLine ();
@@ -350,7 +356,7 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 								if (MapMethod != null)
 								{
 									sb.AppendLine (
-										$"Conn.TypeMapper.{MapMethod}<{TypeMap[$"{t.Schema}.{t.Name}"].CsTypeName (false)}> (\"{t.Schema}.{t.Name}\"{SecondParam});");
+										$"Conn.TypeMapper.{MapMethod}<{TypeMap[$"{t.Schema}.{t.Name}"].CoreTypeLike.ProduceName (CodeContext.Simple)}> (\"{t.Schema}.{t.Name}\"{SecondParam});");
 								}
 							}
 						}
@@ -401,7 +407,7 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 							{
 								foreach (var p in ct.Properties)
 								{
-									sb.AppendLine ($"public {p.TypeMapping.CsTypeName (true)} {p.CsName};");
+									sb.AppendLine ($"public {p.TypeMapping.CoreTypeLike.ForceNullable.ProduceName (CodeContext.Simple)} {p.CsName};");
 								}
 							}
 
@@ -446,7 +452,7 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 									.Where (a => !a.IsCursor)
 									.Select (a =>
 									{
-										string ArgumentType = a.TypeMapping.CsTypeName (true);
+										string ArgumentType = a.TypeMapping.CoreTypeLike.ForceNullable.ProduceName (CodeContext.Simple);
 										Processors.Act (p =>
 											p.OnEncodingParameter (Database, ns, pi.Value, a, ref ArgumentType));
 
@@ -466,7 +472,7 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 								{
 									foreach (var P in Set.Properties)
 									{
-										string ColumnCsType = P.TypeMapping.CsTypeName (true);
+										string ColumnCsType = P.TypeMapping.CoreTypeLike.ForceNullable.ProduceName (CodeContext.Simple);
 										Processors.Act (p =>
 											p.OnEncodingResultSetColumn (Database, ns, pi.Value, Set, P,
 												ref ColumnCsType));

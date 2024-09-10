@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 
 using Utils;
+using CodeTypes;
 using DbAnalysis;
 using DbAnalysis.Datasets;
 
@@ -28,7 +29,7 @@ namespace Wrapper
 
 		public static Dictionary<string, TypeMapping<TSqlType, TColumn>> Add<TSqlType, TColumn> (this Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap,
 				string SqlTypeName,
-				string CsNullableName,	// can have '?' in the end
+				TypeLike TypeLike,
 				PSqlType PSqlType
 				)
 			where TColumn : Column, new()
@@ -37,23 +38,25 @@ namespace Wrapper
 			var Single = new TypeMapping<TSqlType, TColumn>
 			{
 				SqlTypeName = SqlTypeName,
-				CsTypeName = fnu => CsNullableName,
+				CoreTypeLike = TypeLike,
 				PSqlType = PSqlType
 			};
-			Single.GetValue = v => $"{v} as {Single.CsTypeName (true)}";		// use closure
+			Single.GetValue = v => $"{v} as {Single.CoreTypeLike.NullCastable.ProduceName (CodeContext.Simple)}";		// use closure
 			TypeMap[SqlTypeName] = Single;
 
 			if (PSqlType.ArrayType != null)
 			{
 				// refer to 'single' type
 				string ArrKey = SqlTypeName + "[]";
+				var ArrayTypeLike = Single.CoreTypeLike.MakeArray ();
 				var Array = new TypeMapping<TSqlType, TColumn>
 				{
 					SqlTypeName = ArrKey,
-					CsTypeName = fnu => Single.CsTypeName (false).TrimEnd ('?') + "[]",
+					CoreTypeLike = ArrayTypeLike,
 					PSqlType = PSqlType.ArrayType
 				};
-				Array.GetValue = v => $"{v} as {Single.CsTypeName (false).TrimEnd ('?')}[]";
+				Array.GetValue = v =>
+					$"{v} as {ArrayTypeLike.ProduceName (CodeContext.Simple)}";
 				TypeMap[ArrKey] = Array;
 			}
 
@@ -78,7 +81,7 @@ namespace Wrapper
 	{
 		// here: store PSqlType?
 		public string SqlTypeName;
-		public Func<bool, string> CsTypeName;		// bool ForceNullability => string display
+		public TypeLike CoreTypeLike;
 		public PSqlType PSqlType;
 		public TSqlType ReportedType;
 		public Func<string, string> SetValue = v => v;
@@ -106,7 +109,7 @@ namespace Wrapper
 
 					public override string ToString ()
 					{
-						return (CsName ?? NativeName) + " " + (TypeMapping?.CsTypeName (true) ?? "???");
+						return (CsName ?? NativeName) + " " + TypeMapping?.CoreTypeLike.ProduceName (CodeContext.Simple);
 					}
 				}
 
@@ -182,5 +185,6 @@ namespace Wrapper
 		public string CsNamespace;
 		public string CsClassName;
 		public Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap;
+		public CodeContext CodeContext = CodeContext.Simple;
 	}
 }

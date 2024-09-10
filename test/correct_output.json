@@ -1,7 +1,7 @@
 {
   "Types": [
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "app_status",
       "Enum": [
         "pending",
@@ -12,7 +12,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "city_locale", "MapTo": "TryWrapper.Town",
       "Properties": [
         {
@@ -26,7 +26,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "indirectly_used_enum", "GenerateEnum": true,
       "Enum": [
         "first",
@@ -36,7 +36,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "indirectly_used_type",
       "Properties": [
         {
@@ -49,12 +49,12 @@
         },
         {
           "Name": "order",
-          "Type": "USER.indirectly_used_enum"
+          "Type": "alexey.indirectly_used_enum"
         }
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "mapped", "MapTo": "TryWrapper.CardType", "GenerateEnum": true,
       "Enum": [
         "Debit",
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "monetary", "Tag": "financial",
       "Properties": [
         {
@@ -76,12 +76,12 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "payment",
       "Properties": [
         {
           "Name": "paid",
-          "Type": "USER.monetary"
+          "Type": "alexey.monetary"
         },
         {
           "Name": "date",
@@ -89,7 +89,7 @@
         },
         {
           "Name": "indi",
-          "Type": "USER.indirectly_used_type[]"
+          "Type": "alexey.indirectly_used_type[]"
         }
       ]
     },
@@ -105,7 +105,7 @@
   ],
   "Procedures": [
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_aggregates",
       "Arguments": [
         {
@@ -218,7 +218,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_array",
       "Arguments": [
         {
@@ -260,7 +260,7 @@
             },
             {
               "Name": "enum_range",
-              "Type": "USER.app_status[]"
+              "Type": "alexey.app_status[]"
             },
             {
               "Name": "array_plus_item",
@@ -315,12 +315,12 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_composite",
       "Arguments": [
         {
           "Name": "destination",
-          "Type": "USER.city_locale"
+          "Type": "alexey.city_locale"
         },
         {
           "Name": "result",
@@ -344,7 +344,7 @@
             },
             {
               "Name": "as_block",
-              "Type": "USER.payment"
+              "Type": "alexey.payment"
             },
             {
               "Name": "date",
@@ -352,7 +352,7 @@
             },
             {
               "Name": "paid",
-              "Type": "USER.monetary"
+              "Type": "alexey.monetary"
             },
             {
               "Name": "amount",
@@ -364,19 +364,19 @@
             },
             {
               "Name": "last_status",
-              "Type": "USER.app_status"
+              "Type": "alexey.app_status"
             },
             {
               "Name": "aux_status",
-              "Type": "USER.app_status"
+              "Type": "alexey.app_status"
             },
             {
               "Name": "town",
-              "Type": "USER.city_locale"
+              "Type": "alexey.city_locale"
             },
             {
               "Name": "locations",
-              "Type": "USER.city_locale[]"
+              "Type": "alexey.city_locale[]"
             }
           ]
         },
@@ -388,14 +388,14 @@
           "Columns": [
             {
               "Name": "town",
-              "Type": "USER.city_locale"
+              "Type": "alexey.city_locale"
             }
           ]
         }
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_db_qualified",
       "Arguments": [
         {
@@ -434,7 +434,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_inserted",
       "Arguments": [
         {
@@ -461,7 +461,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_join_single",
       "Arguments": [
         {
@@ -492,7 +492,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_numeric_types_math",
       "Arguments": [
         {
@@ -801,7 +801,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_operators",
       "Arguments": [
         {
@@ -838,7 +838,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_returning",
       "Arguments": [
         {
@@ -911,7 +911,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_scalar",
       "Arguments": [
         {
@@ -936,7 +936,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_single_row",
       "Arguments": [
         {
@@ -969,7 +969,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_user_and_details",
       "Arguments": [
         {
@@ -1029,7 +1029,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "get_value_types",
       "Arguments": [
         {
@@ -1109,7 +1109,7 @@
             },
             {
               "Name": "last_status",
-              "Type": "USER.app_status"
+              "Type": "alexey.app_status"
             },
             {
               "Name": "packages",
@@ -1121,7 +1121,7 @@
             },
             {
               "Name": "card_type",
-              "Type": "USER.mapped"
+              "Type": "alexey.mapped"
             },
             {
               "Name": "full_qual",
@@ -1273,7 +1273,7 @@
             },
             {
               "Name": "card_type",
-              "Type": "USER.mapped"
+              "Type": "alexey.mapped"
             },
             {
               "Name": "coalesce_first",
@@ -1288,7 +1288,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "getdeptchain",
       "Arguments": [
         {
@@ -1330,13 +1330,13 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "insert_conflict",
       "Arguments": [],
       "ResultSets": []
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "persons_getall",
       "Arguments": [
         {
@@ -1381,7 +1381,7 @@
             },
             {
               "Name": "status",
-              "Type": "USER.app_status"
+              "Type": "alexey.app_status"
             },
             {
               "Name": "effect",
@@ -1418,7 +1418,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "roomsforperson",
       "Arguments": [
         {
@@ -1446,7 +1446,7 @@
         },
         {
           "Name": "card_type",
-          "Type": "USER.mapped"
+          "Type": "alexey.mapped"
         },
         {
           "Name": "name",
@@ -1534,7 +1534,7 @@
             },
             {
               "Name": "status",
-              "Type": "USER.app_status"
+              "Type": "alexey.app_status"
             }
           ]
         },
@@ -1567,7 +1567,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "test_duplicate_open",
       "Arguments": [
         {
@@ -1618,7 +1618,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "test_exception",
       "Arguments": [
         {
@@ -1633,7 +1633,7 @@
       "ResultSets": []
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "test_from_select",
       "Arguments": [
         {
@@ -1664,7 +1664,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "test_json",
       "Arguments": [
         {
@@ -1697,13 +1697,13 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "test_loops",
       "Arguments": [],
       "ResultSets": []
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "test_out",
       "Arguments": [
         {
@@ -1773,17 +1773,17 @@
         },
         {
           "Name": "p_status",
-          "Type": "USER.app_status",
+          "Type": "alexey.app_status",
           "IsOut": true
         },
         {
           "Name": "p_valid_statuses",
-          "Type": "USER.app_status[]",
+          "Type": "alexey.app_status[]",
           "IsOut": true
         },
         {
           "Name": "p_city",
-          "Type": "USER.city_locale",
+          "Type": "alexey.city_locale",
           "IsOut": true
         },
         {
@@ -1813,7 +1813,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "test_read_encrypted",
       "Arguments": [
         {
@@ -1846,7 +1846,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "test_temp_table",
       "Arguments": [
         {
@@ -1881,7 +1881,7 @@
       ]
     },
     {
-      "Schema": "USER",
+      "Schema": "alexey",
       "Name": "test_write_encrypted",
       "Arguments": [
         {

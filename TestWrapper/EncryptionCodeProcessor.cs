@@ -14,8 +14,8 @@ namespace TestWrapper
 		public override void OnHaveWrapper (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database)
 		{
 			// here: check if not added yet
-			Database.Usings.Add ("using System.Text;");
-			Database.Usings.Add ("using Newtonsoft.Json;");
+			Database.Usings.Add ("System.Text");
+			Database.Usings.Add ("Newtonsoft.Json");
 		}
 
 		public override void OnCodeGenerationStarted (
