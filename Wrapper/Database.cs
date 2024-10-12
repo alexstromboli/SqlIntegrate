@@ -48,7 +48,7 @@ namespace Wrapper
 			{
 				// refer to 'single' type
 				string ArrKey = SqlTypeName + "[]";
-				var ArrayTypeLike = Single.CoreTypeLike.MakeArray ();
+				var ArrayTypeLike = Single.CoreTypeLike.ArrayType;
 				var Array = new TypeMapping<TSqlType, TColumn>
 				{
 					SqlTypeName = ArrKey,

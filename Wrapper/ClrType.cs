@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Generic;
 
 using CodeTypes;
+using DbAnalysis;
 
 namespace Wrapper
 {
@@ -12,31 +12,31 @@ namespace Wrapper
 	// names are sufficient for purposes of code generator
 	public class ClrType
 	{
-		protected static Dictionary<Type, TypeLike> _Map;
-		public static IReadOnlyDictionary<Type, TypeLike> Map => _Map;
+		protected static Dictionary<string, TypeLike> _Map;
+		public static IReadOnlyDictionary<string, TypeLike> Map => _Map;
 
 		static ClrType ()
 		{
-			_Map = new Dictionary<Type, TypeLike> ();
+			_Map = new Dictionary<string, TypeLike> ();
 
-			Add (typeof (object));
-			Add (typeof (bool));
-			Add (typeof (int));
-			Add (typeof (uint));
-			Add (typeof (Int16));
-			Add (typeof (Int64));
-			Add (typeof (decimal));
-			Add (typeof (float));
-			Add (typeof (double));
-			Add (typeof (string));
-			Add (typeof (Guid));
-			Add (typeof (DateTime));
-			Add (typeof (TimeSpan));
+			Add (TypeLikeStatic.Object);
+			Add (TypeLikeStatic.Bool);
+			Add (TypeLikeStatic.Int);
+			Add (TypeLikeStatic.UInt);
+			Add (TypeLikeStatic.Short);
+			Add (TypeLikeStatic.Long);
+			Add (TypeLikeStatic.Decimal);
+			Add (TypeLikeStatic.Float);
+			Add (TypeLikeStatic.Double);
+			Add (TypeLikeStatic.String);
+			Add (TypeLikeStatic.Guid);
+			Add (TypeLikeStatic.DateTime);
+			Add (TypeLikeStatic.TimeSpan);
 		}
 
-		protected static void Add (Type Type)
+		protected static void Add (TypeLike TypeLike)
 		{
-			_Map[Type] = new TypeLike (Type);
+			_Map[TypeLike.UniqueName] = TypeLike;
 		}
 	}
 }

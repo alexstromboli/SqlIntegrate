@@ -3,10 +3,12 @@ using System.Linq;
 using System.Collections.Generic;
 
 using Utils;
+using CodeTypes;
 using DbAnalysis.Datasets;
 
 namespace DbAnalysis
 {
+	// types as per Postgres
 	public class PgTypeEntry
 	{
 		public uint Oid;
@@ -28,13 +30,32 @@ namespace DbAnalysis
 			}
 		}
 
-		public List<Attribute> Attributes;
+		public List<Attribute> Attributes;		// fields of custom types
 		public List<string> EnumValues;
 
 		public override string ToString ()
 		{
 			return $"{Schema ?? "???"}.{Name ?? "???"}";
 		}
+	}
+
+	public static class TypeLikeStatic
+	{
+		public static TypeLike Object = new TypeLike (typeof(object));
+		public static TypeLike String = new TypeLike (typeof(string));
+		public static TypeLike Bool = new TypeLike (typeof(bool));
+		public static TypeLike Int = new TypeLike (typeof(int));
+		public static TypeLike Byte = new TypeLike (typeof(byte));
+		public static TypeLike Short = new TypeLike (typeof(short));
+		public static TypeLike UInt = new TypeLike (typeof(uint));
+		public static TypeLike Long = new TypeLike (typeof(long));
+		public static TypeLike ULong = new TypeLike (typeof(ulong));
+		public static TypeLike Float = new TypeLike (typeof(float));
+		public static TypeLike Double = new TypeLike (typeof(double));
+		public static TypeLike Decimal = new TypeLike (typeof(decimal));
+		public static TypeLike Guid = new TypeLike (typeof(Guid));
+		public static TypeLike DateTime = new TypeLike (typeof(DateTime));
+		public static TypeLike TimeSpan = new TypeLike (typeof(TimeSpan));
 	}
 
 	public class PSqlType
@@ -51,7 +72,7 @@ namespace DbAnalysis
 			Money
 		}
 
-		public class Property
+		public class Property		// fields of custom types
 		{
 			public string Name;
 			public PSqlType Type;
@@ -73,7 +94,8 @@ namespace DbAnalysis
 
 		public string ShortName { get; set; }
 		public string Display { get; set; }
-		public Type ClrType { get; set; }
+		public TypeLike TypeLike { get; set; }		// corresponding .NET type
+
 		public NumericOrderLevel NumericLevel = NumericOrderLevel.None;
 
 		public string[] EnumValues;
@@ -118,7 +140,7 @@ namespace DbAnalysis
 		protected PSqlType GetTypeForName (IEnumerable<string> SchemaOrder, string TypeName)
 		{
 			return SchemaOrder.Select (s =>
-						Map.TryGetValue (s + "." + TypeName, out var f) ? f : null)
+						Map.GetValueOrDefault (s + "." + TypeName))
 					.FirstOrDefault (f => f != null)
 				;
 		}
@@ -126,11 +148,11 @@ namespace DbAnalysis
 		// version for lookup during code generation
 		public PSqlType GetTypeForName (params string[] TypeName)
 		{
-			return Map.TryGetValue (TypeName.JoinDot (), out var f) ? f : null;
+			return Map.GetValueOrDefault (TypeName.JoinDot ());
 		}
 
 		// https://dba.stackexchange.com/questions/90230/postgresql-determine-column-type-when-data-type-is-set-to-array
-		protected PSqlType AddType (Type ClrType, string Schema, params string[] Keys)
+		protected PSqlType AddType (TypeLike TypeLike, string Schema, params string[] Keys)
 		{
 			string[] BaseKeys = Keys.Select (k => Schema + "." + k).ToArray ();
 			string[] ArrayKeys = Keys.Select (k => Schema + "." + k + "[]").ToArray ();
@@ -146,8 +168,8 @@ namespace DbAnalysis
 
 			if (BaseType == null && ArrayType == null)
 			{
-				BaseType = new PSqlType { Schema = Schema, Display = BaseKeys[0], ClrType = ClrType };
-				ArrayType = new PSqlType { Schema = Schema, Display = ArrayKeys[0], ClrType = ClrType, IsArray = true };
+				BaseType = new PSqlType { Schema = Schema, Display = BaseKeys[0], TypeLike = TypeLike };
+				ArrayType = new PSqlType { Schema = Schema, Display = ArrayKeys[0], TypeLike = TypeLike.ArrayType, IsArray = true };
 
 				BaseType.BaseType = BaseType;
 				BaseType.ArrayType = ArrayType;
@@ -169,7 +191,7 @@ namespace DbAnalysis
 			{
 				if (p.type != null)
 				{
-					p.type.ClrType ??= ClrType;
+					p.type.TypeLike ??= TypeLike;
 
 					foreach (string Key in p.keys)
 					{
@@ -181,9 +203,9 @@ namespace DbAnalysis
 			return BaseType;
 		}
 
-		protected PSqlType AddPgCatalogType (Type ClrType, params string[] Keys)
+		protected PSqlType AddPgCatalogType (TypeLike TypeLike, params string[] Keys)
 		{
-			var Result = AddType (ClrType, "pg_catalog", Keys);
+			var Result = AddType (TypeLike, "pg_catalog", Keys);
 			Result.ShortName ??= Keys[0];
 			if (Result.ArrayType != null)
 			{
@@ -261,13 +283,13 @@ namespace DbAnalysis
 				if (t.Enum != null && t.Enum.Length > 0)
 				{
 					BaseType.EnumValues = t.Enum;
-					BaseType.ClrType = typeof(string);
-					ArrayType.ClrType = typeof(string[]);
+					BaseType.TypeLike = TypeLikeStatic.String;
+					ArrayType.TypeLike = TypeLikeStatic.String.ArrayType;
 				}
 
 				if (t.Properties != null && t.Properties.Length > 0)
 				{
-					BaseType.ClrType = typeof(object);
+					BaseType.TypeLike = TypeLikeStatic.Object;
 				}
 			}
 
@@ -303,7 +325,7 @@ namespace DbAnalysis
 
 					if (t.EnumValues != null && t.EnumValues.Count > 0)
 					{
-						SqlType.ClrType = typeof(string);
+						SqlType.TypeLike = TypeLikeStatic.String;
 					}
 				}
 
@@ -348,38 +370,38 @@ namespace DbAnalysis
 
 		protected void InitStandardProperties ()
 		{
-			this.Null = AddPgCatalogType (typeof (object), "unknown");
-			this.Record = AddPgCatalogType (typeof (object), "record");
-			this.RefCursor = AddPgCatalogType (typeof (object), "refcursor");
-			this.Bool = AddPgCatalogType (typeof (bool), "bool", "boolean");
-			this.Binary = AddPgCatalogType (typeof (byte[]), "bytea");
-			this.Guid = AddPgCatalogType (typeof (Guid), "uuid");
+			this.Null = AddPgCatalogType (TypeLikeStatic.Object, "unknown");
+			this.Record = AddPgCatalogType (TypeLikeStatic.Object, "record");
+			this.RefCursor = AddPgCatalogType (TypeLikeStatic.Object, "refcursor");
+			this.Bool = AddPgCatalogType (TypeLikeStatic.Bool, "bool", "boolean");
+			this.Binary = AddPgCatalogType (TypeLikeStatic.Byte.ArrayType, "bytea");
+			this.Guid = AddPgCatalogType (TypeLikeStatic.Guid, "uuid");
 
-			this.Int = AddPgCatalogType (typeof (int), "int", "integer", "serial", "int4").SetNumericLevel (PSqlType.NumericOrderLevel.Int);
-			this.SmallInt = AddPgCatalogType (typeof (short), "smallint", "smallserial", "int2").SetNumericLevel (PSqlType.NumericOrderLevel.SmallInt);
-			this.BigInt = AddPgCatalogType (typeof (long), "bigint", "bigserial", "int8").SetNumericLevel (PSqlType.NumericOrderLevel.BigInt);
-			this.Money = AddPgCatalogType (typeof (decimal), "money").SetNumericLevel (PSqlType.NumericOrderLevel.Money);
-			this.Decimal = AddPgCatalogType (typeof (decimal), "decimal", "numeric").SetNumericLevel (PSqlType.NumericOrderLevel.Decimal);
-			this.Real = AddPgCatalogType (typeof (float), "real", "float4").SetNumericLevel (PSqlType.NumericOrderLevel.Real);
-			this.Float = AddPgCatalogType (typeof (double), "float", "double precision").SetNumericLevel (PSqlType.NumericOrderLevel.Float);
+			this.Int = AddPgCatalogType (TypeLikeStatic.Int, "int", "integer", "serial", "int4").SetNumericLevel (PSqlType.NumericOrderLevel.Int);
+			this.SmallInt = AddPgCatalogType (TypeLikeStatic.Short, "smallint", "smallserial", "int2").SetNumericLevel (PSqlType.NumericOrderLevel.SmallInt);
+			this.BigInt = AddPgCatalogType (TypeLikeStatic.Long, "bigint", "bigserial", "int8").SetNumericLevel (PSqlType.NumericOrderLevel.BigInt);
+			this.Money = AddPgCatalogType (TypeLikeStatic.Decimal, "money").SetNumericLevel (PSqlType.NumericOrderLevel.Money);
+			this.Decimal = AddPgCatalogType (TypeLikeStatic.Decimal, "decimal", "numeric").SetNumericLevel (PSqlType.NumericOrderLevel.Decimal);
+			this.Real = AddPgCatalogType (TypeLikeStatic.Float, "real", "float4").SetNumericLevel (PSqlType.NumericOrderLevel.Real);
+			this.Float = AddPgCatalogType (TypeLikeStatic.Double, "float", "double precision").SetNumericLevel (PSqlType.NumericOrderLevel.Float);
 
-			this.Json = AddPgCatalogType (typeof (string), "json");
-			this.Jsonb = AddPgCatalogType (typeof (string), "jsonb");
+			this.Json = AddPgCatalogType (TypeLikeStatic.String, "json");
+			this.Jsonb = AddPgCatalogType (TypeLikeStatic.String, "jsonb");
 
-			this.Date = AddPgCatalogType (typeof (DateTime), "date").SetIsDate ();
-			this.Timestamp = AddPgCatalogType (typeof (DateTime), "timestamp", "timestamp without time zone").SetIsDate ();
-			this.TimestampTz = AddPgCatalogType (typeof (DateTime), "timestamptz", "timestamp with time zone").SetIsDate ();
-			this.Interval = AddPgCatalogType (typeof (TimeSpan), "interval").SetIsTimeSpan ();
-			this.Time = AddPgCatalogType (typeof (TimeSpan), "time", "time without time zone").SetIsTimeSpan ();
-			this.TimeTz = AddPgCatalogType (typeof (TimeSpan), "timetz", "time with time zone").SetIsTimeSpan ();
+			this.Date = AddPgCatalogType (TypeLikeStatic.DateTime, "date").SetIsDate ();
+			this.Timestamp = AddPgCatalogType (TypeLikeStatic.DateTime, "timestamp", "timestamp without time zone").SetIsDate ();
+			this.TimestampTz = AddPgCatalogType (TypeLikeStatic.DateTime, "timestamptz", "timestamp with time zone").SetIsDate ();
+			this.Interval = AddPgCatalogType (TypeLikeStatic.TimeSpan, "interval").SetIsTimeSpan ();
+			this.Time = AddPgCatalogType (TypeLikeStatic.TimeSpan, "time", "time without time zone").SetIsTimeSpan ();
+			this.TimeTz = AddPgCatalogType (TypeLikeStatic.TimeSpan, "timetz", "time with time zone").SetIsTimeSpan ();
 
-			this.Text = AddPgCatalogType (typeof (string), "text").SetIsText ();
-			this.Char = AddPgCatalogType (typeof (string), "char", "character").SetIsText ();
-			this.VarChar = AddPgCatalogType (typeof (string), "varchar", "character varying").SetIsText ();
-			this.BpChar = AddPgCatalogType (typeof (string), "bpchar").SetIsText ();
-			this.Name = AddPgCatalogType (typeof (string), "name").SetIsText ();
-			this.CString = AddPgCatalogType (typeof (string), "cstring").SetIsText ();
-			this.RegType = AddPgCatalogType (typeof (uint), "regtype");
+			this.Text = AddPgCatalogType (TypeLikeStatic.String, "text").SetIsText ();
+			this.Char = AddPgCatalogType (TypeLikeStatic.String, "char", "character").SetIsText ();
+			this.VarChar = AddPgCatalogType (TypeLikeStatic.String, "varchar", "character varying").SetIsText ();
+			this.BpChar = AddPgCatalogType (TypeLikeStatic.String, "bpchar").SetIsText ();
+			this.Name = AddPgCatalogType (TypeLikeStatic.String, "name").SetIsText ();
+			this.CString = AddPgCatalogType (TypeLikeStatic.String, "cstring").SetIsText ();
+			this.RegType = AddPgCatalogType (TypeLikeStatic.UInt, "regtype");
 		}
 
 		public void AdoptSchemaOrder (List<string> SchemaOrder)

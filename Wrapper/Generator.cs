@@ -69,7 +69,7 @@ namespace Wrapper
 			Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap = new Dictionary<string, TypeMapping<TSqlType, TColumn>> ();
 			foreach (var p in DbTypeMap.Map.Where (p => !p.Value.IsArray))
 			{
-				if (ClrType.Map.TryGetValue (p.Value.ClrType, out var ct))
+				if (ClrType.Map.TryGetValue (p.Value.TypeLike.UniqueName, out var ct))
 				{
 					TypeMap.Add (p.Key, ct, p.Value);
 
@@ -103,7 +103,7 @@ namespace Wrapper
 					TypeLike TypeLike = new TypeLike (t.Value.ReportedType.MapTo,
 						IsValueType: t.Value.ReportedType.GenerateEnum);
 					t.Value.CoreTypeLike = TypeLike;
-					TypeMap[t.Value.SqlTypeName + "[]"].CoreTypeLike = TypeLike.MakeArray ();
+					TypeMap[t.Value.SqlTypeName + "[]"].CoreTypeLike = TypeLike.ArrayType;
 				}
 			}
 

@@ -23,7 +23,10 @@ public class TypeLike
 	public bool IsEnum => EnumValues.Length > 0;
 	public EnumValue[] EnumValues { get; }
 	public bool IsValueType { get; }
+
 	public bool IsArray { get; }
+	protected Lazy<TypeLike> ArrayTypeImpl { get; }
+	public TypeLike ArrayType => ArrayTypeImpl.Value;
 
 	public TypeLike Core { get; }
 
@@ -188,6 +191,7 @@ public class TypeLike
 		);
 
 		this.IsArray = IsArray;
+		this.ArrayTypeImpl = new Lazy<TypeLike> (MakeArray);
 		this.ElementType = ElementType;
 		this.IsValueType = IsValueType;
 		this.IsForceNullable = IsForceNullable;
@@ -317,6 +321,7 @@ public class TypeLike
 		this.IsForceNullable = IsForceNullable || ClrType.IsNullableT ();
 		this.ElementType = ElementType;
 		this.IsArray = ClrType.IsArray;
+		this.ArrayTypeImpl = new Lazy<TypeLike> (MakeArray);
 
 		if (ElementType == null)
 		{
@@ -395,6 +400,7 @@ public class TypeLike
 
 		this.IsForceNullable = NullabilityInfo.WriteState == NullabilityState.Nullable;
 		this.IsArray = this.ClrType.IsArray;
+		this.ArrayTypeImpl = new Lazy<TypeLike> (MakeArray);
 		this.ElementType = NullabilityInfo.ElementType == null ? null : new TypeLike (NullabilityInfo.ElementType);
 
 		//

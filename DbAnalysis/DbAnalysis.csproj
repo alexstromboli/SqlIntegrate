@@ -10,4 +10,16 @@
       <PackageReference Include="Sprache" Version="2.3.1" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Include="..\CodeTypes\CodeContext.cs">
+        <Link>CodeTypes\CodeContext.cs</Link>
+      </Compile>
+      <Compile Include="..\CodeTypes\TypeLike.cs">
+        <Link>CodeTypes\TypeLike.cs</Link>
+      </Compile>
+      <Compile Include="..\CodeTypes\TypeLikeUtils.cs">
+        <Link>CodeTypes\TypeLikeUtils.cs</Link>
+      </Compile>
+    </ItemGroup>
+
 </Project>
