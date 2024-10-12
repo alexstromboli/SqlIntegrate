@@ -1214,6 +1214,38 @@
             {
               "Name": "case",
               "Type": "varchar"
+            },
+            {
+              "Name": "r1",
+              "Type": "bool"
+            },
+            {
+              "Name": "r2",
+              "Type": "bool"
+            },
+            {
+              "Name": "r3",
+              "Type": "bool"
+            },
+            {
+              "Name": "r4",
+              "Type": "bool"
+            },
+            {
+              "Name": "r5",
+              "Type": "bool"
+            },
+            {
+              "Name": "r6",
+              "Type": "bool"
+            },
+            {
+              "Name": "r7",
+              "Type": "bool"
+            },
+            {
+              "Name": "r8",
+              "Type": "bool"
             }
           ]
         },

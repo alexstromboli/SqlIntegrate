@@ -570,7 +570,15 @@ BEGIN
             50::money * 6.1 AS "money 2",
             (with rooms as (select id::bigint as name from rooms order by id) select array_agg(name) from rooms)[2],     -- array_agg bigint
             (select array_agg(name) from rooms)[2] array_agg_2,     -- array_agg_2 varchar
-            CASE WHEN 6 * ( 2 + 3 ) betWEEN 1 and 6 THEN 'test' WHEN 6 > 5 THEN 'done' ELSE 'none' END  -- "case" varchar
+            CASE WHEN 6 * ( 2 + 3 ) betWEEN 1 and 6 THEN 'test' WHEN 6 > 5 THEN 'done' ELSE 'none' END,  -- "case" varchar
+            'test' ~*   'e' AS r1,
+            'test' ~    'e' AS r2,
+            'test' !~*  'e' AS r3,
+            'test' !~   'e' AS r4,
+            'test' ~~*  'e' AS r5,
+            'test' ~~   'e' AS r6,
+            'test' !~~* 'e' AS r7,
+            'test' !~~  'e' AS r8
         ;
 
     OPEN nulls FOR

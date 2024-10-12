@@ -317,7 +317,15 @@ namespace DbAnalysis
 			var PBinaryExponentialOperatorsST = AnyTokenST ("^");
 
 			var PBinaryComparisonOperatorsST = AnyTokenST (
-				">=", ">", "<=", "<>", "<", "=", "!="
+				">=", ">", "<=", "<>", "<", "=", "!=",
+				"!~*",
+				"!~~*",
+				"!~~",
+				"!~",
+				"~~*",
+				"~~",
+				"~*",
+				"~"
 				);
 
 			var PBinaryJsonOperatorsST = AnyTokenST (

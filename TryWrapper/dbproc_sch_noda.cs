@@ -1442,6 +1442,14 @@ namespace Generated
 			public long? array_agg;
 			public string array_agg_2;
 			public string _case;
+			public bool? r1;
+			public bool? r2;
+			public bool? r3;
+			public bool? r4;
+			public bool? r5;
+			public bool? r6;
+			public bool? r7;
+			public bool? r8;
 		}
 
 		public class get_value_types_Result_nulls
@@ -1556,7 +1564,15 @@ namespace Generated
 									money_2 = Rdr["money 2"] as decimal?,
 									array_agg = Rdr["array_agg"] as long?,
 									array_agg_2 = Rdr["array_agg_2"] as string,
-									_case = Rdr["case"] as string
+									_case = Rdr["case"] as string,
+									r1 = Rdr["r1"] as bool?,
+									r2 = Rdr["r2"] as bool?,
+									r3 = Rdr["r3"] as bool?,
+									r4 = Rdr["r4"] as bool?,
+									r5 = Rdr["r5"] as bool?,
+									r6 = Rdr["r6"] as bool?,
+									r7 = Rdr["r7"] as bool?,
+									r8 = Rdr["r8"] as bool?
 								};
 							}
 						}
