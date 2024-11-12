@@ -1246,6 +1246,10 @@
             {
               "Name": "r8",
               "Type": "bool"
+            },
+            {
+              "Name": "array_overlap",
+              "Type": "bool"
             }
           ]
         },

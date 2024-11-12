@@ -332,6 +332,10 @@ namespace DbAnalysis
 				"->>", "->", "#>>", "#>"
 			);
 
+			var PArrayOperatorsST = AnyTokenST (
+				"&&"
+			);
+
 			var PBinaryRangeOperatorsST = AnyTokenST (
 				"like", "ilike"
 			);
@@ -737,6 +741,8 @@ namespace DbAnalysis
 						.Or (PBinaryConjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.And, true,
 							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool), IsAnd: true)))
 						.Or (PBinaryDisjunctionST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Or, true,
+							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool))))
+						.Or (PArrayOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.ArrayOverlap, true,
 							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.General, true,

@@ -6,6 +6,7 @@ namespace DbAnalysis
 		Or,
 		And,
 		Not,
+		ArrayOverlap,
 		Is,
 		Comparison,
 		Like,

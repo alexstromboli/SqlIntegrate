@@ -1450,6 +1450,7 @@ namespace Generated
 			public bool? r6;
 			public bool? r7;
 			public bool? r8;
+			public bool? array_overlap;
 		}
 
 		public class get_value_types_Result_nulls
@@ -1572,7 +1573,8 @@ namespace Generated
 									r5 = Rdr["r5"] as bool?,
 									r6 = Rdr["r6"] as bool?,
 									r7 = Rdr["r7"] as bool?,
-									r8 = Rdr["r8"] as bool?
+									r8 = Rdr["r8"] as bool?,
+									array_overlap = Rdr["array_overlap"] as bool?
 								};
 							}
 						}

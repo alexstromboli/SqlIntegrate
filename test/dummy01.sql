@@ -578,7 +578,8 @@ BEGIN
             'test' ~~*  'e' AS r5,
             'test' ~~   'e' AS r6,
             'test' !~~* 'e' AS r7,
-            'test' !~~  'e' AS r8
+            'test' !~~  'e' AS r8,
+            ARRAY[5, 9] && ARRAY[4, 5] AND 9 > 5 AS array_overlap
         ;
 
     OPEN nulls FOR
