@@ -84,6 +84,11 @@ namespace DbAnalysis
 			);
 		}
 
+		public static Parser<Sourced<string>> Futile<I> (this Parser<I> Inner)
+		{
+			return Inner.Return (new Sourced<string> (default, null));
+		}
+
 		public static Parser<IEnumerable<T>> CommaDelimitedST<T> (this Parser<T> Inner, bool CanBeEmpty = false)
 		{
 			var Result = Inner.DelimitedBy (Parse.Char (',').SqlToken ());

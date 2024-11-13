@@ -1242,6 +1242,19 @@ namespace DbAnalysis
 											from _3 in PExpressionRefST.Get.CommaDelimitedST (true).InParentsST ()
 											select 0
 										)
+										.Or
+										(
+											from _1 in SqlToken ("fetch")
+											from _2 in AnyTokenST ("next", "prior", "first", "last", "all")
+												.Or (PExpressionRefST.Get.Futile ())	// count
+												.Or (AnyTokenST ("absolute", "relative").Then (w => PExpressionRefST.Get.Futile ()))
+												.Or (AnyTokenST ("forward", "backward").Then (w => PInteger.SqlToken ().Or (SqlToken ("all")).Optional ().Futile () ))
+											from _3 in AnyTokenST ("from", "in")
+											from _4 in PColumnNameLST
+											from _5 in AnyTokenST ("into")
+											from _6 in PColumnNameLST
+											select 0
+										)
 										.Or (GetCase (PInstructionRefST.Get).Return (0))
 										.Select (n => DataReturnStatement.VoidStatement)
 									)

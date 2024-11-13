@@ -779,6 +779,8 @@ DECLARE
     fake int;
     t varchar(20);
     i int;
+    rec record;
+    src refcursor;
 BEGIN
     INSERT INTO VoidThings (category, height, stub)
     VALUES ('empty', 2, default);
@@ -864,6 +866,15 @@ BEGIN
         INSERT INTO VoidThings (category, height)
         VALUES ('trust', i * 11 + 6);
     END LOOP;
+
+    FETCH LAST FROM src INTO rec;
+    /*
+    FETCH FORWARD FROM src INTO rec;
+    FETCH FORWARD 1 FROM src INTO rec;
+    FETCH FORWARD 1+1 FROM src INTO rec;
+    FETCH FORWARD ALL FROM src INTO rec;
+    FETCH ALL FROM src INTO rec;
+    */
 END;
 $$;
 
