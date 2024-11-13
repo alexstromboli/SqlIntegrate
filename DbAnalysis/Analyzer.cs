@@ -899,8 +899,8 @@ namespace DbAnalysis
 				).Optional ()
 				;
 
-			var POrdinarySelectST =
-					from kw_select in SqlToken ("select")
+			var POrdinarySelectSTFunc = (string action) =>
+					from kw_select in SqlToken (action)
 					from distinct in
 					(
 						from _1 in SqlToken ("distinct")
@@ -932,24 +932,38 @@ namespace DbAnalysis
 					select new OrdinarySelect (list, from_cl)
 				;
 
+			var POrdinarySelectST = POrdinarySelectSTFunc ("select");
+
+			var PSelectTailOptionalST =
+			(
+				from ord in POrderByClauseOptionalST
+				from limit in
+				(
+					from kw in SqlToken ("limit")
+					from size in PExpressionRefST.Get.Return (0)
+						.Or (SqlToken ("limit").Return (0))
+					select 0
+				).Optional ()
+				from offset in
+				(
+					from kw in SqlToken ("offset")
+					from size in PExpressionRefST.Get
+					select 0
+				).Optional ()
+				select 0
+			).Optional ();
+
+			var PPerformST =
+					from p in POrdinarySelectSTFunc ("perform")
+					from t in PSelectTailOptionalST
+					select 0
+				;
+
 			var PSelectST =
 					from seq in POrdinarySelectST
 						.DelimitedBy (AnyTokenST ("union all", "union", "except", "subtract"))
 						.Select (ss => ss.ToArray ())
-					from ord in POrderByClauseOptionalST
-					from limit in
-					(
-						from kw in SqlToken ("limit")
-						from size in PExpressionRefST.Get.Return (0)
-							.Or (SqlToken ("limit").Return (0))
-						select 0
-					).Optional ()
-					from offset in
-					(
-						from kw in SqlToken ("offset")
-						from size in PExpressionRefST.Get
-						select 0
-					).Optional ()
+					from tail in PSelectTailOptionalST
 					select new SelectStatement (seq[0].List, seq[0].FromClause.GetOrDefault ())
 				;
 
@@ -1255,6 +1269,7 @@ namespace DbAnalysis
 											from _6 in PColumnNameLST
 											select 0
 										)
+										.Or (PPerformST)
 										.Or (GetCase (PInstructionRefST.Get).Return (0))
 										.Select (n => DataReturnStatement.VoidStatement)
 									)

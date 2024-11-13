@@ -220,6 +220,14 @@ BEGIN
         LEFT JOIN Rooms VALUES ON VALUES.id = Own.id_room
     ORDER BY P.lastname
     ;
+
+    PERFORM now()
+    FROM ext.Persons AS P
+        LEFT JOIN Own ON Own.id_person = P.id
+        LEFT JOIN Rooms VALUES ON VALUES.id = Own.id_room
+    ORDER BY P.lastname
+    LIMIT 3 OFFSET 2
+    ;
 END;
 $$;
 
