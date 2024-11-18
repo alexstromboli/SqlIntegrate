@@ -480,10 +480,22 @@ namespace DbAnalysis
 			var PUnnestST =
 					from f in AnyTokenST ("unnest")
 					from _1 in AnyTokenST ("(")
-					from exp in PExpressionRefST.Get.Span ()
+					from exp in PExpressionRefST.Get
 					from _3 in AnyTokenST (")")
 					select (Func<RequestContext, NamedTyped>)(rc =>
-						new NamedTyped (f, exp.Value.GetResult (rc).Type.Select (t => t.BaseType)))
+						new NamedTyped (f, exp.GetResult (rc).Type.Select (t => t.BaseType)))
+				;
+
+			var PCastST =
+					from f in AnyTokenST ("cast")
+					from _1 in AnyTokenST ("(")
+					from exp in PExpressionRefST.Get
+					from _as in AnyTokenST ("as")
+					from type in PTypeST
+					from _3 in AnyTokenST (")")
+					select (Func<RequestContext, NamedTyped>)(rc =>
+							exp.GetResult (rc).WithType (type.Value.key)
+						)
 				;
 
 			var PBaseAtomicST =
@@ -493,6 +505,7 @@ namespace DbAnalysis
 						.Or (PInteger.SqlToken ().ProduceType (DatabaseContext.TypeMap.Int))
 						.Or (PBooleanLiteralST.ProduceType (DatabaseContext.TypeMap.Bool))
 						.Or (PSingleQuotedString.SqlToken ().ProduceType (DatabaseContext.TypeMap.VarChar))
+						.Or (PCastST)
 						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
 						.Or (PFunctionCallST.Select<Sourced<string>[], Func<RequestContext, NamedTyped>> (p => rc =>

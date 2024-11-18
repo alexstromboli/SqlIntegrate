@@ -1579,6 +1579,14 @@
             {
               "Name": "status",
               "Type": "USER.app_status"
+            },
+            {
+              "Name": "redirect",
+              "Type": "varchar"
+            },
+            {
+              "Name": "compound",
+              "Type": "int"
             }
           ]
         },

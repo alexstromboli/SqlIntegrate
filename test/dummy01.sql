@@ -347,7 +347,9 @@ AS $$
                 sample,
                 sample::reAL,
                 sample + 45 AS "had it",
-                Persons.status
+                Persons.status,
+                CAST(2 as varchar(10)) || '&?' AS redirect,
+                CAST('5' || '7' as int) AS compound
         FROM ext.Persons
         WHERE id = id_person
         ;

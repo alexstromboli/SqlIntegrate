@@ -1864,6 +1864,8 @@ namespace Generated
 			public int? sample;
 			public int? had_it;
 			public string status;
+			public string redirect;
+			public int? compound;
 		}
 
 		public class roomsforperson_Result_res02
@@ -1949,7 +1951,9 @@ namespace Generated
 									piece = Rdr["piece"] as int?,
 									sample = Rdr["sample"] as int?,
 									had_it = Rdr["had it"] as int?,
-									status = Rdr["status"] as string
+									status = Rdr["status"] as string,
+									redirect = Rdr["redirect"] as string,
+									compound = Rdr["compound"] as int?
 								});
 							}
 						}
