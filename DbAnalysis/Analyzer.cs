@@ -578,6 +578,7 @@ namespace DbAnalysis
 						from _1 in SqlToken ("(")
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionRefST.Get
+						from ord in POrderByClauseOptionalST
 						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
 					)

@@ -287,6 +287,14 @@
             {
               "Name": "array_agg",
               "Type": "int[]"
+            },
+            {
+              "Name": "w1",
+              "Type": "int[]"
+            },
+            {
+              "Name": "w2",
+              "Type": "int[]"
             }
           ]
         },

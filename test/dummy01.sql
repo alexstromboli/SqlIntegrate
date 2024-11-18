@@ -452,7 +452,9 @@ BEGIN
 
     OPEN by_person FOR
     SELECT  id_person,
-            array_agg(id_room)
+            array_agg(id_room),
+            array_agg(DISTINCT id_room) AS w1,
+            array_agg(id_room ORDER BY id_room DESC) AS w2
     FROM Own
     GROUP BY id_person;
 

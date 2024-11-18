@@ -339,6 +339,8 @@ namespace Generated
 		{
 			public Guid? id_person;
 			public int[] array_agg;
+			public int[] w1;
+			public int[] w2;
 		}
 
 		public class get_array_Result_unnest
@@ -414,7 +416,9 @@ namespace Generated
 								Set.Add (new get_array_Result_by_person
 								{
 									id_person = Rdr["id_person"] as Guid?,
-									array_agg = Rdr["array_agg"] as int[]
+									array_agg = Rdr["array_agg"] as int[],
+									w1 = Rdr["w1"] as int[],
+									w2 = Rdr["w2"] as int[]
 								});
 							}
 						}
