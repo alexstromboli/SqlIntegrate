@@ -454,7 +454,7 @@ BEGIN
     SELECT  id_person,
             array_agg(id_room),
             array_agg(DISTINCT id_room) AS w1,
-            array_agg(id_room ORDER BY id_room DESC) AS w2
+            array_agg(id_room ORDER BY id_room DESC) FILTER (WHERE id_room != 8) AS w2
     FROM Own
     GROUP BY id_person;
 

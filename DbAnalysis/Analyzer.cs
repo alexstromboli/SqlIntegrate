@@ -508,6 +508,21 @@ namespace DbAnalysis
 						.Or (PSelectFirstColumnST)
 				;
 
+			var PWhereClauseST =
+					from kw_where in SqlToken ("where")
+					from cond in PExpressionRefST.Get
+					select 0
+				;
+
+			var PWhereClauseOptionalST = PWhereClauseST.Optional ();
+
+			var PFilterWhereClauseOptionalST =
+			(
+				from kw_filter in SqlToken ("filter")
+				from wh in PWhereClauseST.InParentsST ()
+				select 0
+			).Optional ();
+
 			var PAtomicST =
 					(
 						from rn in AnyTokenST ("row_number", "rank", "dense_rank")
@@ -520,6 +535,7 @@ namespace DbAnalysis
 						).Optional ()
 						from _5 in POrderByClauseOptionalST
 						from _6 in SqlToken (")")
+						// here: PFilterWhereClauseOptionalST?
 						select (Func<RequestContext, NamedTyped>)
 							(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
 					)
@@ -529,6 +545,7 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PExpressionRefST.Get
 						from _3 in SqlToken (")")
+						from filter in PFilterWhereClauseOptionalST
 						select (Func<RequestContext, NamedTyped>)(rc =>
 						{
 							var Result = exp.GetResult (rc);
@@ -570,6 +587,7 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SqlToken (")")
+						from filter in PFilterWhereClauseOptionalST
 						select (Func<RequestContext, NamedTyped>)(rc =>
 							new NamedTyped (f, DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
 					)
@@ -580,6 +598,7 @@ namespace DbAnalysis
 						from exp in PExpressionRefST.Get
 						from ord in POrderByClauseOptionalST
 						from _3 in SqlToken (")")
+						from filter in PFilterWhereClauseOptionalST
 						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
 					)
 					.Or (
@@ -889,14 +908,6 @@ namespace DbAnalysis
 						)
 						.Many ()
 					select t1.ToTrivialArray ().Concat (tail).ToArray ()
-				).Optional ()
-				;
-
-			var PWhereClauseOptionalST =
-				(
-					from kw_where in SqlToken ("where")
-					from cond in PExpressionRefST.Get
-					select 0
 				).Optional ()
 				;
 
