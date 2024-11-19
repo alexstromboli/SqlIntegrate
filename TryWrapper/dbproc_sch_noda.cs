@@ -351,11 +351,19 @@ namespace Generated
 			public string qw;
 		}
 
+		public class get_array_Result_second
+		{
+			public int? generate_series;
+			public int? w;
+		}
+
 		public class get_array_Result
 		{
 			public List<get_array_Result_names> names;
 			public List<get_array_Result_by_person> by_person;
 			public List<get_array_Result_unnest> unnest;
+			public List<LocalDateTime?> generate_series;
+			public List<get_array_Result_second> second;
 		}
 
 		public get_array_Result get_array ()
@@ -371,10 +379,12 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"get_array\" (@names, @by_person, @unnest);";
+					Cmd.CommandText = "call \"alexey\".\"get_array\" (@names, @by_person, @unnest, @generate_series, @second);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@names", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "names" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@by_person", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "by_person" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@unnest", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "unnest" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@generate_series", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "generate_series" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@second", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "second" });
 
 					await Cmd.ExecuteNonQueryAsync ();
 
@@ -448,6 +458,42 @@ namespace Generated
 						Result.unnest = Set;
 					}
 
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"generate_series\";";
+						List<LocalDateTime?> Set = new List<LocalDateTime?> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (Rdr["generate_series"] as LocalDateTime?);
+							}
+						}
+
+						Result.generate_series = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"second\";";
+						List<get_array_Result_second> Set = new List<get_array_Result_second> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_array_Result_second
+								{
+									generate_series = Rdr["generate_series"] as int?,
+									w = Rdr["w"] as int?
+								});
+							}
+						}
+
+						Result.second = Set;
+					}
+
 					using (var cmdClose = Conn.CreateCommand ())
 					{
 						cmdClose.CommandText = "CLOSE \"names\";";
@@ -463,6 +509,18 @@ namespace Generated
 					using (var cmdClose = Conn.CreateCommand ())
 					{
 						cmdClose.CommandText = "CLOSE \"unnest\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"generate_series\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"second\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 

@@ -436,7 +436,8 @@ END;
 $$;
 
 -- DROP PROCEDURE get_array;
-CREATE PROCEDURE get_array (INOUT names refcursor, INOUT by_person refcursor, INOUT "unnest" refcursor)
+CREATE PROCEDURE get_array (INOUT names refcursor, INOUT by_person refcursor, INOUT "unnest" refcursor, INOUT "generate_series" refcursor,
+    INOUT second refcursor)
 LANGUAGE 'plpgsql'
 AS $$
 BEGIN
@@ -467,6 +468,15 @@ BEGIN
             W.W AS QW   -- self-qualified name
     FROM unnest(array['X', 'Y']) W
     ;
+
+    OPEN "generate_series" FOR
+    SELECT  generate_series('2008-03-01 00:00'::timestamp,
+                              '2008-03-04 12:00', '10 hours'); -- unnamed (goes 'generate_series'), converted to rows
+
+    OPEN second FOR
+    SELECT  *
+    FROM generate_series(1, 10)
+        LEFT JOIN generate_series(31, 40) AS W ON true;
 END;
 $$;
 

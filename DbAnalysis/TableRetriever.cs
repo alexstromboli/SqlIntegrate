@@ -41,7 +41,7 @@ namespace DbAnalysis
 		}
 	}
 
-	public class UnnestTableRetriever : ITableRetriever
+	public class ExpandFunctionTableRetriever : ITableRetriever
 	{
 		public class Table : BasicTable
 		{
@@ -78,15 +78,31 @@ namespace DbAnalysis
 		public Sourced<string> FunctionName;
 		public Func<RequestContext, NamedTyped> Parameter;
 
-		public UnnestTableRetriever (Func<RequestContext, NamedTyped> Parameter, Sourced<string> FunctionName = null)
+		public ExpandFunctionTableRetriever (Func<RequestContext, NamedTyped> Parameter, Sourced<string> FunctionName)
 		{
-			this.FunctionName = FunctionName ?? "unnest".SourcedDefinition ();
+			this.FunctionName = FunctionName;
 			this.Parameter = Parameter;
 		}
 
 		public ITable GetTable (RequestContext Context, bool OnlyNamed = true)
 		{
 			return new Table (Parameter (Context).WithName (FunctionName));
+		}
+	}
+
+	public class UnnestTableRetriever : ExpandFunctionTableRetriever
+	{
+		public UnnestTableRetriever (Func<RequestContext, NamedTyped> Parameter, Sourced<string> FunctionName = null)
+		: base (Parameter, FunctionName ?? "unnest".SourcedDefinition ())
+		{
+		}
+	}
+
+	public class GenerateSeriesTableRetriever : ExpandFunctionTableRetriever
+	{
+		public GenerateSeriesTableRetriever (Func<RequestContext, NamedTyped> Parameter, Sourced<string> FunctionName = null)
+		: base (Parameter, FunctionName ?? "generate_series".SourcedDefinition ())
+		{
 		}
 	}
 }

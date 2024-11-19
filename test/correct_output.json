@@ -235,6 +235,16 @@
           "Name": "unnest",
           "Type": "refcursor",
           "IsOut": true
+        },
+        {
+          "Name": "generate_series",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "second",
+          "Type": "refcursor",
+          "IsOut": true
         }
       ],
       "ResultSets": [
@@ -317,6 +327,30 @@
             {
               "Name": "qw",
               "Type": "varchar"
+            }
+          ]
+        },
+        {
+          "Name": "generate_series",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "generate_series",
+              "Type": "timestamp"
+            }
+          ]
+        },
+        {
+          "Name": "second",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "generate_series",
+              "Type": "int"
+            },
+            {
+              "Name": "w",
+              "Type": "int"
             }
           ]
         }

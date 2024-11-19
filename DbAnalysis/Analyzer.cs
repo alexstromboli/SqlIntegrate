@@ -486,6 +486,15 @@ namespace DbAnalysis
 						new NamedTyped (f, exp.GetResult (rc).Type.Select (t => t.BaseType)))
 				;
 
+			var PGenerateSeriesST =
+					from f in AnyTokenST ("generate_series")
+					from _1 in AnyTokenST ("(")
+					from values in PExpressionRefST.Get.CommaDelimitedST ()
+					from _3 in AnyTokenST (")")
+					select (Func<RequestContext, NamedTyped>)(rc =>
+						new NamedTyped (f, values.First ().GetResult (rc).Type))
+				;
+
 			var PCastST =
 					from f in AnyTokenST ("cast")
 					from _1 in AnyTokenST ("(")
@@ -620,6 +629,7 @@ namespace DbAnalysis
 						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
 					)
 					.Or (PUnnestST)
+					.Or (PGenerateSeriesST)
 					.Or (
 						from f in SqlToken ("coalesce")
 						from _1 in SqlToken ("(")
@@ -882,6 +892,8 @@ namespace DbAnalysis
 					(
 						PUnnestST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p =>
 								new UnnestTableRetriever (p))
+							.Or (PGenerateSeriesST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p =>
+								new GenerateSeriesTableRetriever (p)))
 							// or-ed after unnest
 							.Or (PFunctionCallST.Select (qi => new NamedTableRetriever (qi.Values ()) // stub
 							))
