@@ -897,6 +897,11 @@
           "Name": "delete_result_1",
           "Type": "refcursor",
           "IsOut": true
+        },
+        {
+          "Name": "update_result_1",
+          "Type": "refcursor",
+          "IsOut": true
         }
       ],
       "ResultSets": [
@@ -940,6 +945,24 @@
           "Name": "delete_result_1",
           "Comments": [],
           "Columns": [
+            {
+              "Name": "id_person",
+              "Type": "uuid"
+            },
+            {
+              "Name": "id_room",
+              "Type": "int"
+            }
+          ]
+        },
+        {
+          "Name": "update_result_1",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "ok_done",
+              "Type": "int"
+            },
             {
               "Name": "id_person",
               "Type": "uuid"

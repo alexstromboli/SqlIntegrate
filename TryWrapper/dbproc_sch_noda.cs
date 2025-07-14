@@ -1126,11 +1126,19 @@ namespace Generated
 			public int? id_room;
 		}
 
+		public class get_returning_Result_update_result_1
+		{
+			public int? ok_done;
+			public Guid? id_person;
+			public int? id_room;
+		}
+
 		public class get_returning_Result
 		{
 			public List<get_returning_Result_insert_result_1> insert_result_1;
 			public List<get_returning_Result_insert_result_2> insert_result_2;
 			public List<get_returning_Result_delete_result_1> delete_result_1;
+			public List<get_returning_Result_update_result_1> update_result_1;
 		}
 
 		public get_returning_Result get_returning ()
@@ -1146,10 +1154,11 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"get_returning\" (@insert_result_1, @insert_result_2, @delete_result_1);";
+					Cmd.CommandText = "call \"alexey\".\"get_returning\" (@insert_result_1, @insert_result_2, @delete_result_1, @update_result_1);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@insert_result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "insert_result_1" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@insert_result_2", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "insert_result_2" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@delete_result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "delete_result_1" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@update_result_1", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "update_result_1" });
 
 					await Cmd.ExecuteNonQueryAsync ();
 
@@ -1215,6 +1224,27 @@ namespace Generated
 						Result.delete_result_1 = Set;
 					}
 
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"update_result_1\";";
+						List<get_returning_Result_update_result_1> Set = new List<get_returning_Result_update_result_1> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_returning_Result_update_result_1
+								{
+									ok_done = Rdr["ok_done"] as int?,
+									id_person = Rdr["id_person"] as Guid?,
+									id_room = Rdr["id_room"] as int?
+								});
+							}
+						}
+
+						Result.update_result_1 = Set;
+					}
+
 					using (var cmdClose = Conn.CreateCommand ())
 					{
 						cmdClose.CommandText = "CLOSE \"insert_result_1\";";
@@ -1230,6 +1260,12 @@ namespace Generated
 					using (var cmdClose = Conn.CreateCommand ())
 					{
 						cmdClose.CommandText = "CLOSE \"delete_result_1\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"update_result_1\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 

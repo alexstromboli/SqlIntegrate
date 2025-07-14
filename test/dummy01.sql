@@ -905,7 +905,8 @@ CREATE PROCEDURE get_returning
 (
     INOUT insert_result_1 refcursor,
     INOUT insert_result_2 refcursor,
-    INOUT delete_result_1 refcursor
+    INOUT delete_result_1 refcursor,
+    INOUT update_result_1 refcursor
 )
 LANGUAGE 'plpgsql'
 AS $$
@@ -930,6 +931,13 @@ BEGIN
     DELETE FROM Own
     WHERE id_person = '4ef2fcf9-8f5b-41c3-8127-1a1c464bb10a'
     RETURNING *
+    ;
+
+    OPEN update_result_1 FOR
+    UPDATE Own
+    SET id_person = '4ef2fcf9-8f5b-41c3-8127-1a1c464bb10a'
+    WHERE id_person = '4ef2fcf9-8f5b-41c3-8127-1a1c464bb10a'
+    RETURNING 1 AS ok_done, *
     ;
 END;
 $$;

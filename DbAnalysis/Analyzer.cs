@@ -1091,6 +1091,35 @@ namespace DbAnalysis
 						: null
 				;
 
+			var PUpdateFullST =
+					// update
+					from cte in PCteTopOptionalST
+					from _1 in SqlToken ("update")
+					from table_name in PQualifiedIdentifierLST
+					from al in PTableAliasClauseOptionalST ("set".ToTrivialArray ())
+					from _3 in SqlToken ("set")
+					from _4 in
+					(
+						from _1 in PQualifiedIdentifierLST
+						from _2 in SqlToken ("=")
+						from _3 in PExpressionRefST.Get
+						select 0
+					).CommaDelimitedST ().AtLeastOnce ()
+					from _5 in PFromClauseOptionalST
+					from _6 in PWhereClauseOptionalST
+					from returning in
+					(
+						from _1 in SqlToken ("returning")
+						from _sel in PSelectListST
+						select _sel
+					).Optional ()
+					select returning.IsDefined
+						? new FullSelectStatement (null,
+							new SelectStatement (returning.Get (),
+								new FromTableExpression (new NamedTableRetriever (table_name.Values ()), null).ToTrivialArray ()))
+						: null
+				;
+
 			var POpenDatasetST =
 					from kw_open in SqlToken ("open")
 					from name in PColumnNameLST
@@ -1102,6 +1131,7 @@ namespace DbAnalysis
 
 			var PFullReturnableST = PSelectFullST
 				.Or (PInsertFullST)
+				.Or (PUpdateFullST)
 				.Or (PDeleteFullST);
 
 			var PDataReturnStatementST =
@@ -1241,25 +1271,7 @@ namespace DbAnalysis
 										.Or (SqlToken ("null").Return (0))
 										.Or (PInsertFullST.Return (0))
 										.Or (PDeleteFullST.Return (0))
-										.Or
-										(
-											// update
-											from cte in PCteTopOptionalST
-											from _1 in SqlToken ("update")
-											from _2 in PQualifiedIdentifierLST
-											from al in PTableAliasClauseOptionalST ("set".ToTrivialArray ())
-											from _3 in SqlToken ("set")
-											from _4 in
-											(
-												from _1 in PQualifiedIdentifierLST
-												from _2 in SqlToken ("=")
-												from _3 in PExpressionRefST.Get
-												select 0
-											).CommaDelimitedST ().AtLeastOnce ()
-											from _5 in PFromClauseOptionalST
-											from _6 in PWhereClauseOptionalST
-											select 0
-										)
+										.Or (PUpdateFullST.Return (0))
 										.Or (
 											// https://www.postgresql.org/docs/current/plpgsql-errors-and-messages.html
 											from _r in SqlToken ("raise")
