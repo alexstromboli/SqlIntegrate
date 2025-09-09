@@ -171,6 +171,8 @@ namespace Generated
 			public string lastname;
 			public double? input;
 			public long? count;
+			public long? count_test;
+			public long? over_test;
 			public LocalDate? first;
 			public string use_quotes;
 		}
@@ -237,6 +239,8 @@ namespace Generated
 									lastname = Rdr["lastname"] as string,
 									input = Rdr["input"] as double?,
 									count = Rdr["count"] as long?,
+									count_test = Rdr["count_test"] as long?,
+									over_test = Rdr["over_test"] as long?,
 									first = Rdr["first"] as LocalDate?,
 									use_quotes = Rdr["use_quotes"] as string
 								});

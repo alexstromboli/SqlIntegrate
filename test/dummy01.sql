@@ -1014,6 +1014,8 @@ BEGIN
             ext.Persons.lastname,
             SUM(FILTERED.input * coef) AS input,
             COUNT(FILTERED.input),
+            COUNT(*) AS count_test,
+            COUNT(*) OVER() AS over_test,
             FIRST.date "first",
             FIRST."use ""quotes"" """"" use_quotes
     FROM ext.Persons

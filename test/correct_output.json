@@ -150,6 +150,14 @@
               "Type": "bigint"
             },
             {
+              "Name": "count_test",
+              "Type": "bigint"
+            },
+            {
+              "Name": "over_test",
+              "Type": "bigint"
+            },
+            {
               "Name": "first",
               "Type": "date"
             },

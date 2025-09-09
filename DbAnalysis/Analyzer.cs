@@ -586,6 +586,7 @@ namespace DbAnalysis
 											Result = Result.WithType (DatabaseContext.TypeMap.Decimal);
 											break;
 									}
+
 									break;
 
 								case "avg":
@@ -597,6 +598,7 @@ namespace DbAnalysis
 											Result = Result.WithType (DatabaseContext.TypeMap.Decimal);
 											break;
 									}
+
 									break;
 							}
 
@@ -609,6 +611,18 @@ namespace DbAnalysis
 						from _2 in SqlToken ("distinct").Optional ()
 						from exp in PAsteriskSelectEntryST.Return (0).Or (PExpressionRefST.Get.Return (0))
 						from _3 in SqlToken (")")
+						from _8 in
+						(
+							from _4 in AnyTokenST ("over (")
+							from _5 in
+							(
+								from _6 in AnyTokenST ("partition by")
+								from _7 in PExpressionRefST.Get.CommaDelimitedST ()
+								select 0
+							).Optional ()
+							from _9 in SqlToken (")")
+							select 0
+						).Optional ()
 						from filter in PFilterWhereClauseOptionalST
 						select (Func<RequestContext, NamedTyped>)(rc =>
 							new NamedTyped (f, DatabaseContext.TypeMap.BigInt.SourcedCalculated (f)))
@@ -650,7 +664,8 @@ namespace DbAnalysis
 						let type = kw.Value.GetExpressionType ()
 						where type != null
 						select (Func<RequestContext, NamedTyped>)(rc =>
-							new NamedTyped (kw, DatabaseContext.GetTypeForName ("pg_catalog", type).SourcedCalculated (kw)))
+							new NamedTyped (kw,
+								DatabaseContext.GetTypeForName ("pg_catalog", type).SourcedCalculated (kw)))
 					)
 					.Or (
 						(
@@ -674,7 +689,7 @@ namespace DbAnalysis
 						from case_c in GetCase (PExpressionRefST.Get)
 						select (Func<RequestContext, NamedTyped>)(rc => new NamedTyped (
 							case_c.ElseC.GetOrDefault ()?.Value.GetResult (rc).Name
-								?? case_c.CaseH,
+							?? case_c.CaseH,
 							case_c.Branches.First ().Value.GetResult (rc).Type
 						))
 					)
