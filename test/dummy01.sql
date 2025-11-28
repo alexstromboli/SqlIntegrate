@@ -218,6 +218,7 @@ BEGIN
     FROM ext.Persons AS P
         LEFT JOIN Own ON Own.id_person = P.id
         LEFT JOIN Rooms VALUES ON VALUES.id = Own.id_room
+        LEFT JOIN LATERAL (SELECT 1 AS yup) AS R1 ON TRUE
     ORDER BY P.lastname
     ;
 

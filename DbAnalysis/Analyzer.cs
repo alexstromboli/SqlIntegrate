@@ -936,6 +936,7 @@ namespace DbAnalysis
 							from kw_joinN in AnyTokenST ("join", "inner join", "left join", "right join", "full join",
 								"left outer join", "right outer join", "full outer join"
 								)
+							from lat in SqlToken ("lateral").Optional ()
 							from tN in PFromTableExpressionST
 							from kw_onN in SqlToken ("on")
 							from condexpN in PExpressionRefST.Get
