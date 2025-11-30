@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Sprache;
 
 using Utils;
+using DbAnalysis.Cache;
 using DbAnalysis.Sources;
 using DbAnalysis.Datasets;
 
@@ -1457,6 +1458,11 @@ namespace DbAnalysis
 
 		public Module Run ()
 		{
+			return Run (new VoidCache (), null);
+		}
+
+		public Module Run (IProcedureStateCache Cache, string DatabaseDataLayoutHash)
+		{
 			bool IsDebugging = false;
 			if (IsDebugging)
 			{
@@ -1498,6 +1504,20 @@ namespace DbAnalysis
 				{
 					// here: handle table types
 					Console.WriteLine ($"{proc.Name} failed: unknown argument type");
+					continue;
+				}
+
+				// Calculate procedure hash and check cache
+				string ProcedureHash = HashUtils.ComputeProcedureHash (proc);
+				string ProcKey = DatabaseDataLayoutHash != null
+					? HashUtils.ComputeProcKey (DatabaseDataLayoutHash, ProcedureHash)
+					: null;
+
+				if (ProcKey != null && Cache.TryGet (ProcKey, out Datasets.Procedure CachedProcedure))
+				{
+					// Restore PSqlType references for cached procedure
+					RestorePSqlTypes (CachedProcedure);
+					ModuleReport.Procedures.Add (CachedProcedure);
 					continue;
 				}
 
@@ -1585,6 +1605,12 @@ namespace DbAnalysis
 						}
 					}
 
+					// Store in cache
+					if (ProcKey != null)
+					{
+						Cache.Store (ProcKey, ProcedureReport);
+					}
+
 					ModuleReport.Procedures.Add (ProcedureReport);
 				}
 				catch (Exception ex)
@@ -1653,6 +1679,29 @@ namespace DbAnalysis
 				;
 
 			return ModuleReport;
+		}
+
+		protected void RestorePSqlTypes (Datasets.Procedure Procedure)
+		{
+			// Restore PSqlType references from Type strings after cache deserialization
+			foreach (var arg in Procedure.Arguments)
+			{
+				if (arg.PSqlType == null && !string.IsNullOrEmpty (arg.Type))
+				{
+					arg.PSqlType = DatabaseContext.TypeMap.GetTypeForName (arg.Type);
+				}
+			}
+
+			foreach (var rs in Procedure.ResultSets)
+			{
+				foreach (var col in rs.Columns)
+				{
+					if (col.PSqlType == null && !string.IsNullOrEmpty (col.Type))
+					{
+						col.PSqlType = DatabaseContext.TypeMap.GetTypeForName (col.Type);
+					}
+				}
+			}
 		}
 	}
 }
