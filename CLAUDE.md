@@ -60,7 +60,8 @@ PostgreSQL Database → ReadDatabase.LoadContext() → Analyzer (DbAnalysis)
 - Generic type parameters prefixed with T (e.g., `TSqlType`, `TProcedure`)
 - Small scope variables may use short lowercase names
 - Always put a space between method name and opening brace after it.
-- Always take instruction blocks in curly braces even if they are just one instruction (like following 'if', 'while', 'for', etc).
+- Always take instruction blocks in curly braces even if they are just one instruction (like blocks following 'if', 'while', 'for', etc).
+- Always use Unix line ends (LF) in all text files.
 
 ## Shortcuts for Commands
 

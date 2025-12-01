@@ -1613,9 +1613,13 @@ namespace DbAnalysis
 
 					ModuleReport.Procedures.Add (ProcedureReport);
 				}
+				catch (ParseException ex)
+				{
+					Console.WriteLine ($"Parsing failed at procedure \"{proc.Name}\": {ex.Message}");
+				}
 				catch (Exception ex)
 				{
-					Console.WriteLine ($"{proc.Name} failed: {ex.Message}");
+					Console.WriteLine ($"Unknown issue at procedure \"{proc.Name}\": {ex.Message}");
 				}
 			}
 

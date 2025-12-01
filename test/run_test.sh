@@ -18,7 +18,7 @@ fi
 export OUTPUT_JSON_FILE="$(realpath temp_"$(tr -dc a-f0-9 </dev/urandom | dd bs=32 count=1 2>/dev/null)".json)"
 # path /var/run/postgresql is taken from section unix_socket_directories
 # of /etc/postgresql/12/main/postgresql.conf
-../ParseProcs/bin/Debug/net8.0/ParseProcs "host=/var/run/postgresql;database=$DBNAME;Integrated Security=true" "$OUTPUT_JSON_FILE"
+../ParseProcs/bin/Debug/net8.0/ParseProcs --no-cache "host=/var/run/postgresql;database=$DBNAME;Integrated Security=true" "$OUTPUT_JSON_FILE"
 
 if [ -f "$OUTPUT_JSON_FILE" ]; then
     sed -i "s/\"Name\": \"indirectly_used_enum\",/\"Name\": \"indirectly_used_enum\", \"GenerateEnum\": true,/g" "$OUTPUT_JSON_FILE"
