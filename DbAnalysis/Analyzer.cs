@@ -17,6 +17,14 @@ namespace DbAnalysis
 
 	public record SProcedure (NamedTyped[] vars, SStatement[] body);
 
+	public class AmbiguityException : Exception
+	{
+		public AmbiguityException (string Procedure, string ResultSetName, IEnumerable<string> ColumnNames)
+			: base ($"Ambiguity in procedure \"{Procedure}\": in result set \"{ResultSetName}\" these columns are defined multiple times: {string.Join (", ", ColumnNames.Select (s => '"' + s + '"'))}.")
+		{
+		}
+	}
+
 	public class Analyzer
 	{
 		protected DatabaseContext DatabaseContext;
@@ -1576,6 +1584,12 @@ namespace DbAnalysis
 						{
 							NamedDataReturn Set = st.DataReturnStatement.GetResult (rcProc);
 
+							if (Set.Table.Ambiguities.Count > 0)
+							{
+								throw new AmbiguityException (proc.Name, Set.Name ?? "???",
+									Set.Table.Ambiguities);
+							}
+
 							ResultSet ResultSetReport;
 							if (ResultSetsDict.TryGetValue (Set.Name, out ResultSetReport))
 							{
@@ -1612,6 +1626,10 @@ namespace DbAnalysis
 					}
 
 					ModuleReport.Procedures.Add (ProcedureReport);
+				}
+				catch (AmbiguityException ex)
+				{
+					Console.WriteLine (ex.Message);
 				}
 				catch (ParseException ex)
 				{

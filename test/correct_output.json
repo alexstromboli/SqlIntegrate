@@ -876,6 +876,10 @@
               "Type": "bool"
             },
             {
+              "Name": "t4",
+              "Type": "bool"
+            },
+            {
               "Name": "t3",
               "Type": "bool"
             },
@@ -1635,7 +1639,7 @@
             },
             {
               "Name": "sample",
-              "Type": "int"
+              "Type": "real"
             },
             {
               "Name": "had it",

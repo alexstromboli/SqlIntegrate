@@ -80,7 +80,13 @@ namespace DbAnalysis
 			Table Result = new Table (Name);
 			foreach (var nt in List (NewContext))
 			{
-				if (nt.Name != null && !FoundNames.Contains (nt.Name.Value))
+				bool NameExists = nt.Name != null && FoundNames.Contains (nt.Name.Value);
+				if (NameExists)
+				{
+					Result.AmbiguitiesImpl.Add (nt.Name.Value);
+				}
+
+				if (nt.Name != null && !NameExists)
 				{
 					FoundNames.Add (nt.Name.Value);
 					Result.AddColumn (nt);

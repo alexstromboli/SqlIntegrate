@@ -345,7 +345,7 @@ AS $$
                 tab_num,
                 '{5, 8, 2, 0, 1}'::int[] AS them_all,
                 ('{5, 8, 2, 0, 1}'::int [/* inside */ ] )[3] AS piece,
-                sample,
+                --sample,
                 sample::reAL,
                 sample + 45 AS "had it",
                 Persons.status,
@@ -786,7 +786,7 @@ BEGIN
     -- # 1
     SELECT  5 > all(array[2, 1, 4]) AS t1,
             10 > any(select id from rooms) as t2,
-            10 > some(select id from rooms) as t2,
+            10 > some(select id from rooms) as t4,
             2 IN (select id from rooms) as t3,
             - 5 - - - - 11 sum  -- no 'as', and unary minuses
     ;

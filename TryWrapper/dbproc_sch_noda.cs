@@ -1048,6 +1048,7 @@ namespace Generated
 		{
 			public bool? t1;
 			public bool? t2;
+			public bool? t4;
 			public bool? t3;
 			public int? sum;
 		}
@@ -1083,6 +1084,7 @@ namespace Generated
 								{
 									t1 = Rdr["t1"] as bool?,
 									t2 = Rdr["t2"] as bool?,
+									t4 = Rdr["t4"] as bool?,
 									t3 = Rdr["t3"] as bool?,
 									sum = Rdr["sum"] as int?
 								};
@@ -1959,7 +1961,7 @@ namespace Generated
 			public long? tab_num;
 			public int[] them_all;
 			public int? piece;
-			public int? sample;
+			public float? sample;
 			public int? had_it;
 			public string status;
 			public string redirect;
@@ -2047,7 +2049,7 @@ namespace Generated
 									tab_num = Rdr["tab_num"] as long?,
 									them_all = Rdr["them_all"] as int[],
 									piece = Rdr["piece"] as int?,
-									sample = Rdr["sample"] as int?,
+									sample = Rdr["sample"] as float?,
 									had_it = Rdr["had it"] as int?,
 									status = Rdr["status"] as string,
 									redirect = Rdr["redirect"] as string,

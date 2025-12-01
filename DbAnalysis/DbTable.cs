@@ -9,6 +9,7 @@ namespace DbAnalysis
 	{
 		public IReadOnlyList<NamedTyped> Columns { get; }
 		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict  { get; }
+		public IReadOnlySet<string> Ambiguities { get; }
 
 		class ColumnReferences
 		{
@@ -35,6 +36,7 @@ namespace DbAnalysis
 	public abstract class BasicTable : ITable
 	{
 		public abstract IReadOnlyList<NamedTyped> Columns { get; }
+		public virtual IReadOnlySet<string> Ambiguities { get; } = new SortedSet<string> ();
 
 		protected Dictionary<string, NamedTyped> _ColumnsDict;
 		public IReadOnlyDictionary<string, NamedTyped> ColumnsDict
@@ -81,6 +83,9 @@ namespace DbAnalysis
 		public override IReadOnlyList<NamedTyped> Columns => _Columns;
 		public Sourced<string> Name { get; }
 
+		public SortedSet<string> AmbiguitiesImpl { get; } = [];
+		public override IReadOnlySet<string> Ambiguities => AmbiguitiesImpl;
+
 		public Table (Sourced<string> Name = null)
 		{
 			_Columns = new List<NamedTyped> ();
@@ -113,6 +118,8 @@ namespace DbAnalysis
 
 	public class DbTable : SchemaEntity, ITable
 	{
+		public IReadOnlySet<string> Ambiguities { get; } = new SortedSet<string> ();
+
 		protected Table ColumnsHolder;
 
 		public DbTable (string Schema, string Name)
