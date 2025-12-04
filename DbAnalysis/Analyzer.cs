@@ -1506,12 +1506,26 @@ namespace DbAnalysis
 			// parse all procedures
 			Module ModuleReport = new Module { Procedures = new List<Datasets.Procedure> () };
 
-			foreach (var proc in DatabaseContext.ProceduresDict.Values)
+			// find overloads
+			var OverloadNames = DatabaseContext.ProceduresDict.Values.ToLookup (p => p.Schema + '.' + p.Name);
+
+			foreach (var grp in OverloadNames)
 			{
+				string ProcDisplayName = grp.Key;
+
+				if (grp.Count () > 1)
+				{
+					// here: handle overloads
+					Console.WriteLine ($"\"{ProcDisplayName}\" skipped: overloaded procedure");
+					continue;
+				}
+
+				var proc = grp.First ();
+
 				if (proc.Arguments.Any (a => a.Type == null))
 				{
 					// here: handle table types
-					Console.WriteLine ($"{proc.Name} failed: unknown argument type");
+					Console.WriteLine ($"{ProcDisplayName} failed: unknown argument type");
 					continue;
 				}
 
@@ -1586,7 +1600,7 @@ namespace DbAnalysis
 
 							if (Set.Table.Ambiguities.Count > 0)
 							{
-								throw new AmbiguityException (proc.Name, Set.Name ?? "???",
+								throw new AmbiguityException (ProcDisplayName, Set.Name ?? "???",
 									Set.Table.Ambiguities);
 							}
 
@@ -1633,11 +1647,11 @@ namespace DbAnalysis
 				}
 				catch (ParseException ex)
 				{
-					Console.WriteLine ($"Parsing failed at procedure \"{proc.Name}\": {ex.Message}");
+					Console.WriteLine ($"Parsing failed at procedure \"{ProcDisplayName}\": {ex.Message}");
 				}
 				catch (Exception ex)
 				{
-					Console.WriteLine ($"Unknown issue at procedure \"{proc.Name}\": {ex.Message}");
+					Console.WriteLine ($"Unknown issue at procedure \"{ProcDisplayName}\": {ex.Message}");
 				}
 			}
 
