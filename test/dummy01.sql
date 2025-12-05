@@ -798,6 +798,7 @@ CREATE PROCEDURE test_loops ()  -- no parameters
 LANGUAGE 'plpgsql'
 AS $$
 DECLARE
+    v_empty_array UUID[];
     VoidThings_2 varchar(20);
     fake int;
     t varchar(20);
@@ -805,6 +806,7 @@ DECLARE
     rec record;
     src refcursor;
 BEGIN
+    v_empty_array := COALESCE(v_empty_array, ARRAY[]::UUID[]);
     INSERT INTO VoidThings (category, height, stub)
     VALUES ('empty', 2, default);
 

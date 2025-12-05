@@ -420,7 +420,7 @@ namespace DbAnalysis
 
 			var PArrayST =
 					from array_kw in SqlToken ("array")
-					from body in PExpressionRefST.Get.CommaDelimitedST ().InBracketsST ()
+					from body in PExpressionRefST.Get.CommaDelimitedST (true).InBracketsST ()
 						.Select<IEnumerable<SPolynom>, Func<RequestContext, NamedTyped>> (arr =>
 							rc =>
 								arr.Select (it => it.GetResult (rc))
