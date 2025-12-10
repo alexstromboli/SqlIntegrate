@@ -1065,7 +1065,7 @@ namespace DbAnalysis
 					from conflict in
 					(
 						from _on in AnyTokenST ("on conflict")
-						from trg in PExpressionRefST.Get.InParentsST ().Optional ()
+						from trg in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ().Optional ()
 						from _1 in SqlToken ("do")
 						from act in SqlToken ("nothing").Return (0)
 							.Or (
@@ -1086,6 +1086,12 @@ namespace DbAnalysis
 					(
 						from _1 in SqlToken ("returning")
 						from _sel in PSelectListST
+						from into_t1 in
+						(
+							from _1 in SqlToken ("into")
+							from _2 in PQualifiedIdentifierLST.CommaDelimitedST ()
+							select 0
+						).Optional ()
 						select _sel
 					).Optional ()
 					select returning.IsDefined
@@ -1114,6 +1120,13 @@ namespace DbAnalysis
 							new SelectStatement (returning.Get (),
 								new FromTableExpression (new NamedTableRetriever (table_name.Values ()), null).ToTrivialArray ()))
 						: null
+				;
+
+			var PTruncateFullST =
+					// delete
+					from _1 in AnyTokenST ("truncate table")
+					from table_name in PQualifiedIdentifierLST
+					select 0
 				;
 
 			var PUpdateFullST =
@@ -1297,6 +1310,7 @@ namespace DbAnalysis
 										.Or (PInsertFullST.Return (0))
 										.Or (PDeleteFullST.Return (0))
 										.Or (PUpdateFullST.Return (0))
+										.Or (PTruncateFullST)
 										.Or (
 											// https://www.postgresql.org/docs/current/plpgsql-errors-and-messages.html
 											from _r in SqlToken ("raise")

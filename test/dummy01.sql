@@ -949,7 +949,12 @@ $$;
 CREATE PROCEDURE insert_conflict ()
 LANGUAGE 'plpgsql'
 AS $$
+DECLARE
+       v_id int;
+       v_lastname varchar(50);
 BEGIN
+    TRUNCATE TABLE Rooms;
+
     INSERT INTO Rooms
     VALUES (15, 'Yukon')
     ON CONFLICT DO NOTHING
@@ -959,6 +964,20 @@ BEGIN
     VALUES ('8261e6b17b5f07c3bf1925ee434ebcd9', 'Bodoia', 'Mario', '1978-01-09', 1091)
     ON CONFLICT (id) DO UPDATE
     SET effect = ext.Persons.effect + 1
+    ;
+
+    -- multiple
+    INSERT INTO ext.Persons (id, lastname, firstname, dob, tab_num)
+    VALUES ('8261e6b17b5f07c3bf1925ee434ebcd9', 'Bodoia', 'Mario', '1978-01-09', 1091)
+    ON CONFLICT (id, lastname) DO UPDATE
+    SET effect = ext.Persons.effect + 1
+    ;
+
+    INSERT INTO ext.Persons (id, lastname, firstname, dob, tab_num)
+    VALUES ('8261e6b17b5f07c3bf1925ee434ebcd9', 'Bodoia', 'Mario', '1978-01-09', 1091)
+    ON CONFLICT (id) DO UPDATE
+    SET effect = ext.Persons.effect + 1
+    RETURNING id, lastname INTO v_id, v_lastname
     ;
 END;
 $$;
