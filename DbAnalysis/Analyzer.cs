@@ -479,6 +479,12 @@ namespace DbAnalysis
 						(
 							from _1 in PExpressionRefST.Get
 							from _2 in AnyTokenST ("asc", "desc").Optional ()
+							from nulls in
+							(
+								from _3 in SqlToken ("nulls")
+								from _4 in AnyTokenST ("first", "last")
+								select 0
+							).Optional ()
 							select 0
 						)
 						.CommaDelimitedST ()
