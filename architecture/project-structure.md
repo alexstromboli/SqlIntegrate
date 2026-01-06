@@ -610,8 +610,19 @@ Parser<string> Identifier =
 | `.CommaDelimitedST()` | Parse comma-separated list | `expr, expr, expr` |
 | `.InParentsST()` | Wrap parser in parentheses | `(content)` |
 | `.InBracketsST()` | Wrap parser in brackets | `[content]` |
-| `.SqlToken()` | Handle SQL whitespace/comments | Token with surrounding space |
-| `AnyTokenST(...)` | Match any of listed tokens | `AnyTokenST("greatest", "least")` |
+| `SqlToken(token)` | Match exact token, optional whitespace/comments around it | `SqlToken("order")` |
+| `AnyTokenST(...)` | Match any of listed token sequences | `AnyTokenST("asc", "desc")` |
+
+**SqlToken vs AnyTokenST Details:**
+
+- `SqlToken(token)` - Matches a given token exactly (no spaces/comments allowed inside), possibly surrounded by spaces (tabs, newlines, etc.) or comments. Example: `SqlToken("order")` matches the word "order" with optional whitespace around it.
+
+- `AnyTokenST(tokens...)` - Matches any of the given sequences. Each sequence is split into words, where each word is a SqlToken. The "ST" suffix means spaces/comments are allowed between and around words. Example: `AnyTokenST("order by", "group by")` matches `ORDER BY`, `order  by`, `ORDER/*comment*/BY`, etc.
+
+- `AnyTokenST("( )")` - Matches empty parentheses with optional space/comments between. Useful for empty argument lists like `mode()` or `mode( )`.
+
+**Suffix Naming Convention:**
+- `ST` suffix = "Space/Tab-aware" - parser handles whitespace and comments inside and around the construct
 
 **Standard Sprache Combinators:**
 

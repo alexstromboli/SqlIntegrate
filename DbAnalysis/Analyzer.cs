@@ -493,22 +493,17 @@ namespace DbAnalysis
 				).Optional ()
 				;
 
+			var POrderByItemST =
+				from exp in PExpressionRefST.Get
+				from dir in AnyTokenST ("asc", "desc").Optional ()
+				from nulls in AnyTokenST ("nulls first", "nulls last").Optional ()
+				select exp
+				;
+
 			var POrderByClauseOptionalST =
 				(
 					from f in AnyTokenST ("order by")
-					from grp in
-						(
-							from _1 in PExpressionRefST.Get
-							from _2 in AnyTokenST ("asc", "desc").Optional ()
-							from nulls in
-							(
-								from _3 in SqlToken ("nulls")
-								from _4 in AnyTokenST ("first", "last")
-								select 0
-							).Optional ()
-							select 0
-						)
-						.CommaDelimitedST ()
+					from items in POrderByItemST.CommaDelimitedST ()
 					select 0
 				).Optional ()
 				;
@@ -709,22 +704,18 @@ namespace DbAnalysis
 						from frac in PExpressionRefST.Get.InParentsST ()
 						from _1 in AnyTokenST ("within group (")
 						from _2 in SqlToken ("order by")
-						from ord in PExpressionRefST.Get
-						from _3 in AnyTokenST ("asc", "desc").Optional ()
-						from _4 in AnyTokenST ("nulls first", "nulls last").Optional ()
-						from _5 in SqlToken (")")
+						from ord in POrderByItemST
+						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc =>
 							new NamedTyped (f, DatabaseContext.TypeMap.Float.SourcedCalculated (f)))
 					)
 					.Or (
 						from f in SqlToken ("mode")
-						from _0 in SqlToken ("()")
+						from _0 in AnyTokenST ("( )")
 						from _1 in AnyTokenST ("within group (")
 						from _2 in SqlToken ("order by")
-						from ord in PExpressionRefST.Get
-						from _3 in AnyTokenST ("asc", "desc").Optional ()
-						from _4 in AnyTokenST ("nulls first", "nulls last").Optional ()
-						from _5 in SqlToken (")")
+						from ord in POrderByItemST
+						from _3 in SqlToken (")")
 						select (Func<RequestContext, NamedTyped>)(rc =>
 							ord.GetResult (rc).WithName (f))
 					)
