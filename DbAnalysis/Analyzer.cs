@@ -671,6 +671,19 @@ namespace DbAnalysis
 						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))
 					)
 					.Or (
+						from f in SqlToken ("string_agg")
+						from _1 in SqlToken ("(")
+						from _2 in SqlToken ("distinct").Optional ()
+						from exp in PExpressionRefST.Get
+						from _c in SqlToken (",")
+						from delim in PExpressionRefST.Get
+						from ord in POrderByClauseOptionalST
+						from _3 in SqlToken (")")
+						from filter in PFilterWhereClauseOptionalST
+						select (Func<RequestContext, NamedTyped>)(rc =>
+							new NamedTyped (f, DatabaseContext.TypeMap.Text.SourcedCalculated (f)))
+					)
+					.Or (
 						from f in SqlToken ("enum_range")
 						from exp in PExpressionRefST.Get.InParentsST ()
 						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))

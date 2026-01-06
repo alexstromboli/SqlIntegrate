@@ -355,6 +355,8 @@ namespace Generated
 			public int[] array_agg;
 			public int[] w1;
 			public int[] w2;
+			public string str_agg;
+			public string str_agg_ord;
 		}
 
 		public class get_array_Result_unnest
@@ -442,7 +444,9 @@ namespace Generated
 									id_person = Rdr["id_person"] as Guid?,
 									array_agg = Rdr["array_agg"] as int[],
 									w1 = Rdr["w1"] as int[],
-									w2 = Rdr["w2"] as int[]
+									w2 = Rdr["w2"] as int[],
+									str_agg = Rdr["str_agg"] as string,
+									str_agg_ord = Rdr["str_agg_ord"] as string
 								});
 							}
 						}

@@ -458,7 +458,10 @@ BEGIN
     SELECT  id_person,
             array_agg(id_room),
             array_agg(DISTINCT id_room) AS w1,
-            array_agg(id_room ORDER BY id_room DESC) FILTER (WHERE id_room != 8) AS w2
+            array_agg(id_room ORDER BY id_room DESC) FILTER (WHERE id_room != 8) AS w2,
+            -- STRING_AGG: concatenate values with delimiter
+            string_agg(id_room::text, ', ') AS str_agg,
+            string_agg(id_room::text, '; ' ORDER BY id_room) AS str_agg_ord
     FROM Own
     GROUP BY id_person;
 

@@ -333,6 +333,14 @@
             {
               "Name": "w2",
               "Type": "int[]"
+            },
+            {
+              "Name": "str_agg",
+              "Type": "text"
+            },
+            {
+              "Name": "str_agg_ord",
+              "Type": "text"
             }
           ]
         },
