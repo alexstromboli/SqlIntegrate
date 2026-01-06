@@ -702,6 +702,20 @@ namespace DbAnalysis
 							new NamedTyped (f, DatabaseContext.TypeMap.Jsonb.SourcedCalculated (f)))
 					)
 					.Or (
+						from f in SqlToken ("json_object_agg")
+						from args in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
+						where args.Count () == 2
+						select (Func<RequestContext, NamedTyped>)(rc =>
+							new NamedTyped (f, DatabaseContext.TypeMap.Json.SourcedCalculated (f)))
+					)
+					.Or (
+						from f in SqlToken ("jsonb_object_agg")
+						from args in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
+						where args.Count () == 2
+						select (Func<RequestContext, NamedTyped>)(rc =>
+							new NamedTyped (f, DatabaseContext.TypeMap.Jsonb.SourcedCalculated (f)))
+					)
+					.Or (
 						from f in SqlToken ("enum_range")
 						from exp in PExpressionRefST.Get.InParentsST ()
 						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))

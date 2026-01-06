@@ -361,6 +361,14 @@
             {
               "Name": "jsonb_agg_test",
               "Type": "jsonb"
+            },
+            {
+              "Name": "json_obj_agg_test",
+              "Type": "json"
+            },
+            {
+              "Name": "jsonb_obj_agg_test",
+              "Type": "jsonb"
             }
           ]
         },

@@ -468,7 +468,10 @@ BEGIN
             every(id_room > 0) AS every_test,
             -- JSON_AGG/JSONB_AGG: aggregate into JSON array
             json_agg(id_room) AS json_agg_test,
-            jsonb_agg(id_room) AS jsonb_agg_test
+            jsonb_agg(id_room) AS jsonb_agg_test,
+            -- JSON_OBJECT_AGG/JSONB_OBJECT_AGG: aggregate key/value into JSON object
+            json_object_agg(id_room, id_person) AS json_obj_agg_test,
+            jsonb_object_agg(id_room, id_person) AS jsonb_obj_agg_test
     FROM Own
     GROUP BY id_person;
 
