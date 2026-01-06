@@ -353,6 +353,14 @@
             {
               "Name": "every_test",
               "Type": "bool"
+            },
+            {
+              "Name": "json_agg_test",
+              "Type": "json"
+            },
+            {
+              "Name": "jsonb_agg_test",
+              "Type": "jsonb"
             }
           ]
         },

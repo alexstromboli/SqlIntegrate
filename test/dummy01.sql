@@ -465,7 +465,10 @@ BEGIN
             -- BOOL_AND/BOOL_OR/EVERY: boolean aggregates
             bool_and(id_room > 0) AS bool_and_test,
             bool_or(id_room > 5) AS bool_or_test,
-            every(id_room > 0) AS every_test
+            every(id_room > 0) AS every_test,
+            -- JSON_AGG/JSONB_AGG: aggregate into JSON array
+            json_agg(id_room) AS json_agg_test,
+            jsonb_agg(id_room) AS jsonb_agg_test
     FROM Own
     GROUP BY id_person;
 

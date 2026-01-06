@@ -360,6 +360,8 @@ namespace Generated
 			public bool? bool_and_test;
 			public bool? bool_or_test;
 			public bool? every_test;
+			public string json_agg_test;
+			public string jsonb_agg_test;
 		}
 
 		public class get_array_Result_unnest
@@ -452,7 +454,9 @@ namespace Generated
 									str_agg_ord = Rdr["str_agg_ord"] as string,
 									bool_and_test = Rdr["bool_and_test"] as bool?,
 									bool_or_test = Rdr["bool_or_test"] as bool?,
-									every_test = Rdr["every_test"] as bool?
+									every_test = Rdr["every_test"] as bool?,
+									json_agg_test = Rdr["json_agg_test"] as string,
+									jsonb_agg_test = Rdr["jsonb_agg_test"] as string
 								});
 							}
 						}
