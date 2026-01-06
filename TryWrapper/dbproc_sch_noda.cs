@@ -364,6 +364,10 @@ namespace Generated
 			public string jsonb_agg_test;
 			public string json_obj_agg_test;
 			public string jsonb_obj_agg_test;
+			public string to_json_test;
+			public string to_jsonb_test;
+			public string row_to_json_test;
+			public string concat_ws_test;
 		}
 
 		public class get_array_Result_unnest
@@ -460,7 +464,11 @@ namespace Generated
 									json_agg_test = Rdr["json_agg_test"] as string,
 									jsonb_agg_test = Rdr["jsonb_agg_test"] as string,
 									json_obj_agg_test = Rdr["json_obj_agg_test"] as string,
-									jsonb_obj_agg_test = Rdr["jsonb_obj_agg_test"] as string
+									jsonb_obj_agg_test = Rdr["jsonb_obj_agg_test"] as string,
+									to_json_test = Rdr["to_json_test"] as string,
+									to_jsonb_test = Rdr["to_jsonb_test"] as string,
+									row_to_json_test = Rdr["row_to_json_test"] as string,
+									concat_ws_test = Rdr["concat_ws_test"] as string
 								});
 							}
 						}

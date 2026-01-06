@@ -369,6 +369,22 @@
             {
               "Name": "jsonb_obj_agg_test",
               "Type": "jsonb"
+            },
+            {
+              "Name": "to_json_test",
+              "Type": "json"
+            },
+            {
+              "Name": "to_jsonb_test",
+              "Type": "jsonb"
+            },
+            {
+              "Name": "row_to_json_test",
+              "Type": "json"
+            },
+            {
+              "Name": "concat_ws_test",
+              "Type": "text"
             }
           ]
         },

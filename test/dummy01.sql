@@ -471,7 +471,13 @@ BEGIN
             jsonb_agg(id_room) AS jsonb_agg_test,
             -- JSON_OBJECT_AGG/JSONB_OBJECT_AGG: aggregate key/value into JSON object
             json_object_agg(id_room, id_person) AS json_obj_agg_test,
-            jsonb_object_agg(id_room, id_person) AS jsonb_obj_agg_test
+            jsonb_object_agg(id_room, id_person) AS jsonb_obj_agg_test,
+            -- TO_JSON/TO_JSONB/ROW_TO_JSON: convert values to JSON
+            to_json(id_person) AS to_json_test,
+            to_jsonb(id_person) AS to_jsonb_test,
+            row_to_json(Own) AS row_to_json_test,
+            -- CONCAT_WS: concatenate with separator
+            concat_ws(', ', id_person::text, id_room::text) AS concat_ws_test
     FROM Own
     GROUP BY id_person;
 
