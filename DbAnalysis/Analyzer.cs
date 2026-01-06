@@ -675,18 +675,11 @@ namespace DbAnalysis
 					)
 					.Or (
 						from f in AnyTokenST ("greatest", "least")
-						from _1 in SqlToken ("(")
-						from first in PExpressionRefST.Get
-						from rest in
-						(
-							from _c in SqlToken (",")
-							from exp in PExpressionRefST.Get
-							select exp
-						).AtLeastOnce ()
-						from _2 in SqlToken (")")
+						from args in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
+						where args.Count () >= 2
 						select (Func<RequestContext, NamedTyped>)(rc =>
 						{
-							return first.GetResult (rc).WithName (f);
+							return args.First ().GetResult (rc).WithName (f);
 						})
 					)
 					.Or (

@@ -603,6 +603,39 @@ Parser<string> Identifier =
     select first + rest;
 ```
 
+**Custom Combinator Utilities** (defined in `SpracheUtils.cs`):
+
+| Combinator | Purpose | Example Syntax |
+|------------|---------|----------------|
+| `.CommaDelimitedST()` | Parse comma-separated list | `expr, expr, expr` |
+| `.InParentsST()` | Wrap parser in parentheses | `(content)` |
+| `.InBracketsST()` | Wrap parser in brackets | `[content]` |
+| `.SqlToken()` | Handle SQL whitespace/comments | Token with surrounding space |
+| `AnyTokenST(...)` | Match any of listed tokens | `AnyTokenST("greatest", "least")` |
+
+**Standard Sprache Combinators:**
+
+| Combinator | Purpose |
+|------------|---------|
+| `.AtLeastOnce()` | Require 1+ matches |
+| `.Many()` | Zero or more matches |
+| `.Optional()` | Zero or one match |
+| `.Or()` | Alternative parser |
+| `.DelimitedBy()` | Items separated by delimiter |
+
+**Idiomatic Function-Like Parsing:**
+
+```csharp
+// For: function_name(arg1, arg2, ...)
+from f in AnyTokenST ("greatest", "least")
+from args in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
+where args.Count () >= 2
+select (Func<RequestContext, NamedTyped>)(rc =>
+{
+    return args.First ().GetResult (rc).WithName (f);
+})
+```
+
 ### 3. Chain of Responsibility (CodeProcessor)
 
 Extensible code generation through processor chain:
