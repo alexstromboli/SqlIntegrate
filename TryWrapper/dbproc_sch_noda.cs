@@ -1574,6 +1574,10 @@ namespace Generated
 			public TryWrapper.CardType? card_type;
 			public bool? coalesce_first;
 			public decimal? coalesce_second;
+			public int? greatest_int;
+			public int? least_int;
+			public string greatest_text;
+			public decimal? least_numeric;
 		}
 
 		public class get_value_types_Result
@@ -1711,7 +1715,11 @@ namespace Generated
 									_bool = Rdr["bool"] as bool?,
 									card_type = Rdr["card_type"] as TryWrapper.CardType?,
 									coalesce_first = Rdr["coalesce_first"] as bool?,
-									coalesce_second = Rdr["coalesce_second"] as decimal?
+									coalesce_second = Rdr["coalesce_second"] as decimal?,
+									greatest_int = Rdr["greatest_int"] as int?,
+									least_int = Rdr["least_int"] as int?,
+									greatest_text = Rdr["greatest_text"] as string,
+									least_numeric = Rdr["least_numeric"] as decimal?
 								};
 							}
 						}

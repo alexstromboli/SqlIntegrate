@@ -621,7 +621,11 @@ BEGIN
             null::bool as bool,
             null::mapped AS card_type,
             coalesce(true, false) AS coalesce_first,
-            coalesce(null, 1e-2) AS coalesce_second
+            coalesce(null, 1e-2) AS coalesce_second,
+            GREATEST(1, 2, 3) AS greatest_int,
+            LEAST(1, 2, 3) AS least_int,
+            GREATEST('a'::text, 'b', 'c') AS greatest_text,
+            LEAST(1.5, 2.5) AS least_numeric
         ;
 
     /*

@@ -29,6 +29,8 @@ The test suite creates a PostgreSQL database `dummy01`, loads schema from `dummy
 
 SqlIntegrate analyzes PostgreSQL databases and generates type-safe C# wrapper code for stored procedures and functions.
 
+**Detailed Documentation:** [architecture/project-structure.md](architecture/project-structure.md)
+
 **Data Flow:**
 ```
 PostgreSQL Database → ReadDatabase.LoadContext() → Analyzer (DbAnalysis)

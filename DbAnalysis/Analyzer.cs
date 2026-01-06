@@ -674,6 +674,22 @@ namespace DbAnalysis
 						})
 					)
 					.Or (
+						from f in AnyTokenST ("greatest", "least")
+						from _1 in SqlToken ("(")
+						from first in PExpressionRefST.Get
+						from rest in
+						(
+							from _c in SqlToken (",")
+							from exp in PExpressionRefST.Get
+							select exp
+						).AtLeastOnce ()
+						from _2 in SqlToken (")")
+						select (Func<RequestContext, NamedTyped>)(rc =>
+						{
+							return first.GetResult (rc).WithName (f);
+						})
+					)
+					.Or (
 						// value specified by a keyword
 						from kw in PAlphaNumericL.SqlToken ()
 						let type = kw.Value.GetExpressionType ()

@@ -1395,6 +1395,22 @@
             {
               "Name": "coalesce_second",
               "Type": "decimal"
+            },
+            {
+              "Name": "greatest_int",
+              "Type": "int"
+            },
+            {
+              "Name": "least_int",
+              "Type": "int"
+            },
+            {
+              "Name": "greatest_text",
+              "Type": "text"
+            },
+            {
+              "Name": "least_numeric",
+              "Type": "decimal"
             }
           ]
         }
