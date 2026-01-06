@@ -683,6 +683,15 @@ namespace DbAnalysis
 						})
 					)
 					.Or (
+						from f in SqlToken ("nullif")
+						from args in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
+						where args.Count () == 2
+						select (Func<RequestContext, NamedTyped>)(rc =>
+						{
+							return args.First ().GetResult (rc).WithName (f);
+						})
+					)
+					.Or (
 						// value specified by a keyword
 						from kw in PAlphaNumericL.SqlToken ()
 						let type = kw.Value.GetExpressionType ()

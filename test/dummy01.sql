@@ -625,7 +625,10 @@ BEGIN
             GREATEST(1, 2, 3) AS greatest_int,
             LEAST(1, 2, 3) AS least_int,
             GREATEST('a'::text, 'b', 'c') AS greatest_text,
-            LEAST(1.5, 2.5) AS least_numeric
+            LEAST(1.5, 2.5) AS least_numeric,
+            -- NULLIF(a, b): returns NULL if a = b, otherwise returns a
+            NULLIF(1, 0) AS nullif_int,
+            NULLIF('test'::text, '') AS nullif_text
         ;
 
     /*

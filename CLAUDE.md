@@ -72,3 +72,10 @@ PostgreSQL Database → ReadDatabase.LoadContext() → Analyzer (DbAnalysis)
 - 'stru' will mean structurize the following knowledge about the project (its business domain, architecture, development tooling, procedures, styling, etc), and incorporate pieces of it accordingly into CLAUDE.md, or .md files linked therein, or make a new file in 'architecture' folder and link it up from existing .md file.
 
 - 'iad' will mean 'Implement and adjust documents', i.e. implement the latest discussed points in code, and then adjust documents to reflect that.
+
+- 'imps' will mean 'Implement syntax'. This follows a TDD workflow for adding new SQL syntax support to the analyzer:
+  1. Add test expression to `test/dummy01.sql` (with a comment explaining the syntax)
+  2. Run test (`./run_test.sh`), verify it fails (parsing error expected)
+  3. Plan and implement changes in `DbAnalysis/Analyzer.cs`
+  4. Run test again, verify it passes
+  5. Update `test/correct_output.json` with new expected output

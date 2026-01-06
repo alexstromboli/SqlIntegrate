@@ -1578,6 +1578,8 @@ namespace Generated
 			public int? least_int;
 			public string greatest_text;
 			public decimal? least_numeric;
+			public int? nullif_int;
+			public string nullif_text;
 		}
 
 		public class get_value_types_Result
@@ -1719,7 +1721,9 @@ namespace Generated
 									greatest_int = Rdr["greatest_int"] as int?,
 									least_int = Rdr["least_int"] as int?,
 									greatest_text = Rdr["greatest_text"] as string,
-									least_numeric = Rdr["least_numeric"] as decimal?
+									least_numeric = Rdr["least_numeric"] as decimal?,
+									nullif_int = Rdr["nullif_int"] as int?,
+									nullif_text = Rdr["nullif_text"] as string
 								};
 							}
 						}

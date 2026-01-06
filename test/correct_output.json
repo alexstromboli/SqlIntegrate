@@ -1411,6 +1411,14 @@
             {
               "Name": "least_numeric",
               "Type": "decimal"
+            },
+            {
+              "Name": "nullif_int",
+              "Type": "int"
+            },
+            {
+              "Name": "nullif_text",
+              "Type": "text"
             }
           ]
         }
