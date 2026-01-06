@@ -368,6 +368,30 @@ namespace Generated
 			public string to_jsonb_test;
 			public string row_to_json_test;
 			public string concat_ws_test;
+			public double? percentile_cont_test;
+			public double? percentile_disc_test;
+			public int? mode_test;
+		}
+
+		public class get_array_Result_grouping_sets
+		{
+			public Guid? id_person;
+			public int? id_room;
+			public long? cnt;
+		}
+
+		public class get_array_Result_rollup
+		{
+			public Guid? id_person;
+			public int? id_room;
+			public long? cnt;
+		}
+
+		public class get_array_Result_cube
+		{
+			public Guid? id_person;
+			public int? id_room;
+			public long? cnt;
 		}
 
 		public class get_array_Result_unnest
@@ -388,6 +412,9 @@ namespace Generated
 		{
 			public List<get_array_Result_names> names;
 			public List<get_array_Result_by_person> by_person;
+			public List<get_array_Result_grouping_sets> grouping_sets;
+			public List<get_array_Result_rollup> rollup;
+			public List<get_array_Result_cube> cube;
 			public List<get_array_Result_unnest> unnest;
 			public List<LocalDateTime?> generate_series;
 			public List<get_array_Result_second> second;
@@ -406,9 +433,12 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"get_array\" (@names, @by_person, @unnest, @generate_series, @second);";
+					Cmd.CommandText = "call \"alexey\".\"get_array\" (@names, @by_person, @grouping_sets, @rollup, @cube, @unnest, @generate_series, @second);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@names", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "names" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@by_person", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "by_person" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@grouping_sets", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "grouping_sets" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@rollup", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "rollup" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@cube", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "cube" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@unnest", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "unnest" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@generate_series", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "generate_series" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@second", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "second" });
@@ -468,12 +498,78 @@ namespace Generated
 									to_json_test = Rdr["to_json_test"] as string,
 									to_jsonb_test = Rdr["to_jsonb_test"] as string,
 									row_to_json_test = Rdr["row_to_json_test"] as string,
-									concat_ws_test = Rdr["concat_ws_test"] as string
+									concat_ws_test = Rdr["concat_ws_test"] as string,
+									percentile_cont_test = Rdr["percentile_cont_test"] as double?,
+									percentile_disc_test = Rdr["percentile_disc_test"] as double?,
+									mode_test = Rdr["mode_test"] as int?
 								});
 							}
 						}
 
 						Result.by_person = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"grouping_sets\";";
+						List<get_array_Result_grouping_sets> Set = new List<get_array_Result_grouping_sets> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_array_Result_grouping_sets
+								{
+									id_person = Rdr["id_person"] as Guid?,
+									id_room = Rdr["id_room"] as int?,
+									cnt = Rdr["cnt"] as long?
+								});
+							}
+						}
+
+						Result.grouping_sets = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"rollup\";";
+						List<get_array_Result_rollup> Set = new List<get_array_Result_rollup> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_array_Result_rollup
+								{
+									id_person = Rdr["id_person"] as Guid?,
+									id_room = Rdr["id_room"] as int?,
+									cnt = Rdr["cnt"] as long?
+								});
+							}
+						}
+
+						Result.rollup = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"cube\";";
+						List<get_array_Result_cube> Set = new List<get_array_Result_cube> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_array_Result_cube
+								{
+									id_person = Rdr["id_person"] as Guid?,
+									id_room = Rdr["id_room"] as int?,
+									cnt = Rdr["cnt"] as long?
+								});
+							}
+						}
+
+						Result.cube = Set;
 					}
 
 					using (var ResCmd = Conn.CreateCommand ())
@@ -543,6 +639,24 @@ namespace Generated
 					using (var cmdClose = Conn.CreateCommand ())
 					{
 						cmdClose.CommandText = "CLOSE \"by_person\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"grouping_sets\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"rollup\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"cube\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 

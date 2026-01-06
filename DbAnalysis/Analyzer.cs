@@ -456,10 +456,31 @@ namespace DbAnalysis
 						))
 				;
 
+			// GROUPING SETS, ROLLUP, CUBE elements for GROUP BY
+			var PGroupingElementST =
+				(
+					from kw in AnyTokenST ("grouping sets", "rollup", "cube")
+					from _1 in SqlToken ("(")
+					from sets in
+					(
+						(
+							from _2 in SqlToken ("(")
+							from exprs in PExpressionRefST.Get.CommaDelimitedST ().Optional ()
+							from _3 in SqlToken (")")
+							select 0
+						)
+						.Or (PExpressionRefST.Get.Return (0))
+					).CommaDelimitedST ()
+					from _4 in SqlToken (")")
+					select 0
+				)
+				.Or (PExpressionRefST.Get.Return (0))
+				;
+
 			var PGroupByClauseOptionalST =
 				(
 					from kw_groupby in AnyTokenST ("group by")
-					from grp in PExpressionRefST.Get.CommaDelimitedST ()
+					from grp in PGroupingElementST.CommaDelimitedST ()
 					select 0
 				).Optional ()
 				;
@@ -682,6 +703,30 @@ namespace DbAnalysis
 						from filter in PFilterWhereClauseOptionalST
 						select (Func<RequestContext, NamedTyped>)(rc =>
 							new NamedTyped (f, DatabaseContext.TypeMap.Text.SourcedCalculated (f)))
+					)
+					.Or (
+						from f in AnyTokenST ("percentile_cont", "percentile_disc")
+						from frac in PExpressionRefST.Get.InParentsST ()
+						from _1 in AnyTokenST ("within group (")
+						from _2 in SqlToken ("order by")
+						from ord in PExpressionRefST.Get
+						from _3 in AnyTokenST ("asc", "desc").Optional ()
+						from _4 in AnyTokenST ("nulls first", "nulls last").Optional ()
+						from _5 in SqlToken (")")
+						select (Func<RequestContext, NamedTyped>)(rc =>
+							new NamedTyped (f, DatabaseContext.TypeMap.Float.SourcedCalculated (f)))
+					)
+					.Or (
+						from f in SqlToken ("mode")
+						from _0 in SqlToken ("()")
+						from _1 in AnyTokenST ("within group (")
+						from _2 in SqlToken ("order by")
+						from ord in PExpressionRefST.Get
+						from _3 in AnyTokenST ("asc", "desc").Optional ()
+						from _4 in AnyTokenST ("nulls first", "nulls last").Optional ()
+						from _5 in SqlToken (")")
+						select (Func<RequestContext, NamedTyped>)(rc =>
+							ord.GetResult (rc).WithName (f))
 					)
 					.Or (
 						from f in AnyTokenST ("bool_and", "bool_or", "every")

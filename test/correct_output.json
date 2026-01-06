@@ -260,6 +260,21 @@
           "IsOut": true
         },
         {
+          "Name": "grouping_sets",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "rollup",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "cube",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
           "Name": "unnest",
           "Type": "refcursor",
           "IsOut": true
@@ -385,6 +400,72 @@
             {
               "Name": "concat_ws_test",
               "Type": "text"
+            },
+            {
+              "Name": "percentile_cont_test",
+              "Type": "float"
+            },
+            {
+              "Name": "percentile_disc_test",
+              "Type": "float"
+            },
+            {
+              "Name": "mode_test",
+              "Type": "int"
+            }
+          ]
+        },
+        {
+          "Name": "grouping_sets",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id_person",
+              "Type": "uuid"
+            },
+            {
+              "Name": "id_room",
+              "Type": "int"
+            },
+            {
+              "Name": "cnt",
+              "Type": "bigint"
+            }
+          ]
+        },
+        {
+          "Name": "rollup",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id_person",
+              "Type": "uuid"
+            },
+            {
+              "Name": "id_room",
+              "Type": "int"
+            },
+            {
+              "Name": "cnt",
+              "Type": "bigint"
+            }
+          ]
+        },
+        {
+          "Name": "cube",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id_person",
+              "Type": "uuid"
+            },
+            {
+              "Name": "id_room",
+              "Type": "int"
+            },
+            {
+              "Name": "cnt",
+              "Type": "bigint"
             }
           ]
         },

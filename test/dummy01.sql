@@ -437,7 +437,7 @@ END;
 $$;
 
 -- DROP PROCEDURE get_array;
-CREATE PROCEDURE get_array (INOUT names refcursor, INOUT by_person refcursor, INOUT "unnest" refcursor, INOUT "generate_series" refcursor,
+CREATE PROCEDURE get_array (INOUT names refcursor, INOUT by_person refcursor, INOUT "grouping_sets" refcursor, INOUT "rollup" refcursor, INOUT "cube" refcursor, INOUT "unnest" refcursor, INOUT "generate_series" refcursor,
     INOUT second refcursor)
 LANGUAGE 'plpgsql'
 AS $$
@@ -477,9 +477,32 @@ BEGIN
             to_jsonb(id_person) AS to_jsonb_test,
             row_to_json(Own) AS row_to_json_test,
             -- CONCAT_WS: concatenate with separator
-            concat_ws(', ', id_person::text, id_room::text) AS concat_ws_test
+            concat_ws(', ', id_person::text, id_room::text) AS concat_ws_test,
+            -- PERCENTILE_CONT/PERCENTILE_DISC: ordered-set aggregates with WITHIN GROUP
+            percentile_cont(0.5) WITHIN GROUP (ORDER BY id_room) AS percentile_cont_test,
+            percentile_disc(0.5) WITHIN GROUP (ORDER BY id_room) AS percentile_disc_test,
+            -- MODE: most frequent value with WITHIN GROUP
+            mode() WITHIN GROUP (ORDER BY id_room) AS mode_test
     FROM Own
     GROUP BY id_person;
+
+    -- GROUPING SETS: multiple grouping combinations
+    OPEN "grouping_sets" FOR
+    SELECT id_person, id_room, count(*) AS cnt
+    FROM Own
+    GROUP BY GROUPING SETS ((id_person, id_room), (id_person), ());
+
+    -- ROLLUP: hierarchical subtotals
+    OPEN "rollup" FOR
+    SELECT id_person, id_room, count(*) AS cnt
+    FROM Own
+    GROUP BY ROLLUP (id_person, id_room);
+
+    -- CUBE: all grouping combinations
+    OPEN "cube" FOR
+    SELECT id_person, id_room, count(*) AS cnt
+    FROM Own
+    GROUP BY CUBE (id_person, id_room);
 
     OPEN "unnest" FOR
     SELECT  unnest(array[2, 4, 9]),      -- unnamed (goes 'unnest'), converted to rows
