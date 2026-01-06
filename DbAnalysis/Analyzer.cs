@@ -577,7 +577,7 @@ namespace DbAnalysis
 							(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
 					)
 					.Or (
-						from f in AnyTokenST ("lag", "lead")
+						from f in AnyTokenST ("lag", "lead", "first_value", "last_value", "nth_value")
 						from args in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
 						where args.Count () >= 1 && args.Count () <= 3
 						from _1 in AnyTokenST ("over (")

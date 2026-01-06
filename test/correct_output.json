@@ -166,6 +166,18 @@
               "Type": "int"
             },
             {
+              "Name": "first_val",
+              "Type": "int"
+            },
+            {
+              "Name": "last_val",
+              "Type": "int"
+            },
+            {
+              "Name": "nth_val",
+              "Type": "int"
+            },
+            {
               "Name": "first",
               "Type": "date"
             },

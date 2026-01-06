@@ -1048,6 +1048,10 @@ BEGIN
             -- LAG/LEAD: access values from previous/next rows
             LAG(FILTERED.input) OVER (ORDER BY FILTERED.date) AS lag_test,
             LEAD(FILTERED.input, 1) OVER (ORDER BY FILTERED.date) AS lead_test,
+            -- FIRST_VALUE/LAST_VALUE/NTH_VALUE: access specific values in window frame
+            FIRST_VALUE(FILTERED.input) OVER (ORDER BY FILTERED.date) AS first_val,
+            LAST_VALUE(FILTERED.input) OVER (ORDER BY FILTERED.date) AS last_val,
+            NTH_VALUE(FILTERED.input, 2) OVER (ORDER BY FILTERED.date) AS nth_val,
             FIRST.date "first",
             FIRST."use ""quotes"" """"" use_quotes
     FROM ext.Persons

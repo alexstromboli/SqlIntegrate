@@ -175,6 +175,9 @@ namespace Generated
 			public long? over_test;
 			public int? lag_test;
 			public int? lead_test;
+			public int? first_val;
+			public int? last_val;
+			public int? nth_val;
 			public LocalDate? first;
 			public string use_quotes;
 		}
@@ -245,6 +248,9 @@ namespace Generated
 									over_test = Rdr["over_test"] as long?,
 									lag_test = Rdr["lag_test"] as int?,
 									lead_test = Rdr["lead_test"] as int?,
+									first_val = Rdr["first_val"] as int?,
+									last_val = Rdr["last_val"] as int?,
+									nth_val = Rdr["nth_val"] as int?,
 									first = Rdr["first"] as LocalDate?,
 									use_quotes = Rdr["use_quotes"] as string
 								});
