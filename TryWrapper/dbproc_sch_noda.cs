@@ -173,6 +173,8 @@ namespace Generated
 			public long? count;
 			public long? count_test;
 			public long? over_test;
+			public int? lag_test;
+			public int? lead_test;
 			public LocalDate? first;
 			public string use_quotes;
 		}
@@ -241,6 +243,8 @@ namespace Generated
 									count = Rdr["count"] as long?,
 									count_test = Rdr["count_test"] as long?,
 									over_test = Rdr["over_test"] as long?,
+									lag_test = Rdr["lag_test"] as int?,
+									lead_test = Rdr["lead_test"] as int?,
 									first = Rdr["first"] as LocalDate?,
 									use_quotes = Rdr["use_quotes"] as string
 								});

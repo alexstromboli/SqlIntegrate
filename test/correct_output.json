@@ -158,6 +158,14 @@
               "Type": "bigint"
             },
             {
+              "Name": "lag_test",
+              "Type": "int"
+            },
+            {
+              "Name": "lead_test",
+              "Type": "int"
+            },
+            {
               "Name": "first",
               "Type": "date"
             },

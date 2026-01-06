@@ -1045,6 +1045,9 @@ BEGIN
             COUNT(FILTERED.input),
             COUNT(*) AS count_test,
             COUNT(*) OVER() AS over_test,
+            -- LAG/LEAD: access values from previous/next rows
+            LAG(FILTERED.input) OVER (ORDER BY FILTERED.date) AS lag_test,
+            LEAD(FILTERED.input, 1) OVER (ORDER BY FILTERED.date) AS lead_test,
             FIRST.date "first",
             FIRST."use ""quotes"" """"" use_quotes
     FROM ext.Persons

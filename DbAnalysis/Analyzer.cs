@@ -577,6 +577,24 @@ namespace DbAnalysis
 							(rc => new NamedTyped (rn, DatabaseContext.TypeMap.Int.SourcedCalculated (rn)))
 					)
 					.Or (
+						from f in AnyTokenST ("lag", "lead")
+						from args in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
+						where args.Count () >= 1 && args.Count () <= 3
+						from _1 in AnyTokenST ("over (")
+						from _2 in
+						(
+							from _3 in AnyTokenST ("partition by")
+							from _4 in PExpressionRefST.Get.CommaDelimitedST ()
+							select 0
+						).Optional ()
+						from _5 in POrderByClauseOptionalST
+						from _6 in SqlToken (")")
+						select (Func<RequestContext, NamedTyped>)(rc =>
+						{
+							return args.First ().GetResult (rc).WithName (f);
+						})
+					)
+					.Or (
 						from f in AnyTokenST ("sum", "min", "max", "avg")
 						from _1 in SqlToken ("(")
 						from _2 in SqlToken ("distinct").Optional ()
