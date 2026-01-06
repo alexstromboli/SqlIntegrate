@@ -19,7 +19,8 @@ PARSEPROCS_EXE="../ParseProcs/bin/Debug/net8.0/ParseProcs"
 
 # Rebuild if executable missing or older than any source .cs file
 if [ ! -f "$PARSEPROCS_EXE" ] || [ -n "$(find ../DbAnalysis ../ParseProcs ../Wrapper -name '*.cs' -newer "$PARSEPROCS_EXE" 2>/dev/null | head -1)" ]; then
-    dotnet build ../ParseProcs/ParseProcs.csproj -v q
+    dotnet clean ../ParseProcs/ParseProcs.csproj
+    dotnet build -c Debug ../ParseProcs/ParseProcs.csproj -v q
 fi
 
 export OUTPUT_JSON_FILE="$(realpath temp_"$(tr -dc a-f0-9 </dev/urandom | dd bs=32 count=1 2>/dev/null)".json)"
