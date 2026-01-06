@@ -15,10 +15,17 @@ if [ "${1:-}" != '-c' ]; then
     cat dummy01_2.sql | sed "s/SCHEMA/$USER/g" | sed "s/DBNAME/$DBNAME/g" | psql -q -d "$DBNAME"
 fi
 
+PARSEPROCS_EXE="../ParseProcs/bin/Debug/net8.0/ParseProcs"
+
+# Rebuild if executable missing or older than any source .cs file
+if [ ! -f "$PARSEPROCS_EXE" ] || [ -n "$(find ../DbAnalysis ../ParseProcs ../Wrapper -name '*.cs' -newer "$PARSEPROCS_EXE" 2>/dev/null | head -1)" ]; then
+    dotnet build ../ParseProcs/ParseProcs.csproj -v q
+fi
+
 export OUTPUT_JSON_FILE="$(realpath temp_"$(tr -dc a-f0-9 </dev/urandom | dd bs=32 count=1 2>/dev/null)".json)"
 # path /var/run/postgresql is taken from section unix_socket_directories
 # of /etc/postgresql/12/main/postgresql.conf
-../ParseProcs/bin/Debug/net8.0/ParseProcs --no-cache "host=/var/run/postgresql;database=$DBNAME;Integrated Security=true" "$OUTPUT_JSON_FILE"
+"$PARSEPROCS_EXE" --no-cache "host=/var/run/postgresql;database=$DBNAME;Integrated Security=true" "$OUTPUT_JSON_FILE"
 
 if [ -f "$OUTPUT_JSON_FILE" ]; then
     sed -i "s/\"Name\": \"indirectly_used_enum\",/\"Name\": \"indirectly_used_enum\", \"GenerateEnum\": true,/g" "$OUTPUT_JSON_FILE"
