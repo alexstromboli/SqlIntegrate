@@ -684,6 +684,12 @@ namespace DbAnalysis
 							new NamedTyped (f, DatabaseContext.TypeMap.Text.SourcedCalculated (f)))
 					)
 					.Or (
+						from f in AnyTokenST ("bool_and", "bool_or", "every")
+						from exp in PExpressionRefST.Get.InParentsST ()
+						select (Func<RequestContext, NamedTyped>)(rc =>
+							new NamedTyped (f, DatabaseContext.TypeMap.Bool.SourcedCalculated (f)))
+					)
+					.Or (
 						from f in SqlToken ("enum_range")
 						from exp in PExpressionRefST.Get.InParentsST ()
 						select (Func<RequestContext, NamedTyped>)(rc => exp.GetResult (rc).ToArray ().WithName (f))

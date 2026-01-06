@@ -357,6 +357,9 @@ namespace Generated
 			public int[] w2;
 			public string str_agg;
 			public string str_agg_ord;
+			public bool? bool_and_test;
+			public bool? bool_or_test;
+			public bool? every_test;
 		}
 
 		public class get_array_Result_unnest
@@ -446,7 +449,10 @@ namespace Generated
 									w1 = Rdr["w1"] as int[],
 									w2 = Rdr["w2"] as int[],
 									str_agg = Rdr["str_agg"] as string,
-									str_agg_ord = Rdr["str_agg_ord"] as string
+									str_agg_ord = Rdr["str_agg_ord"] as string,
+									bool_and_test = Rdr["bool_and_test"] as bool?,
+									bool_or_test = Rdr["bool_or_test"] as bool?,
+									every_test = Rdr["every_test"] as bool?
 								});
 							}
 						}

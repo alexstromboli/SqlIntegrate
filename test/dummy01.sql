@@ -461,7 +461,11 @@ BEGIN
             array_agg(id_room ORDER BY id_room DESC) FILTER (WHERE id_room != 8) AS w2,
             -- STRING_AGG: concatenate values with delimiter
             string_agg(id_room::text, ', ') AS str_agg,
-            string_agg(id_room::text, '; ' ORDER BY id_room) AS str_agg_ord
+            string_agg(id_room::text, '; ' ORDER BY id_room) AS str_agg_ord,
+            -- BOOL_AND/BOOL_OR/EVERY: boolean aggregates
+            bool_and(id_room > 0) AS bool_and_test,
+            bool_or(id_room > 5) AS bool_or_test,
+            every(id_room > 0) AS every_test
     FROM Own
     GROUP BY id_person;
 

@@ -341,6 +341,18 @@
             {
               "Name": "str_agg_ord",
               "Type": "text"
+            },
+            {
+              "Name": "bool_and_test",
+              "Type": "bool"
+            },
+            {
+              "Name": "bool_or_test",
+              "Type": "bool"
+            },
+            {
+              "Name": "every_test",
+              "Type": "bool"
             }
           ]
         },
