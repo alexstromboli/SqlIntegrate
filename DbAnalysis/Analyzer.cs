@@ -1056,7 +1056,8 @@ namespace DbAnalysis
 							"having"
 						}
 					) // stub, for cases like 'for ... in select * from mytable loop ... end loop'
-					select new FromTableExpression (table, alias_cl.GetOrDefault ())
+					from column_names in PColumnNameLST.CommaDelimitedST ().InParentsST ().Optional () // table alias with column names: AS alias(col1, col2, ...)
+					select new FromTableExpression (table, alias_cl.GetOrDefault (), column_names.GetOrEmpty ())
 				;
 
 			var PFromClauseOptionalST =

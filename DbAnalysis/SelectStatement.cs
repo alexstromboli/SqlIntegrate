@@ -43,6 +43,21 @@ namespace DbAnalysis
 					var Refs = Table.GetAllColumnReferences (Context.ModuleContext, f.Alias);
 					AllColumns.AddRange (Refs.Columns.Select (p => new Tuple<string, NamedTyped> (p.Key, p.Value)));
 
+					// Add qualified column references for alias column names: AS alias(col1, col2, ...)
+					if (f.Alias != null && f.ColumnNames != null && f.ColumnNames.Length > 0)
+					{
+						var columns = Table.Columns;
+						for (int i = 0; i < f.ColumnNames.Length && i < columns.Count; i++)
+						{
+							var colName = f.ColumnNames[i];
+							var col = columns[i];
+							// Add both unqualified and qualified references
+							var namedCol = new NamedTyped (colName, col.Type);
+							AllColumns.Add (new Tuple<string, NamedTyped> (colName.Value, namedCol));
+							AllColumns.Add (new Tuple<string, NamedTyped> (f.Alias.Value + "." + colName.Value, namedCol));
+						}
+					}
+
 					foreach (var ast in Refs.Asterisks)
 					{
 						if (ast.Key == "*")

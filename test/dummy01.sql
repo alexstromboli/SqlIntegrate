@@ -438,7 +438,7 @@ END;
 $$;
 
 -- DROP PROCEDURE get_array;
-CREATE PROCEDURE get_array (INOUT names refcursor, INOUT by_person refcursor, INOUT "grouping_sets" refcursor, INOUT "rollup" refcursor, INOUT "cube" refcursor, INOUT "unnest" refcursor, INOUT "generate_series" refcursor,
+CREATE PROCEDURE get_array (INOUT names refcursor, INOUT by_person refcursor, INOUT "grouping_sets" refcursor, INOUT "rollup" refcursor, INOUT "cube" refcursor, INOUT "unnest" refcursor, INOUT "unnest_alias_cols" refcursor, INOUT "generate_series" refcursor,
     INOUT second refcursor)
 LANGUAGE 'plpgsql'
 AS $$
@@ -511,6 +511,11 @@ BEGIN
             W,  -- simple name
             W.W AS QW   -- self-qualified name
     FROM unnest(array['X', 'Y']) W
+    ;
+
+    -- Test table alias with column names: AS alias(col1, col2, ...)
+    OPEN "unnest_alias_cols" FOR
+    SELECT d, d.day_id FROM UNNEST(ARRAY[1, 2, 3]) AS d(day_id)
     ;
 
     OPEN "generate_series" FOR

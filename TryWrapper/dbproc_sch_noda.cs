@@ -402,6 +402,12 @@ namespace Generated
 			public string qw;
 		}
 
+		public class get_array_Result_unnest_alias_cols
+		{
+			public int? d;
+			public int? day_id;
+		}
+
 		public class get_array_Result_second
 		{
 			public int? generate_series;
@@ -416,6 +422,7 @@ namespace Generated
 			public List<get_array_Result_rollup> rollup;
 			public List<get_array_Result_cube> cube;
 			public List<get_array_Result_unnest> unnest;
+			public List<get_array_Result_unnest_alias_cols> unnest_alias_cols;
 			public List<LocalDateTime?> generate_series;
 			public List<get_array_Result_second> second;
 		}
@@ -433,13 +440,14 @@ namespace Generated
 			{
 				using (var Cmd = Conn.CreateCommand ())
 				{
-					Cmd.CommandText = "call \"alexey\".\"get_array\" (@names, @by_person, @grouping_sets, @rollup, @cube, @unnest, @generate_series, @second);";
+					Cmd.CommandText = "call \"alexey\".\"get_array\" (@names, @by_person, @grouping_sets, @rollup, @cube, @unnest, @unnest_alias_cols, @generate_series, @second);";
 					Cmd.Parameters.Add (new NpgsqlParameter ("@names", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "names" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@by_person", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "by_person" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@grouping_sets", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "grouping_sets" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@rollup", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "rollup" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@cube", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "cube" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@unnest", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "unnest" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@unnest_alias_cols", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "unnest_alias_cols" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@generate_series", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "generate_series" });
 					Cmd.Parameters.Add (new NpgsqlParameter ("@second", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "second" });
 
@@ -596,6 +604,26 @@ namespace Generated
 
 					using (var ResCmd = Conn.CreateCommand ())
 					{
+						ResCmd.CommandText = "FETCH ALL IN \"unnest_alias_cols\";";
+						List<get_array_Result_unnest_alias_cols> Set = new List<get_array_Result_unnest_alias_cols> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_array_Result_unnest_alias_cols
+								{
+									d = Rdr["d"] as int?,
+									day_id = Rdr["day_id"] as int?
+								});
+							}
+						}
+
+						Result.unnest_alias_cols = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
 						ResCmd.CommandText = "FETCH ALL IN \"generate_series\";";
 						List<LocalDateTime?> Set = new List<LocalDateTime?> ();
 
@@ -663,6 +691,12 @@ namespace Generated
 					using (var cmdClose = Conn.CreateCommand ())
 					{
 						cmdClose.CommandText = "CLOSE \"unnest\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"unnest_alias_cols\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 

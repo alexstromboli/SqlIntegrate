@@ -280,6 +280,11 @@
           "IsOut": true
         },
         {
+          "Name": "unnest_alias_cols",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
           "Name": "generate_series",
           "Type": "refcursor",
           "IsOut": true
@@ -488,6 +493,20 @@
             {
               "Name": "qw",
               "Type": "varchar"
+            }
+          ]
+        },
+        {
+          "Name": "unnest_alias_cols",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "d",
+              "Type": "int"
+            },
+            {
+              "Name": "day_id",
+              "Type": "int"
             }
           ]
         },
