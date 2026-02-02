@@ -219,6 +219,7 @@ BEGIN
         LEFT JOIN Own ON Own.id_person = P.id
         LEFT JOIN Rooms VALUES ON VALUES.id = Own.id_room
         LEFT JOIN LATERAL (SELECT 1 AS yup) AS R1 ON TRUE
+        CROSS JOIN LATERAL (SELECT 2 AS nope) AS R2  -- CROSS JOIN LATERAL test
     ORDER BY P.lastname NULLS LAST
     ;
 

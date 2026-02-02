@@ -1076,6 +1076,7 @@ namespace DbAnalysis
 						)
 						.Or (
 							from kw_joinN in AnyTokenST ("cross join", ",")
+							from lat in SqlToken ("lateral").Optional ()
 							from tN in PFromTableExpressionST
 							select tN
 						)
