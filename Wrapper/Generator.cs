@@ -33,10 +33,26 @@ namespace Wrapper
 	{
 		public static string GenerateCode (Module Module, params CodeProcessor[] Processors)
 		{
-			return GGenerateCode (Module, Processors);
+			return GGenerateCode (Module, new GeneratorOptions (), Processors);
+		}
+
+		public static string GenerateCode (Module Module, GeneratorOptions Options, params CodeProcessor[] Processors)
+		{
+			return GGenerateCode (Module, Options, Processors);
 		}
 
 		public static string GGenerateCode<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> (TModule Module, params GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>[] Processors)
+			where TColumn : Column, new()
+			where TArgument : Argument, new()
+			where TResultSet : GResultSet<TColumn>, new()
+			where TProcedure : GProcedure<TColumn, TArgument, TResultSet>, new()
+			where TSqlType : GSqlType<TColumn>, new()
+			where TModule : GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>
+		{
+			return GGenerateCode (Module, new GeneratorOptions (), Processors);
+		}
+
+		public static string GGenerateCode<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> (TModule Module, GeneratorOptions Options, params GCodeProcessor<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>[] Processors)
 			where TColumn : Column, new()
 			where TArgument : Argument, new()
 			where TResultSet : GResultSet<TColumn>, new()
@@ -257,6 +273,31 @@ namespace Wrapper
 				bool HasCustomMapping = Module.Types.Any (t => t.Enum != null && t.GenerateEnum
 				                                               || t.Properties != null);
 
+				void EmitTypeMappings (IndentedTextBuilder Sb, string CallTarget)
+				{
+					foreach (var t in Module.Types.OrderBy (t => t.Schema).ThenBy (t => t.Name))
+					{
+						string MapMethod = null;
+						string SecondParam = null;
+						if (t.Enum != null && t.GenerateEnum)
+						{
+							MapMethod = "MapEnum";
+							SecondParam = ", new NpgsqlNullNameTranslator ()";
+						}
+						else if (t.Properties != null)
+						{
+							MapMethod = "MapComposite";
+							SecondParam = "";
+						}
+
+						if (MapMethod != null)
+						{
+							Sb.AppendLine (
+								$"{CallTarget}.{MapMethod}<{TypeMap[$"{t.Schema}.{t.Name}"].CsTypeName (false)}> (\"{t.Schema}.{t.Name}\"{SecondParam});");
+						}
+					}
+				}
+
 				string InterfacesDecl = DbProcInterfaces.Count == 0 ? "" : " : " + string.Join (", ", DbProcInterfaces);
 				using (sb.UseCurlyBraces ($"public class {Database.CsClassName}{InterfacesDecl}"))
 				{
@@ -311,13 +352,13 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 							sb.AppendLine ($"this.{p.Name} = {p.Name};");
 						}
 
-						if (HasCustomMapping)
+						if (HasCustomMapping && Options.LegacyNpgsql)
 						{
 							sb.AppendLine ("UseCustomMapping (this.Conn);");
 						}
 					}
 
-					if (HasCustomMapping)
+					if (HasCustomMapping && Options.LegacyNpgsql)
 					{
 						sb.AppendLine ();
 
@@ -332,32 +373,28 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 
 							sb.AppendLine ();
 
-							foreach (var t in Module.Types.OrderBy (t => t.Schema).ThenBy (t => t.Name))
-							{
-								string MapMethod = null;
-								string SecondParam = null;
-								if (t.Enum != null && t.GenerateEnum)
-								{
-									MapMethod = "MapEnum";
-									SecondParam = ", new NpgsqlNullNameTranslator ()";
-								}
-								else if (t.Properties != null)
-								{
-									MapMethod = "MapComposite";
-									SecondParam = "";
-								}
-
-								if (MapMethod != null)
-								{
-									sb.AppendLine (
-										$"Conn.TypeMapper.{MapMethod}<{TypeMap[$"{t.Schema}.{t.Name}"].CsTypeName (false)}> (\"{t.Schema}.{t.Name}\"{SecondParam});");
-								}
-							}
+							EmitTypeMappings (sb, "Conn.TypeMapper");
 						}
 					}
 
 					//
 					Processors.Act (p => p.OnCodeGeneratingDbProc (Database, sb));
+				}
+
+				if (HasCustomMapping && !Options.LegacyNpgsql)
+				{
+					sb.AppendLine ();
+
+					using (sb.UseCurlyBraces ($"public static class {Database.CsClassName}Extensions"))
+					{
+						using (sb.UseCurlyBraces ($"public static NpgsqlDataSourceBuilder UseCustomMapping (this NpgsqlDataSourceBuilder Builder)"))
+						{
+							EmitTypeMappings (sb, "Builder");
+
+							sb.AppendLine ();
+							sb.AppendLine ("return Builder;");
+						}
+					}
 				}
 
 				foreach (var ns in Database.Schemata)

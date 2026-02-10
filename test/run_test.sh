@@ -35,7 +35,7 @@ if [ -f "$OUTPUT_JSON_FILE" ]; then
     sed -i "s/\"Name\": \"mapped\",/\"Name\": \"mapped\", \"MapTo\": \"TryWrapper.CardType\", \"GenerateEnum\": true,/g" "$OUTPUT_JSON_FILE"
 
     pushd ../TestWrapper/bin/Debug/net8.0 >/dev/null
-    ./TestWrapper "$OUTPUT_JSON_FILE"
+    ./TestWrapper --legacy-npgsql "$OUTPUT_JSON_FILE"
     cp dbproc_sch_noda.cs ../../../../TryWrapper
     popd >/dev/null
 fi

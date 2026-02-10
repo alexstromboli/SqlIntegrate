@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using System.Text;
 using System.Collections.Generic;
 
@@ -53,9 +54,14 @@ namespace TestWrapper
 	{
 		static void Main (string[] args)
 		{
-			string ModuleInputPath = Path.GetFullPath (args[0]);
+			bool LegacyNpgsql = args.Any (a => a == "--legacy-npgsql");
+			string[] PositionalArgs = args.Where (a => a != "--legacy-npgsql").ToArray ();
+
+			string ModuleInputPath = Path.GetFullPath (PositionalArgs[0]);
 			string ModuleJson = File.ReadAllText (ModuleInputPath);
 			AugModule Module = JsonConvert.DeserializeObject<AugModule> (ModuleJson);
+
+			GeneratorOptions Options = new GeneratorOptions { LegacyNpgsql = LegacyNpgsql };
 
 			//
 			foreach (var run in new[]
@@ -70,7 +76,7 @@ namespace TestWrapper
 			         }
 			        )
 			{
-				string Code = Generator.GGenerateCode (Module, run.processors);
+				string Code = Generator.GGenerateCode (Module, Options, run.processors);
 				CodeGenerationUtils.EnsureFileContents (run.target, Code, EndOfLine.MakeLf, Encoding.UTF8);
 			}
 		}
