@@ -52,10 +52,12 @@ namespace TestWrapper
 
 	class Program
 	{
+		const string LegacyNpgsqlFlag = "--legacy-npgsql";
+
 		static void Main (string[] args)
 		{
-			bool LegacyNpgsql = args.Any (a => a == "--legacy-npgsql");
-			string[] PositionalArgs = args.Where (a => a != "--legacy-npgsql").ToArray ();
+			bool LegacyNpgsql = args.Any (a => a == LegacyNpgsqlFlag);
+			string[] PositionalArgs = args.Where (a => a != LegacyNpgsqlFlag).ToArray ();
 
 			string ModuleInputPath = Path.GetFullPath (PositionalArgs[0]);
 			string ModuleJson = File.ReadAllText (ModuleInputPath);
