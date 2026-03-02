@@ -1034,6 +1034,40 @@ BEGIN
     SET effect = ext.Persons.effect + 1
     RETURNING id, lastname INTO v_id, v_lastname
     ;
+
+    -- ON CONFLICT with WHERE clause on conflict target (index predicate)
+    INSERT INTO ext.Persons (id, lastname, firstname, dob, tab_num)
+    VALUES ('8261e6b17b5f07c3bf1925ee434ebcd9', 'Bodoia', 'Mario', '1978-01-09', 1091)
+    ON CONFLICT (id) WHERE ext.Persons.tab_num > 0 DO UPDATE
+    SET effect = ext.Persons.effect + 1
+    ;
+
+    -- ON CONFLICT with WHERE on target + DO NOTHING
+    INSERT INTO Rooms (id, name)
+    VALUES (15, 'Yukon')
+    ON CONFLICT (id) WHERE Rooms.name IS NOT NULL DO NOTHING
+    ;
+
+    -- CTE with data-modifying statement (INSERT) inside CTE body
+    WITH new_row AS (
+        INSERT INTO Rooms (id, name)
+        VALUES (99, 'CTE Room')
+        RETURNING id, name
+    )
+    INSERT INTO Rooms (id, name)
+    SELECT new_row.id + 1000, new_row.name
+    FROM new_row
+    ;
+
+    -- CTE with UPDATE inside CTE body
+    WITH updated AS (
+        UPDATE Rooms SET name = 'Updated'
+        WHERE Rooms.id = 99
+        RETURNING Rooms.id
+    )
+    DELETE FROM ext.Persons
+    WHERE ext.Persons.tab_num IN (SELECT updated.id FROM updated)
+    ;
 END;
 $$;
 

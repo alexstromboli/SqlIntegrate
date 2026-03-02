@@ -1154,11 +1154,19 @@ namespace DbAnalysis
 					select new SelectStatement (seq[0].List, seq[0].FromClause.GetOrDefault ())
 				;
 
+			// Forward reference for data-modifying statements inside CTE bodies
+			// (INSERT/UPDATE/DELETE with RETURNING — PostgreSQL "data-modifying CTEs")
+			Ref<int> PCteLevelDmlRefST = new Ref<int> ();
+
 			var PCteLevelST =
 					from name in PColumnNameLST
 					from kw_as in SqlToken ("as")
-					from select_exp in PSelectST.InParentsST ()
-					select new SelectStatement (select_exp, name)
+					from select_exp in
+						PSelectST.InParentsST ()
+						.Or (PCteLevelDmlRefST.Get.InParentsST ().Select (_ => (SelectStatement)null))
+					select select_exp != null
+						? new SelectStatement (select_exp, name)
+						: new SelectStatement (rc => Array.Empty<NamedTyped> (), null, name)
 				;
 
 			var PCteTopOptionalST =
@@ -1191,6 +1199,7 @@ namespace DbAnalysis
 					(
 						from _on in AnyTokenST ("on conflict")
 						from trg in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ().Optional ()
+						from conflict_where in PWhereClauseOptionalST
 						from _1 in SqlToken ("do")
 						from act in SqlToken ("nothing").Return (0)
 							.Or (
@@ -1296,6 +1305,11 @@ namespace DbAnalysis
 				.Or (PInsertFullST)
 				.Or (PUpdateFullST)
 				.Or (PDeleteFullST);
+
+			// Resolve CTE DML body Ref — allows INSERT/UPDATE/DELETE inside CTE parentheses
+			PCteLevelDmlRefST.Parser = PInsertFullST.Return (0)
+				.Or (PUpdateFullST.Return (0))
+				.Or (PDeleteFullST.Return (0));
 
 			var PDataReturnStatementST =
 					from open in POpenDatasetST
