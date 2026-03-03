@@ -511,7 +511,7 @@ The test schema provides comprehensive coverage of PostgreSQL features:
 | `get_array` | Array handling, enum_range, array operations |
 | `get_value_types` | Comprehensive types, expressions, CASE |
 | `get_aggregates` | GROUP BY, aggregates, OVER clauses |
-| `get_operators` | ALL, ANY, BETWEEN, unary operators |
+| `get_operators` | ALL, ANY, BETWEEN, unary operators, IS TRUE/IS NOT TRUE |
 | `test_loops` | FOR, WHILE, FOREACH with arrays, DELETE USING, = ANY(array) |
 | `get_returning` | INSERT/UPDATE/DELETE with RETURNING |
 | `test_out` | INOUT parameters with arrays |

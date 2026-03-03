@@ -1058,6 +1058,14 @@
             {
               "Name": "sum",
               "Type": "int"
+            },
+            {
+              "Name": "istrue_test",
+              "Type": "bool"
+            },
+            {
+              "Name": "isnottrue_test",
+              "Type": "bool"
             }
           ]
         }

@@ -1235,6 +1235,8 @@ namespace Generated
 			public bool? t4;
 			public bool? t3;
 			public int? sum;
+			public bool? istrue_test;
+			public bool? isnottrue_test;
 		}
 
 		public get_operators_Result_result get_operators ()
@@ -1270,7 +1272,9 @@ namespace Generated
 									t2 = Rdr["t2"] as bool?,
 									t4 = Rdr["t4"] as bool?,
 									t3 = Rdr["t3"] as bool?,
-									sum = Rdr["sum"] as int?
+									sum = Rdr["sum"] as int?,
+									istrue_test = Rdr["istrue_test"] as bool?,
+									isnottrue_test = Rdr["isnottrue_test"] as bool?
 								};
 							}
 						}

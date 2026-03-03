@@ -843,7 +843,9 @@ BEGIN
             10 > any(select id from rooms) as t2,
             10 > some(select id from rooms) as t4,
             2 IN (select id from rooms) as t3,
-            - 5 - - - - 11 sum  -- no 'as', and unary minuses
+            - 5 - - - - 11 sum,  -- no 'as', and unary minuses
+            (5 > 3) IS TRUE AS istrue_test,
+            (5 < 3) IS NOT TRUE AS isnottrue_test
     ;
 END;
 $$;
