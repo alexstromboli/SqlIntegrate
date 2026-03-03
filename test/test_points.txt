@@ -73,6 +73,8 @@
 + - insert on conflict
 + update
 + delete
++ - delete with USING clause
++ - = ANY(array) in conditions
 + loops
 + - for in select
 + - for in x..y

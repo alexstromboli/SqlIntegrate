@@ -512,7 +512,7 @@ The test schema provides comprehensive coverage of PostgreSQL features:
 | `get_value_types` | Comprehensive types, expressions, CASE |
 | `get_aggregates` | GROUP BY, aggregates, OVER clauses |
 | `get_operators` | ALL, ANY, BETWEEN, unary operators |
-| `test_loops` | FOR, WHILE, FOREACH with arrays |
+| `test_loops` | FOR, WHILE, FOREACH with arrays, DELETE USING, = ANY(array) |
 | `get_returning` | INSERT/UPDATE/DELETE with RETURNING |
 | `test_out` | INOUT parameters with arrays |
 | `test_json` | JSON/JSONB handling |
@@ -529,6 +529,7 @@ The test schema provides comprehensive coverage of PostgreSQL features:
 - **Aggregate Functions:** SUM, AVG, COUNT
 - **Complex Expressions:** CASE, NULL handling, operators
 - **DML with RETURNING:** INSERT, UPDATE, DELETE
+- **DML Extensions:** DELETE with USING clause, = ANY(array) conditions
 - **Control Flow:** FOR, WHILE, FOREACH loops
 - **Parameter Passing:** IN, OUT, INOUT with arrays
 - **Composite Types:** Nested access, destructuring

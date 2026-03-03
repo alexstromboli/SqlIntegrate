@@ -891,6 +891,12 @@ BEGIN
     WHERE v.category = p.name
     AND p.effect > 0;
 
+    -- = ANY(array) comparison syntax
+    DELETE FROM VoidThings v
+    USING ext.Persons p
+    WHERE v.category = p.name
+    AND p.id = ANY(v_empty_array);
+
     /*
     SELECT 'guest' AS cat, DATE_PART('month',dob) * 2 + 1 AS height
     INTO TEMP VoidThings_3
