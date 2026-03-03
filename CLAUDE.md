@@ -79,3 +79,5 @@ PostgreSQL Database → ReadDatabase.LoadContext() → Analyzer (DbAnalysis)
   3. Plan and implement changes in `DbAnalysis/Analyzer.cs`
   4. Run test again, verify it passes
   5. Update `test/correct_output.json` with new expected output
+
+- 'proc' will mean 'Figure out why parsing of the following code fails'. In most cases, in the following code there is a syntax which is not provided for in the analyzer, and you need to find what exactly.

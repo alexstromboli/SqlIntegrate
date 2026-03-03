@@ -1062,7 +1062,7 @@ namespace DbAnalysis
 
 			var PFromClauseOptionalST =
 				(
-					from kw_from in SqlToken ("from")
+					from kw_from in AnyTokenST ("from", "using")
 					from t1 in PFromTableExpressionST
 					from tail in
 						(

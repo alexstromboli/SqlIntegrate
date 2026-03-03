@@ -885,8 +885,11 @@ BEGIN
     DELETE FROM Own
     WHERE id_person = '4ef2fcf9-8f5b-41c3-8127-1a1c464bb10a';
 
-    -- here: add 'delete using'
-    -- use https://stackoverflow.com/questions/5170546/how-do-i-delete-a-fixed-number-of-rows-with-sorting-in-postgresql
+    -- DELETE with USING clause (PostgreSQL-specific join syntax for DELETE)
+    DELETE FROM VoidThings v
+    USING ext.Persons p
+    WHERE v.category = p.name
+    AND p.effect > 0;
 
     /*
     SELECT 'guest' AS cat, DATE_PART('month',dob) * 2 + 1 AS height
