@@ -1121,6 +1121,21 @@ namespace DbAnalysis
 
 			var POrdinarySelectST = POrdinarySelectSTFunc ("select");
 
+			// FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF table_name [, ...] ] [ NOWAIT | SKIP LOCKED ]
+			// Multiple locking clauses may follow one another.
+			var PSelectLockingClauseST =
+				from kw_for in SqlToken ("for")
+				from strength in AnyTokenST ("no key update", "key share", "update", "share")
+				from of_tables in
+				(
+					from _1 in SqlToken ("of")
+					from _2 in PQualifiedIdentifierLST.CommaDelimitedST ()
+					select 0
+				).Optional ()
+				from wait_policy in AnyTokenST ("nowait", "skip locked").Optional ()
+				select 0
+				;
+
 			var PSelectTailOptionalST =
 			(
 				from ord in POrderByClauseOptionalST
@@ -1137,6 +1152,7 @@ namespace DbAnalysis
 					from size in PExpressionRefST.Get
 					select 0
 				).Optional ()
+				from locking in PSelectLockingClauseST.Many ()
 				select 0
 			).Optional ();
 

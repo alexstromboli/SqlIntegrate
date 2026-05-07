@@ -1079,6 +1079,13 @@ BEGIN
     DELETE FROM ext.Persons
     WHERE ext.Persons.tab_num IN (SELECT updated.id FROM updated)
     ;
+
+    -- SELECT ... FOR UPDATE SKIP LOCKED — row-level locking, skipping rows already locked
+    SELECT id INTO v_id
+    FROM ext.Persons
+    WHERE tab_num > 0
+    FOR UPDATE SKIP LOCKED
+    ;
 END;
 $$;
 
