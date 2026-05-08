@@ -15,7 +15,7 @@ if [ "${1:-}" != '-c' ]; then
     cat dummy01_2.sql | sed "s/SCHEMA/$USER/g" | sed "s/DBNAME/$DBNAME/g" | psql -q -d "$DBNAME"
 fi
 
-PARSEPROCS_EXE="../ParseProcs/bin/Debug/net8.0/ParseProcs"
+PARSEPROCS_EXE="../ParseProcs/bin/Debug/net10.0/ParseProcs"
 
 # Rebuild if executable missing or older than any source .cs file
 if [ ! -f "$PARSEPROCS_EXE" ] || [ -n "$(find ../DbAnalysis ../ParseProcs ../Wrapper -name '*.cs' -newer "$PARSEPROCS_EXE" 2>/dev/null | head -1)" ]; then
@@ -34,7 +34,7 @@ if [ -f "$OUTPUT_JSON_FILE" ]; then
     sed -i "s/\"Name\": \"city_locale\",/\"Name\": \"city_locale\", \"MapTo\": \"TryWrapper.Town\",/g" "$OUTPUT_JSON_FILE"
     sed -i "s/\"Name\": \"mapped\",/\"Name\": \"mapped\", \"MapTo\": \"TryWrapper.CardType\", \"GenerateEnum\": true,/g" "$OUTPUT_JSON_FILE"
 
-    pushd ../TestWrapper/bin/Debug/net8.0 >/dev/null
+    pushd ../TestWrapper/bin/Debug/net10.0 >/dev/null
     ./TestWrapper --legacy-npgsql "$OUTPUT_JSON_FILE"
     cp dbproc_sch_noda.cs ../../../../TryWrapper
     popd >/dev/null
