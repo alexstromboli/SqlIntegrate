@@ -1488,6 +1488,22 @@ namespace DbAnalysis
 										)
 										.Or
 										(
+											// https://www.postgresql.org/docs/current/plpgsql-statements.html#PLPGSQL-STATEMENTS-DIAGNOSTICS
+											// GET [ CURRENT | STACKED ] DIAGNOSTICS variable { = | := } item [ , ... ]
+											from _g in SqlToken ("get")
+											from _q in AnyTokenST ("current", "stacked").Optional ()
+											from _d in SqlToken ("diagnostics")
+											from _items in
+											(
+												from _v in PColumnNameLST
+												from _eq in AnyTokenST (":=", "=")
+												from _i in PColumnNameLST
+												select 0
+											).CommaDelimitedST ()
+											select 0
+										)
+										.Or
+										(
 											from _1 in SqlToken ("return")
 											from _2 in PExpressionRefST.Get.Optional ()
 											select 0

@@ -1990,6 +1990,12 @@
     },
     {
       "Schema": "USER",
+      "Name": "test_get_diagnostics",
+      "Arguments": [],
+      "ResultSets": []
+    },
+    {
+      "Schema": "USER",
       "Name": "test_json",
       "Arguments": [
         {

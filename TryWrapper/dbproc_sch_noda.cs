@@ -2482,6 +2482,23 @@ namespace Generated
 		}
 		#endregion
 
+		#region test_get_diagnostics
+		public void test_get_diagnostics ()
+		{
+			test_get_diagnosticsAsync ().Wait ();
+		}
+
+		public async Task test_get_diagnosticsAsync ()
+		{
+			using (var Cmd = Conn.CreateCommand ())
+			{
+				Cmd.CommandText = "call \"alexey\".\"test_get_diagnostics\" ();";
+
+				await Cmd.ExecuteNonQueryAsync ();
+			}
+		}
+		#endregion
+
 		#region test_json
 		public int? test_json (string data, string data_b)
 		{

@@ -1361,6 +1361,32 @@ BEGIN
 END;
 $$;
 
+-- DROP PROCEDURE test_get_diagnostics;
+-- https://www.postgresql.org/docs/current/plpgsql-statements.html#PLPGSQL-STATEMENTS-DIAGNOSTICS
+-- GET [ CURRENT ] DIAGNOSTICS variable { = | := } item [ , ... ];
+-- GET STACKED DIAGNOSTICS variable { = | := } item [ , ... ];
+CREATE PROCEDURE test_get_diagnostics ()
+LANGUAGE 'plpgsql'
+AS $$
+DECLARE
+    rows_affected bigint;
+    ctx text;
+    state text;
+BEGIN
+    UPDATE Rooms SET name = name WHERE 1 = 0;
+    GET DIAGNOSTICS rows_affected = ROW_COUNT;             -- basic with =
+    GET DIAGNOSTICS rows_affected := ROW_COUNT;            -- assignment with :=
+    GET CURRENT DIAGNOSTICS rows_affected = ROW_COUNT;     -- with optional CURRENT
+    GET DIAGNOSTICS rows_affected = ROW_COUNT, ctx = PG_CONTEXT;   -- multiple items
+
+    BEGIN
+        RAISE EXCEPTION 'test';
+    EXCEPTION WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS state = RETURNED_SQLSTATE;   -- stacked, in exception handler
+    END;
+END;
+$$;
+
 -- DROP PROCEDURE test_write_encrypted;
 CREATE PROCEDURE test_write_encrypted (p_hash bytea, p_enc_pi_payer bytea)
 LANGUAGE 'plpgsql'
