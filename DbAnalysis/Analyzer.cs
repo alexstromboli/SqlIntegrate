@@ -359,6 +359,8 @@ namespace DbAnalysis
 				"in", "not in"
 			);
 			var PBinaryMatchingOperatorsST = AnyTokenST (
+				"is not distinct from",
+				"is distinct from",
 				"is"
 			);
 			var PNullMatchingOperatorsST = AnyTokenST ("isnull", "notnull");

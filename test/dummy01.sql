@@ -845,7 +845,10 @@ BEGIN
             2 IN (select id from rooms) as t3,
             - 5 - - - - 11 sum,  -- no 'as', and unary minuses
             (5 > 3) IS TRUE AS istrue_test,
-            (5 < 3) IS NOT TRUE AS isnottrue_test
+            (5 < 3) IS NOT TRUE AS isnottrue_test,
+            -- IS [NOT] DISTINCT FROM: null-safe (in)equality
+            (5 IS DISTINCT FROM 3) AS isdistinct_test,
+            (5 IS NOT DISTINCT FROM 5) AS isnotdistinct_test
     ;
 END;
 $$;

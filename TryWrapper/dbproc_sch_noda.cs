@@ -1237,6 +1237,8 @@ namespace Generated
 			public int? sum;
 			public bool? istrue_test;
 			public bool? isnottrue_test;
+			public bool? isdistinct_test;
+			public bool? isnotdistinct_test;
 		}
 
 		public get_operators_Result_result get_operators ()
@@ -1274,7 +1276,9 @@ namespace Generated
 									t3 = Rdr["t3"] as bool?,
 									sum = Rdr["sum"] as int?,
 									istrue_test = Rdr["istrue_test"] as bool?,
-									isnottrue_test = Rdr["isnottrue_test"] as bool?
+									isnottrue_test = Rdr["isnottrue_test"] as bool?,
+									isdistinct_test = Rdr["isdistinct_test"] as bool?,
+									isnotdistinct_test = Rdr["isnotdistinct_test"] as bool?
 								};
 							}
 						}

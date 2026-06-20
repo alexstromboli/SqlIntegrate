@@ -1066,6 +1066,14 @@
             {
               "Name": "isnottrue_test",
               "Type": "bool"
+            },
+            {
+              "Name": "isdistinct_test",
+              "Type": "bool"
+            },
+            {
+              "Name": "isnotdistinct_test",
+              "Type": "bool"
             }
           ]
         }
