@@ -83,9 +83,21 @@ namespace DbAnalysis.Cache
 			return ComputeSha1 (sb.ToString ());
 		}
 
-		public static string ComputeProcKey (string DatabaseDataLayoutHash, string ProcedureHash)
+		// The grammar is an input to the analysis, so it belongs in the cache key:
+		// an entry produced by a different analyzer describes a procedure that may now
+		// infer different types, and serving it back would be a silently wrong wrapper.
+		// The module version id is content-derived under the SDK's deterministic build,
+		// so unchanged sources keep their entries while any edit to the analyzer
+		// discards them. An assembly version would not: it is a hardcoded constant, and
+		// even a git-derived informational version is frozen while a change is being
+		// iterated on but not yet committed -- exactly when the cache must not be trusted.
+		public static readonly string AnalyzerHash =
+			typeof (HashUtils).Assembly.ManifestModule.ModuleVersionId.ToString ("N");
+
+		public static string ComputeProcKey (string AnalyzerHash, string DatabaseDataLayoutHash,
+			string ProcedureHash)
 		{
-			return DatabaseDataLayoutHash + "_" + ProcedureHash;
+			return AnalyzerHash + "_" + DatabaseDataLayoutHash + "_" + ProcedureHash;
 		}
 	}
 }

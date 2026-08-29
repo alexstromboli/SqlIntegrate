@@ -25,6 +25,15 @@ cd test/
 
 The test suite creates a PostgreSQL database `dummy01`, loads schema from `dummy01.sql`, runs ParseProcs to generate JSON analysis, then generates C# wrapper code via TestWrapper. Output is validated against `correct_output.json` via SHA1 hash.
 
+It then creates a second database from `unanalysable.sql` and checks the failure contract: a
+procedure the analyzer drops has to make the run exit non-zero and be named in the summary, while
+`--tolerate-failures` brings the same run back to 0. A last pair of runs exercises the analysis
+cache, which every other run here bypasses with `--no-cache`: a cached run must reproduce the fresh
+one, and cache keys must carry all three of the analyzer, the data layout and the procedure.
+
+`run_test.sh` runs every check before reporting, and exits non-zero if any of them failed. A
+mismatching report is left in `test/temp_actual_output.json` to diff against `correct_output.json`.
+
 ## Architecture
 
 SqlIntegrate analyzes PostgreSQL databases and generates type-safe C# wrapper code for stored procedures and functions.
@@ -75,9 +84,13 @@ PostgreSQL Database → ReadDatabase.LoadContext() → Analyzer (DbAnalysis)
 
 - 'imps' will mean 'Implement syntax'. This follows a TDD workflow for adding new SQL syntax support to the analyzer:
   1. Add test expression to `test/dummy01.sql` (with a comment explaining the syntax)
-  2. Run test (`./run_test.sh`), verify it fails (parsing error expected)
+  2. Run test (`./run_test.sh`), verify it fails (parsing error expected, and a non-zero exit)
   3. Plan and implement changes in `DbAnalysis/Analyzer.cs`
   4. Run test again, verify it passes
   5. Update `test/correct_output.json` with new expected output
+
+  A consumer generating code from a cached analysis needs no special handling here: the cache key
+  carries the analyzer's module version id, so building a changed analyzer discards the entries the
+  previous one wrote.
 
 - 'proc' will mean 'Figure out why parsing of the following code fails'. In most cases, in the following code there is a syntax which is not provided for in the analyzer, and you need to find what exactly.

@@ -78,6 +78,30 @@ The core library providing SQL parsing, PostgreSQL type system representation, a
 - `DbAnalysis` - Main namespace
 - `DbAnalysis.Datasets` - Generic data structure templates
 - `DbAnalysis.Cache` - Procedure analysis caching (HashUtils, IProcedureStateCache, LocalUserCache, VoidCache)
+
+**The analysis cache:**
+
+`IProcedureStateCache` has two implementations: `LocalUserCache`, one JSON file per procedure under
+`~/.sqlintegrate/cache`, and `VoidCache`, which stores nothing and is what `--no-cache` selects.
+Entries not read for 30 days are swept at construction, and a read touches the file's mtime, so an
+entry stays alive as long as it is used.
+
+The file name is the key, `{analyzer}_{data layout}_{procedure}`:
+
+| Segment | From | Covers |
+|---|---|---|
+| analyzer | `HashUtils.AnalyzerHash` | The `DbAnalysis` module version id, content-derived under the SDK's deterministic build |
+| data layout | `ComputeDatabaseDataLayoutHash` | Custom types (enum values, composite properties) and tables with their columns |
+| procedure | `ComputeProcedureHash` | The procedure's schema, name, argument names and types, and its source |
+
+The analyzer belongs there because the grammar is an input to the analysis: an entry written by a
+different analyzer describes a procedure that may now infer different types, and returning it would
+produce a silently wrong wrapper from a run that looks clean. A version attribute would not do the
+job — `AssemblyVersion` is a constant, and a git-derived informational version does not move while a
+change is being iterated on, which is exactly when the cache must not be trusted.
+
+Storing happens only after a procedure analyses successfully, so a failure is never cached and is
+retried on the next run.
 - `DbAnalysis.Sources` - Source tracking (ISource, Sourced, TableSource, FunctionSource, CompositeTypeSource, CalculatedSource, TextSpanSource, DefinitionSource)
 
 **SQL Parsing Infrastructure:**
@@ -160,8 +184,21 @@ File.WriteAllText (outputFileName, JsonConvert.SerializeObject (ModuleReport));
 
 **Command Line:**
 ```bash
-ParseProcs --no-cache "host=/var/run/postgresql;database=mydb;Integrated Security=true" output.json
+ParseProcs [--no-cache] [--tolerate-failures] "host=/var/run/postgresql;database=mydb;Integrated Security=true" output.json
 ```
+
+`--no-cache` analyses every procedure afresh instead of consulting `~/.sqlintegrate/cache`.
+`--tolerate-failures` keeps the exit code at 0 when procedures were dropped. An unrecognised
+option is refused with exit 2 rather than ignored, so a mistyped flag cannot read as a request
+it is not.
+
+**Exit codes:** `0` every procedure analysed, `1` one or more were dropped, `2` the command line
+was malformed. The report is written either way, so a partial one is available for inspection;
+it carries no record of what is missing, because a dropped procedure is simply absent from it —
+indistinguishable there from one the database does not have. The exit code is the only channel
+that distinguishes them, which is why generating code from a report is only safe after checking
+it. Each dropped procedure is named as it is dropped, and again in a summary on stderr at the
+end, where a truncating `| tail` still shows it.
 
 ---
 
@@ -454,11 +491,32 @@ test/
 │  │  sed 's/$USER/USER/g' "$OUTPUT_JSON_FILE" > normalized       │    │
 │  │  sha1sum normalized == sha1sum correct_output.json           │    │
 │  │  → Green: PASS (delete temp file)                            │    │
-│  │  → Red: FAIL (keep temp file for debugging)                  │    │
+│  │  → Red: FAIL (keep temp_actual_output.json to diff)          │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                          │                                          │
+│                          ▼                                          │
+│  Step 7: Failure contract (database dummy01_unanalysable)           │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │  ParseProcs --no-cache "...dummy01_unanalysable..." out.json │    │
+│  │  → must exit non-zero and name every dropped procedure       │    │
+│  │  ParseProcs --no-cache --tolerate-failures ...               │    │
+│  │  → must exit 0                                               │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                          │                                          │
+│                          ▼                                          │
+│  Step 8: Cache round trip (HOME redirected to a scratch dir)        │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │  two runs WITHOUT --no-cache against dummy01                 │    │
+│  │  → the cached run must reproduce the fresh one               │    │
+│  │  → every key must be {analyzer}_{layout}_{procedure}         │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+Every step runs before the script reports, and the script exits non-zero if any of them failed —
+one run tells you everything that is wrong rather than only the first thing. Steps 7 and 8 use
+databases and a `HOME` of their own so they cannot disturb the corpus comparison or the real cache.
 
 ### Test Database Schema (dummy01.sql)
 

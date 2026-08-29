@@ -25,8 +25,17 @@ namespace DbAnalysis
 		}
 	}
 
+	// A procedure the analyzer could not turn into a report entry, and why.
+	// Every one of these means the generated wrapper lacks a method that the database has.
+	public record ProcedureFailure (string ProcDisplayName, string Kind, string Message);
+
 	public class Analyzer
 	{
+		// Procedures left out of the report by this run. A caller that generates code from
+		// the report must treat a non-empty list as a failure: an omitted procedure is
+		// indistinguishable in the report from one the database never had.
+		public List<ProcedureFailure> Failures { get; } = new List<ProcedureFailure> ();
+
 		protected DatabaseContext DatabaseContext;
 		protected Dictionary<int, string> WordsCache;
 		protected Parser<Sourced<string>> PDoubleQuotedString;
@@ -1679,6 +1688,9 @@ namespace DbAnalysis
 
 		public Module Run (IProcedureStateCache Cache, string DatabaseDataLayoutHash)
 		{
+			// The report describes one run, and so does its failure list.
+			Failures.Clear ();
+
 			bool IsDebugging = false;
 			if (IsDebugging)
 			{
@@ -1724,7 +1736,9 @@ namespace DbAnalysis
 				if (grp.Count () > 1)
 				{
 					// here: handle overloads
-					Console.WriteLine ($"\"{ProcDisplayName}\" skipped: overloaded procedure");
+					string Message = $"\"{ProcDisplayName}\" skipped: overloaded procedure";
+					Console.WriteLine (Message);
+					Failures.Add (new ProcedureFailure (ProcDisplayName, "overloaded procedure", Message));
 					continue;
 				}
 
@@ -1733,14 +1747,17 @@ namespace DbAnalysis
 				if (proc.Arguments.Any (a => a.Type == null))
 				{
 					// here: handle table types
-					Console.WriteLine ($"{ProcDisplayName} failed: unknown argument type");
+					string Message = $"{ProcDisplayName} failed: unknown argument type";
+					Console.WriteLine (Message);
+					Failures.Add (new ProcedureFailure (ProcDisplayName, "unknown argument type", Message));
 					continue;
 				}
 
 				// Calculate procedure hash and check cache
 				string ProcedureHash = HashUtils.ComputeProcedureHash (proc);
 				string ProcKey = DatabaseDataLayoutHash != null
-					? HashUtils.ComputeProcKey (DatabaseDataLayoutHash, ProcedureHash)
+					? HashUtils.ComputeProcKey (HashUtils.AnalyzerHash, DatabaseDataLayoutHash,
+						ProcedureHash)
 					: null;
 
 				if (ProcKey != null && Cache.TryGet (ProcKey, out Datasets.Procedure CachedProcedure))
@@ -1857,6 +1874,7 @@ namespace DbAnalysis
 				catch (AmbiguityException ex)
 				{
 					Console.WriteLine (ex.Message);
+					Failures.Add (new ProcedureFailure (ProcDisplayName, "ambiguity", ex.Message));
 				}
 				catch (ParseException ex)
 				{
@@ -1866,6 +1884,7 @@ namespace DbAnalysis
 					// is still the enclosing context -- but lead the reader to the
 					// high-water mark, which is where the problem really is.
 					Console.WriteLine ($"Parsing failed at procedure \"{ProcDisplayName}\": {ex.Message}");
+					Failures.Add (new ProcedureFailure (ProcDisplayName, "parsing failed", ex.Message));
 
 					string Progress = ParseProgress.Describe (proc.SourceCode);
 					if (Progress != null)
@@ -1876,6 +1895,7 @@ namespace DbAnalysis
 				catch (Exception ex)
 				{
 					Console.WriteLine ($"Unknown issue at procedure \"{ProcDisplayName}\": {ex.Message}");
+					Failures.Add (new ProcedureFailure (ProcDisplayName, "unknown issue", ex.Message));
 				}
 			}
 
