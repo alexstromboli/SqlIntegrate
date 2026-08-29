@@ -365,6 +365,14 @@ namespace DbAnalysis
 			);
 			var PNullMatchingOperatorsST = AnyTokenST ("isnull", "notnull");
 
+			// A binary operator rather than a postfix one, even though its right
+			// operand only ever names a zone. As a binary it inherits precedence
+			// handling from SPolynom's evaluator for free and the zone is simply the
+			// next atomic; a PAtomicPostfixOptionalST entry would have to consume its
+			// own right operand, and reaching for PExpressionRefST there risks
+			// Parse.Ref's left-recursion throw.
+			var PAtTimeZoneOperatorST = AnyTokenST ("at time zone");
+
 			var PNegationST = AnyTokenST ("not");
 			var PBinaryConjunctionST = AnyTokenST ("and");
 			var PBinaryDisjunctionST = AnyTokenST ("or");
@@ -941,6 +949,19 @@ namespace DbAnalysis
 							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBetweenOperatorST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Between, true,
 							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool), true)))
+						// The zone operand is parsed and then dropped: it cannot affect the
+						// result type. The LEFT type does, and the flip is not cosmetic -- a
+						// bare expression's inferred type becomes the CLR type of the
+						// generated result-set property.
+						.Or (PAtTimeZoneOperatorST.Select (b => new OperatorProcessor (
+							PSqlOperatorPriority.AtTimeZone, true,
+							(l, r) => rc =>
+							{
+								NamedTyped Left = l (rc);
+
+								return Left.WithType (Left.Type.Select (t =>
+									PSqlUtils.GetAtTimeZoneResultType (DatabaseContext.TypeMap, t)));
+							})))
 				;
 
 			var PPolynomST =
@@ -1750,6 +1771,11 @@ namespace DbAnalysis
 					// build word cache
 					BuildWordCache (proc.SourceCode);
 
+					// The high-water mark is per-procedure; without this a
+					// failure would be described against the furthest point reached in
+					// some EARLIER procedure.
+					ParseProgress.Reset ();
+
 					//
 					var Parse = PProcedureST.Parse (proc.SourceCode);
 
@@ -1834,7 +1860,18 @@ namespace DbAnalysis
 				}
 				catch (ParseException ex)
 				{
+					// Sprache's own message names where the failing ALTERNATIVE started,
+					// which for a statement list is the head of the statement rather than
+					// the construct inside it that is actually unsupported. Keep it -- it
+					// is still the enclosing context -- but lead the reader to the
+					// high-water mark, which is where the problem really is.
 					Console.WriteLine ($"Parsing failed at procedure \"{ProcDisplayName}\": {ex.Message}");
+
+					string Progress = ParseProgress.Describe (proc.SourceCode);
+					if (Progress != null)
+					{
+						Console.WriteLine (Progress);
+					}
 				}
 				catch (Exception ex)
 				{

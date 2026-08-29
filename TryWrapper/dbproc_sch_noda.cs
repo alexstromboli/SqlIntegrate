@@ -1239,6 +1239,11 @@ namespace Generated
 			public bool? isnottrue_test;
 			public bool? isdistinct_test;
 			public bool? isnotdistinct_test;
+			public LocalDateTime? attz_drops_zone;
+			public Instant? attz_adds_zone;
+			public LocalTime? attz_timetz_keeps_zone;
+			public LocalTime? attz_time_gains_zone;
+			public string attz_in_call;
 		}
 
 		public get_operators_Result_result get_operators ()
@@ -1278,7 +1283,12 @@ namespace Generated
 									istrue_test = Rdr["istrue_test"] as bool?,
 									isnottrue_test = Rdr["isnottrue_test"] as bool?,
 									isdistinct_test = Rdr["isdistinct_test"] as bool?,
-									isnotdistinct_test = Rdr["isnotdistinct_test"] as bool?
+									isnotdistinct_test = Rdr["isnotdistinct_test"] as bool?,
+									attz_drops_zone = Rdr["attz_drops_zone"] as LocalDateTime?,
+									attz_adds_zone = Rdr["attz_adds_zone"] as Instant?,
+									attz_timetz_keeps_zone = Rdr["attz_timetz_keeps_zone"] as LocalTime?,
+									attz_time_gains_zone = Rdr["attz_time_gains_zone"] as LocalTime?,
+									attz_in_call = Rdr["attz_in_call"] as string
 								};
 							}
 						}

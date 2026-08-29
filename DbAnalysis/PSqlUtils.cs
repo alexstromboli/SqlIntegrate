@@ -123,5 +123,40 @@ namespace DbAnalysis
 
 			return Typemap.Null;
 		}
+
+		// 'x AT TIME ZONE zone' takes its result type from its LEFT operand alone;
+		// the zone names a zone and contributes nothing. The three cases are the ones
+		// PostgreSQL documents, and they are NOT a symmetric flip:
+		//
+		//   timestamptz -> timestamp   (rendered in the zone, zone dropped)
+		//   timestamp   -> timestamptz (read as local to the zone)
+		//   timetz      -> timetz      (re-rendered; it KEEPS its zone)
+		//
+		// The timetz row is the one worth stating, because 'it flips zone-awareness'
+		// predicts 'time' there and is wrong -- verified against PostgreSQL with
+		// pg_typeof. 'time' is not documented but takes the implicit cast to timetz.
+		//
+		// Anything else is passed through rather than becoming Null. The operator is
+		// only defined for these types, so a caller that reaches it with anything else
+		// has a SQL error, and inventing a type for it would hide that.
+		public static PSqlType GetAtTimeZoneResultType (SqlTypeMap Typemap, PSqlType Left)
+		{
+			if (Left == Typemap.TimestampTz)
+			{
+				return Typemap.Timestamp;
+			}
+
+			if (Left == Typemap.Timestamp)
+			{
+				return Typemap.TimestampTz;
+			}
+
+			if (Left == Typemap.Time)
+			{
+				return Typemap.TimeTz;
+			}
+
+			return Left;
+		}
 	}
 }

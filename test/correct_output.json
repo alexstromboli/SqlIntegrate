@@ -1074,6 +1074,26 @@
             {
               "Name": "isnotdistinct_test",
               "Type": "bool"
+            },
+            {
+              "Name": "attz_drops_zone",
+              "Type": "timestamp"
+            },
+            {
+              "Name": "attz_adds_zone",
+              "Type": "timestamptz"
+            },
+            {
+              "Name": "attz_timetz_keeps_zone",
+              "Type": "timetz"
+            },
+            {
+              "Name": "attz_time_gains_zone",
+              "Type": "timetz"
+            },
+            {
+              "Name": "attz_in_call",
+              "Type": "text"
             }
           ]
         }

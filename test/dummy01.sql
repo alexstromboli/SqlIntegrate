@@ -848,7 +848,18 @@ BEGIN
             (5 < 3) IS NOT TRUE AS isnottrue_test,
             -- IS [NOT] DISTINCT FROM: null-safe (in)equality
             (5 IS DISTINCT FROM 3) AS isdistinct_test,
-            (5 IS NOT DISTINCT FROM 5) AS isnotdistinct_test
+            (5 IS NOT DISTINCT FROM 5) AS isnotdistinct_test,
+            -- AT TIME ZONE. Its result type comes from the LEFT operand
+            -- alone, and the three documented rows are NOT a symmetric flip:
+            -- timestamptz drops its zone, timestamp gains one, but timetz KEEPS its
+            -- own. The to_char case is the shape that motivated the work -- an
+            -- ORDER BY key wrapped in a function call.
+            now () AT TIME ZONE 'UTC' AS attz_drops_zone,
+            '2020-03-01 14:50'::timestamp AT TIME ZONE 'UTC' AS attz_adds_zone,
+            '14:50'::timetz AT TIME ZONE 'UTC' AS attz_timetz_keeps_zone,
+            '14:50'::time AT TIME ZONE 'UTC' AS attz_time_gains_zone,
+            to_char (now () AT TIME ZONE 'UTC', 'YYYYMMDDHH24MISSUS') AS attz_in_call
+    ORDER BY now () AT TIME ZONE 'UTC'
     ;
 END;
 $$;

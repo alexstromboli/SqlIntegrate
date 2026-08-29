@@ -62,10 +62,26 @@ namespace DbAnalysis
 
 		public static Parser<Sourced<T>> SqlToken<T> (this Parser<Sourced<T>> Inner)
 		{
-			return Inner
+			Parser<Sourced<T>> Tokenized = Inner
 					.Commented (SqlCommentParser.Instance)
 					.Select (p => p.Value)
 				;
+
+			// Every token in the grammar is built through here, which makes this the
+			// one place that sees how far a parse actually got. Recording the
+			// remainder after each successful token gives a high-water mark that
+			// survives the backtracking Many () and Optional () hide. See ParseProgress.
+			return i =>
+			{
+				IResult<Sourced<T>> Result = Tokenized (i);
+
+				if (Result.WasSuccessful)
+				{
+					ParseProgress.Note (Result.Remainder);
+				}
+
+				return Result;
+			};
 		}
 
 		public static Parser<T> InParentsST<T> (this Parser<T> Inner)
