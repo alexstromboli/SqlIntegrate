@@ -53,6 +53,14 @@ namespace DbAnalysis.Cache
 				sb.Append (";");
 			}
 
+			// The schema order resolves every bare name in every procedure, so a change to
+			// it can point an unqualified table at a different table entirely. It is a
+			// property of the database rather than of any one procedure, and it moves about
+			// as often as the tables do, so it belongs in the shared segment.
+			sb.Append ("SP:");
+			sb.Append (string.Join (",", DatabaseContext.SchemaOrder));
+			sb.Append (";");
+
 			return ComputeSha1 (sb.ToString ());
 		}
 
@@ -94,6 +102,13 @@ namespace DbAnalysis.Cache
 		public static readonly string AnalyzerHash =
 			typeof (HashUtils).Assembly.ManifestModule.ModuleVersionId.ToString ("N");
 
+		// The three segments cover every input to the analysis that is known before the
+		// parse. The fourth input -- the return types of the functions the procedure calls
+		// -- is not: the callee set is a result of the parse the key selects. It rides
+		// inside the entry as a recorded closure instead, and CachedAnalysis.MatchesCallees
+		// replays it. Folding signatures in here would work too, but this hash is shared by
+		// every procedure in the database, so one signature change would discard all of
+		// them.
 		public static string ComputeProcKey (string AnalyzerHash, string DatabaseDataLayoutHash,
 			string ProcedureHash)
 		{

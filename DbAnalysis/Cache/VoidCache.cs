@@ -2,13 +2,13 @@ namespace DbAnalysis.Cache
 {
 	public class VoidCache : IProcedureStateCache
 	{
-		public bool TryGet (string ProcKey, out Datasets.Procedure ProcedureReport)
+		public bool TryGet (string ProcKey, out CachedAnalysis Analysis)
 		{
-			ProcedureReport = null;
+			Analysis = null;
 			return false;
 		}
 
-		public void Store (string ProcKey, Datasets.Procedure ProcedureReport)
+		public void Store (string ProcKey, CachedAnalysis Analysis)
 		{
 			// Do nothing
 		}

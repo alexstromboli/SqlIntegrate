@@ -77,7 +77,7 @@ The core library providing SQL parsing, PostgreSQL type system representation, a
 **Namespaces:**
 - `DbAnalysis` - Main namespace
 - `DbAnalysis.Datasets` - Generic data structure templates
-- `DbAnalysis.Cache` - Procedure analysis caching (HashUtils, IProcedureStateCache, LocalUserCache, VoidCache)
+- `DbAnalysis.Cache` - Procedure analysis caching (HashUtils, CachedAnalysis, IProcedureStateCache, LocalUserCache, VoidCache)
 
 **The analysis cache:**
 
@@ -86,12 +86,17 @@ The core library providing SQL parsing, PostgreSQL type system representation, a
 Entries not read for 30 days are swept at construction, and a read touches the file's mtime, so an
 entry stays alive as long as it is used.
 
-The file name is the key, `{analyzer}_{data layout}_{procedure}`:
+An entry is a `CachedAnalysis`: the `Datasets.Procedure` report, plus the closure of callee
+signatures it was inferred against. The two are validated differently, because they answer to
+different kinds of input.
+
+*The key* is the file name, `{analyzer}_{data layout}_{procedure}` — everything the analysis
+depends on that is known **before** the parse:
 
 | Segment | From | Covers |
 |---|---|---|
 | analyzer | `HashUtils.AnalyzerHash` | The `DbAnalysis` module version id, content-derived under the SDK's deterministic build |
-| data layout | `ComputeDatabaseDataLayoutHash` | Custom types (enum values, composite properties) and tables with their columns |
+| data layout | `ComputeDatabaseDataLayoutHash` | Custom types (enum values, composite properties), tables with their columns, and the schema order |
 | procedure | `ComputeProcedureHash` | The procedure's schema, name, argument names and types, and its source |
 
 The analyzer belongs there because the grammar is an input to the analysis: an entry written by a
@@ -99,6 +104,33 @@ different analyzer describes a procedure that may now infer different types, and
 produce a silently wrong wrapper from a run that looks clean. A version attribute would not do the
 job — `AssemblyVersion` is a constant, and a git-derived informational version does not move while a
 change is being iterated on, which is exactly when the cache must not be trusted.
+
+The schema order belongs there because it resolves every bare name in every procedure: reorder the
+search path and an unqualified table can point at a different table entirely. It is a property of
+the database, not of any one procedure, and it moves about as rarely as the tables do.
+
+*The callee closure* is the input the key **cannot** carry. A procedure's inferred types depend on
+the return types of the functions it calls, and none of that appears in the procedure's own source,
+the tables or the custom types — so a key built from those alone hands back the old types while
+`git diff` shows nothing and the run exits 0. The callee set is not available in time to be keyed
+on either: it is a result of the parse the key selects. So `ModuleContext` records every function
+resolution as it happens — the name as written and what it resolved to — and the entry carries that
+list. `CachedAnalysis.MatchesCallees` replays each lookup against the current database before the
+entry is trusted, and any type that comes back different makes it a miss.
+
+Replaying the lookup rather than comparing a stored key is what makes the check complete: resolution
+walks the schema order, so a function newly created earlier on the path counts as a change too. A
+name resolving to nothing is recorded as its own state, distinct from every return type, so a
+function created later invalidates the entry rather than matching it.
+
+Folding signatures into the data-layout hash instead would also be correct, and is why the closure
+is worth the two-stage shape: that hash is shared by every procedure in the database, so one
+signature change anywhere would discard all of them — and signature changes are routine during
+exactly the work the cache helps most. An entry with no recorded closure is refused, since it cannot
+be told apart from one whose callees all still match.
+
+Called *procedures* need no such treatment: `CALL` parses its target but never resolves it, so no
+procedure's signature is an input to another's analysis.
 
 Storing happens only after a procedure analyses successfully, so a failure is never cached and is
 retried on the next run.
@@ -510,13 +542,28 @@ test/
 │  │  → the cached run must reproduce the fresh one               │    │
 │  │  → every key must be {analyzer}_{layout}_{procedure}         │    │
 │  └─────────────────────────────────────────────────────────────┘    │
+│                          │                                          │
+│                          ▼                                          │
+│  Step 9: Callee closure (database dummy01_callee)                   │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │  run, change the callee's return type, run again             │    │
+│  │  → the report must follow, and match a --no-cache one        │    │
+│  │  doctor the stored result, run again                         │    │
+│  │  → the doctored value must come back                         │    │
+│  └─────────────────────────────────────────────────────────────┘    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 Every step runs before the script reports, and the script exits non-zero if any of them failed —
-one run tells you everything that is wrong rather than only the first thing. Steps 7 and 8 use
+one run tells you everything that is wrong rather than only the first thing. Steps 7, 8 and 9 use
 databases and a `HOME` of their own so they cannot disturb the corpus comparison or the real cache.
+
+Step 9 needs both halves. The first alone is satisfied by a cache that never hits, which would be
+correct and useless; doctoring the stored result to a type the database cannot produce separates the
+two, because the sentinel comes back only if the entry was served. Its fixture sets the callee's
+return type explicitly rather than inheriting it, so `./run_test.sh -c` does not start from whatever
+the previous run left behind.
 
 ### Test Database Schema (dummy01.sql)
 

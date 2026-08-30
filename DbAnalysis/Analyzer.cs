@@ -1760,11 +1760,17 @@ namespace DbAnalysis
 						ProcedureHash)
 					: null;
 
-				if (ProcKey != null && Cache.TryGet (ProcKey, out Datasets.Procedure CachedProcedure))
+				// The key describes the procedure's own source, the data layout and the
+				// analyzer. The signatures of the functions the procedure calls are the
+				// remaining input, and they are only known once the body has been parsed --
+				// so they travel inside the entry and are replayed against the database here.
+				if (ProcKey != null
+				    && Cache.TryGet (ProcKey, out CachedAnalysis Cached)
+				    && Cached.MatchesCallees (DatabaseContext))
 				{
 					// Restore PSqlType references for cached procedure
-					RestorePSqlTypes (CachedProcedure);
-					ModuleReport.Procedures.Add (CachedProcedure);
+					RestorePSqlTypes (Cached.Procedure);
+					ModuleReport.Procedures.Add (Cached.Procedure);
 					continue;
 				}
 
@@ -1866,7 +1872,11 @@ namespace DbAnalysis
 					// Store in cache
 					if (ProcKey != null)
 					{
-						Cache.Store (ProcKey, ProcedureReport);
+						Cache.Store (ProcKey, new CachedAnalysis
+						{
+							Procedure = ProcedureReport,
+							CalleeSignatures = mcProc.CalleeSignatures.ToList ()
+						});
 					}
 
 					ModuleReport.Procedures.Add (ProcedureReport);

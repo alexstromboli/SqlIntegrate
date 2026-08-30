@@ -6,6 +6,7 @@ cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 
 export DBNAME=dummy01
 export BAD_DBNAME=dummy01_unanalysable
+export CALLEE_DBNAME=dummy01_callee
 export USER="$(whoami)"
 
 if [ "${1:-}" != '-c' ]; then
@@ -19,6 +20,11 @@ if [ "${1:-}" != '-c' ]; then
     psql -d postgres -c "CREATE DATABASE $BAD_DBNAME;"
 
     psql -q -d "$BAD_DBNAME" -v owner="$USER" -f unanalysable.sql
+
+    psql -d postgres -c "DROP DATABASE $CALLEE_DBNAME;" || true
+    psql -d postgres -c "CREATE DATABASE $CALLEE_DBNAME;"
+
+    psql -q -d "$CALLEE_DBNAME" -v owner="$USER" -v dbname="$CALLEE_DBNAME" -f callee_signature.sql
 fi
 
 PARSEPROCS_EXE="../ParseProcs/bin/Debug/net10.0/ParseProcs"
@@ -38,6 +44,7 @@ fi
 
 CONN="host=/var/run/postgresql;database=$DBNAME;Integrated Security=true"
 BAD_CONN="host=/var/run/postgresql;database=$BAD_DBNAME;Integrated Security=true"
+CALLEE_CONN="host=/var/run/postgresql;database=$CALLEE_DBNAME;Integrated Security=true"
 
 FAILED=0
 
@@ -136,5 +143,62 @@ else
 fi
 
 rm -rf "$CACHE_HOME" temp_cache_first.json temp_cache_second.json
+
+### the cache and a callee whose signature changed
+
+# A procedure's inferred types depend on the return types of the functions it calls, and
+# none of that is visible in the procedure's own source, the tables or the custom types --
+# so a cache keyed on those alone hands back the old types and the run still exits 0. The
+# callee set is only known after the parse, so it is recorded in the entry and replayed;
+# this is what checks the replay actually happens.
+
+CALLEE_HOME="$(realpath temp_callee_home)"
+rm -rf "$CALLEE_HOME"
+mkdir -p "$CALLEE_HOME"
+
+# Set explicitly rather than taken from the fixture, so the section is idempotent and a
+# -c re-run does not start from the return type the previous run left behind.
+callee_returns ()
+{
+    psql -q -d "$CALLEE_DBNAME" -v ON_ERROR_STOP=1 -v owner="$USER" \
+        -c "SET search_path TO $USER; DROP FUNCTION callee ();
+            CREATE FUNCTION callee () RETURNS $1 AS \$\$ BEGIN RETURN 1; END \$\$ LANGUAGE plpgsql;"
+}
+
+callee_returns int
+HOME="$CALLEE_HOME" "$PARSEPROCS_EXE" "$CALLEE_CONN" temp_callee_before.json >/dev/null
+
+callee_returns bigint
+HOME="$CALLEE_HOME" "$PARSEPROCS_EXE" "$CALLEE_CONN" temp_callee_after.json >/dev/null
+"$PARSEPROCS_EXE" --no-cache "$CALLEE_CONN" temp_callee_fresh.json >/dev/null
+
+if cmp -s temp_callee_before.json temp_callee_after.json; then
+    report_failed "failed: a changed callee signature was served from the cache"
+elif ! cmp -s temp_callee_after.json temp_callee_fresh.json; then
+    report_failed "failed: the re-analysed report differs from an uncached one"
+else
+    report_ok "success: a changed callee signature invalidates the entry"
+fi
+
+# The check above is also satisfied by a cache that never hits, which would be a
+# correct-but-useless one. Doctoring the stored result to something the database cannot
+# produce separates the two: the sentinel comes back only if the entry was served.
+CALLEE_ENTRY="$(ls "$CALLEE_HOME"/.sqlintegrate/cache/*.json 2>/dev/null | head -1)"
+
+if [ -z "$CALLEE_ENTRY" ]; then
+    report_failed "failed: the callee run wrote no cache entry"
+else
+    sed -i 's/"Name":"v","Type":"bigint"/"Name":"v","Type":"numeric"/' "$CALLEE_ENTRY"
+    HOME="$CALLEE_HOME" "$PARSEPROCS_EXE" "$CALLEE_CONN" temp_callee_hit.json >/dev/null
+
+    if grep -q '"Type": "numeric"' temp_callee_hit.json; then
+        report_ok "success: an entry whose callees still match is served"
+    else
+        report_failed "failed: the entry was re-analysed although its callees are unchanged"
+    fi
+fi
+
+rm -rf "$CALLEE_HOME" temp_callee_before.json temp_callee_after.json \
+    temp_callee_fresh.json temp_callee_hit.json
 
 exit "$FAILED"

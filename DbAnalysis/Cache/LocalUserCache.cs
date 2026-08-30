@@ -48,20 +48,20 @@ namespace DbAnalysis.Cache
 			return Path.Combine (CacheDirectory, ProcKey + ".json");
 		}
 
-		public bool TryGet (string ProcKey, out Datasets.Procedure ProcedureReport)
+		public bool TryGet (string ProcKey, out CachedAnalysis Analysis)
 		{
 			string FilePath = GetFilePath (ProcKey);
 
 			if (!File.Exists (FilePath))
 			{
-				ProcedureReport = null;
+				Analysis = null;
 				return false;
 			}
 
 			try
 			{
 				string json = File.ReadAllText (FilePath);
-				ProcedureReport = JsonConvert.DeserializeObject<Datasets.Procedure> (json);
+				Analysis = JsonConvert.DeserializeObject<CachedAnalysis> (json);
 
 				// Update file modification time to track usage
 				File.SetLastWriteTimeUtc (FilePath, DateTime.UtcNow);
@@ -70,18 +70,18 @@ namespace DbAnalysis.Cache
 			}
 			catch
 			{
-				ProcedureReport = null;
+				Analysis = null;
 				return false;
 			}
 		}
 
-		public void Store (string ProcKey, Datasets.Procedure ProcedureReport)
+		public void Store (string ProcKey, CachedAnalysis Analysis)
 		{
 			string FilePath = GetFilePath (ProcKey);
 
 			try
 			{
-				string json = JsonConvert.SerializeObject (ProcedureReport, Formatting.None);
+				string json = JsonConvert.SerializeObject (Analysis, Formatting.None);
 				File.WriteAllText (FilePath, json);
 			}
 			catch
