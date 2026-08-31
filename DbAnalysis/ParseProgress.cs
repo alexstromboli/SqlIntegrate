@@ -54,8 +54,8 @@ namespace DbAnalysis
 		//
 		// Line numbers are relative to the procedure BODY, because that is what gets
 		// parsed -- pg_proc.prosrc, not the .sql file the procedure was deployed
-		// from. Saying so is part of the fix; the numbers never were file-relative,
-		// and nothing used to mention it.
+		// from. The numbers are never file-relative, and a reader who assumes they are
+		// will chase the wrong line.
 		public static string Describe (string Source)
 		{
 			if (string.IsNullOrEmpty (Source))
