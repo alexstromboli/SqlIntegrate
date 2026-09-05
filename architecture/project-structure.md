@@ -232,6 +232,20 @@ that distinguishes them, which is why generating code from a report is only safe
 it. Each dropped procedure is named as it is dropped, and again in a summary on stderr at the
 end, where a truncating `| tail` still shows it.
 
+The summary line is the diagnostic that survives a long run, so it has to be actionable on its own.
+It carries a **kind** — a category, so the same reason reads the same way across procedures — and,
+where the category alone says nothing a reader can act on, a **detail** naming what was specific to
+that procedure. `unresolved function` is the case that needs one: the category says resolution
+failed, and only the name says which lookup to go and fix.
+
+**A name that resolves to no function is not by itself a drop.** Resolution yields no type, and the
+call carries that absence onward; most calls sit where nothing ever asks what they return — a
+predicate, a discarded argument — and those procedures analyse in full. The refusal happens at the
+one place the absence would become visible, a **result column with no type**, because the report has
+no way to mark a column unknown and a wrapper carrying a made-up type is indistinguishable there
+from one that was really looked up. A missing wrapper method is the honest outcome, and the exit
+code is what reports it.
+
 ---
 
 ### TestWrapper (Test Validation Console App)
@@ -531,6 +545,8 @@ test/
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │  ParseProcs --no-cache "...dummy01_unanalysable..." out.json │    │
 │  │  → must exit non-zero and name every dropped procedure       │    │
+│  │  → an unresolved function must be named as such, with the    │    │
+│  │    name that failed, not bucketed as "unknown issue"         │    │
 │  │  ParseProcs --no-cache --tolerate-failures ...               │    │
 │  │  → must exit 0                                               │    │
 │  └─────────────────────────────────────────────────────────────┘    │

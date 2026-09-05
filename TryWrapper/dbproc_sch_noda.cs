@@ -2816,6 +2816,58 @@ namespace Generated
 		}
 		#endregion
 
+		#region test_unresolved_function_unused
+		public List<Guid?> test_unresolved_function_unused ()
+		{
+			return test_unresolved_function_unusedAsync ().Result;
+		}
+
+		public async Task<List<Guid?>> test_unresolved_function_unusedAsync ()
+		{
+			List<Guid?> Result = null;
+
+			using (var Tran = await DbProc.BeginTransactionOptionalAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_unresolved_function_unused\" (@sample);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@sample", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "sample" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"sample\";";
+						List<Guid?> Set = new List<Guid?> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (Rdr["id"] as Guid?);
+							}
+						}
+
+						Result = Set;
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"sample\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
+				}
+			}
+
+			return Result;
+		}
+		#endregion
+
 		#region test_write_encrypted
 		public void test_write_encrypted (byte[] p_hash, TryWrapper.Payer p_enc_pi_payer)
 		{

@@ -82,3 +82,4 @@
 + - foreach
 + - while
 + if
++ call to a function that resolves to nothing, in a position asking nothing of its type

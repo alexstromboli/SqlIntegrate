@@ -25,9 +25,41 @@ namespace DbAnalysis
 		}
 	}
 
+	// A result column the analyzer has no type for. Every type in the report is one the
+	// database was asked about; a column with none would reach the wrapper as a guess, and
+	// there it is indistinguishable from a type that was really looked up. A call whose
+	// name resolves to no function is what produces this, so the names that did not resolve
+	// travel with it -- they are the only part of the diagnostic the reader can act on.
+	public class UntypedColumnException : Exception
+	{
+		public IReadOnlyList<string> UnresolvedFunctions { get; }
+
+		public UntypedColumnException (string Procedure, string ResultSetName, string ColumnName,
+			IReadOnlyList<string> UnresolvedFunctions)
+			: base (Describe (Procedure, ResultSetName, ColumnName, UnresolvedFunctions))
+		{
+			this.UnresolvedFunctions = UnresolvedFunctions;
+		}
+
+		protected static string Describe (string Procedure, string ResultSetName, string ColumnName,
+			IReadOnlyList<string> UnresolvedFunctions)
+		{
+			string Head = $"Column \"{ColumnName}\" of result set \"{ResultSetName}\" in procedure \"{Procedure}\" has no type";
+
+			return UnresolvedFunctions.Count == 0
+				? Head + "."
+				: Head + $": these names resolve to no function: {string.Join (", ", UnresolvedFunctions.Select (s => '"' + s + '"'))}."
+					+ " A search_path that does not reach the function's schema resolves it the same way as one that does not exist.";
+		}
+	}
+
 	// A procedure the analyzer could not turn into a report entry, and why.
 	// Every one of these means the generated wrapper lacks a method that the database has.
-	public record ProcedureFailure (string ProcDisplayName, string Kind, string Message);
+	// Kind is a category, so the same reason reads the same way across procedures; Detail
+	// carries what is specific to this one and is what makes the end-of-run tally
+	// actionable on its own, the per-procedure diagnostics having scrolled away by then.
+	public record ProcedureFailure (string ProcDisplayName, string Kind, string Message,
+		string Detail = null);
 
 	public class Analyzer
 	{
@@ -1850,6 +1882,20 @@ namespace DbAnalysis
 							}
 							else
 							{
+								// The report has no way to mark one column as unknown, so a
+								// column without a type takes the whole procedure with it. A
+								// wrapper method carrying a made-up type is worse than a
+								// missing one: the missing one is what the exit code reports.
+								var Untyped = Set.Table.Columns
+									.FirstOrDefault (c => c.Type?.Value == null);
+
+								if (Untyped != null)
+								{
+									throw new UntypedColumnException (ProcDisplayName,
+										Set.Name ?? "???", Untyped.Name?.Value ?? "???",
+										mcProc.UnresolvedFunctions);
+								}
+
 								ResultSetReport = new ResultSet
 								{
 									Name = Set.Name,
@@ -1901,6 +1947,19 @@ namespace DbAnalysis
 					{
 						Console.WriteLine (Progress);
 					}
+				}
+				catch (UntypedColumnException ex)
+				{
+					Console.WriteLine (ex.Message);
+
+					// An unresolved name is the actionable case and gets a kind of its own;
+					// without one, all that is known is that the column has no type.
+					Failures.Add (new ProcedureFailure (ProcDisplayName,
+						ex.UnresolvedFunctions.Count > 0 ? "unresolved function" : "untyped column",
+						ex.Message,
+						ex.UnresolvedFunctions.Count > 0
+							? string.Join (", ", ex.UnresolvedFunctions.Select (s => '"' + s + '"'))
+							: null));
 				}
 				catch (Exception ex)
 				{

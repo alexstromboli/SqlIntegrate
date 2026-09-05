@@ -34,3 +34,16 @@ LANGUAGE 'plpgsql' AS $$ BEGIN UPDATE t SET val = 1; END; $$;
 -- analysable at all.
 CREATE PROCEDURE proc_analysable (INOUT r refcursor)
 LANGUAGE 'plpgsql' AS $$ BEGIN OPEN r FOR SELECT t.id FROM t; END; $$;
+
+-- A call to a function that resolves to nothing, in a position where its type becomes a
+-- result column. No such function exists here; a function whose schema the search_path
+-- does not reach resolves the same way, and is the likelier way to meet this. The column
+-- type is unknown, so the procedure is dropped rather than reported with a guess.
+CREATE PROCEDURE proc_unresolved_function (INOUT r refcursor)
+LANGUAGE 'plpgsql' AS $$
+BEGIN
+    OPEN r FOR
+    -- # 1
+    SELECT no_such_function () AS v;
+END;
+$$;

@@ -101,11 +101,26 @@ NEG_OUTPUT="$("$PARSEPROCS_EXE" --no-cache "$BAD_CONN" "$NEG_JSON_FILE" 2>&1)" &
 
 if [ "$NEG_STATUS" -eq 0 ]; then
     report_failed "failed: unanalysable procedures exited 0"
-elif ! grep -q 'proc_unparsable' <<<"$NEG_OUTPUT" || ! grep -q 'proc_overloaded' <<<"$NEG_OUTPUT"; then
+elif ! grep -q 'proc_unparsable' <<<"$NEG_OUTPUT" || ! grep -q 'proc_overloaded' <<<"$NEG_OUTPUT" \
+        || ! grep -q 'proc_unresolved_function' <<<"$NEG_OUTPUT"; then
     report_failed "failed: the summary does not name every dropped procedure"
     echo "$NEG_OUTPUT"
 else
     report_ok "success: unanalysable procedures exit $NEG_STATUS and are named"
+fi
+
+# A drop the reader cannot act on is barely better than a silent one. The likeliest way
+# to meet an unresolved function is a search_path that does not reach its schema, so the
+# summary has to say that resolution is what failed and which name failed it, rather than
+# bucketing the procedure under the catch-all kind.
+if grep -q 'proc_unresolved_function: unknown issue' <<<"$NEG_OUTPUT"; then
+    report_failed "failed: an unresolved function lands in the unknown-issue bucket"
+    echo "$NEG_OUTPUT"
+elif ! grep -qE 'proc_unresolved_function: unresolved function .*no_such_function' <<<"$NEG_OUTPUT"; then
+    report_failed "failed: the summary does not name the function that did not resolve"
+    echo "$NEG_OUTPUT"
+else
+    report_ok "success: an unresolved function is named as such in the summary"
 fi
 
 "$PARSEPROCS_EXE" --no-cache --tolerate-failures "$BAD_CONN" "$NEG_JSON_FILE" >/dev/null 2>&1 \

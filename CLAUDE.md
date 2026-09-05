@@ -27,9 +27,12 @@ The test suite creates a PostgreSQL database `dummy01`, loads schema from `dummy
 
 It then creates a second database from `unanalysable.sql` and checks the failure contract: a
 procedure the analyzer drops has to make the run exit non-zero and be named in the summary, while
-`--tolerate-failures` brings the same run back to 0. A pair of runs then exercises the analysis
-cache, which every other run here bypasses with `--no-cache`: a cached run must reproduce the fresh
-one, and cache keys must carry all three of the analyzer, the data layout and the procedure.
+`--tolerate-failures` brings the same run back to 0. The summary also has to say *why*: a call that
+resolves to no function is named as an unresolved function, with the name that failed, rather than
+landing in the catch-all kind that leaves the reader nothing to act on. A pair of runs then
+exercises the analysis cache, which every other run here bypasses with `--no-cache`: a cached run
+must reproduce the fresh one, and cache keys must carry all three of the analyzer, the data layout
+and the procedure.
 
 A third database, from `callee_signature.sql`, covers the input the key cannot carry. Its procedure
 takes a column type from a function it calls, so changing that function's return type moves the

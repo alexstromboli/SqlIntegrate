@@ -1471,3 +1471,18 @@ BEGIN
     ;
 END;
 $$;
+
+-- A call to a function that resolves to no function at all, in a position where nothing
+-- ever asks for its type. Resolution failing does not by itself make a procedure
+-- unanalysable: only a column that would carry the unknown type does, so this one is
+-- reported like any other. A function whose schema the search_path does not reach
+-- resolves the same way as one that does not exist.
+CREATE PROCEDURE test_unresolved_function_unused (INOUT sample refcursor)
+LANGUAGE 'plpgsql' AS $$
+BEGIN
+    OPEN sample FOR
+    SELECT  Persons.id
+    FROM Persons
+    WHERE no_such_function (Persons.id) > 1;
+END;
+$$;

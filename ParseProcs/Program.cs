@@ -85,7 +85,8 @@ namespace ParseProcs
 
 			foreach (var Failure in Analyzer.Failures)
 			{
-				Console.Error.WriteLine ($"  {Failure.ProcDisplayName}: {Failure.Kind}");
+				Console.Error.WriteLine ($"  {Failure.ProcDisplayName}: {Failure.Kind}"
+					+ (Failure.Detail == null ? "" : $" {Failure.Detail}"));
 			}
 
 			if (TolerateFailures)
