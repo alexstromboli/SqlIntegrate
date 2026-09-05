@@ -9,6 +9,11 @@
 -- replace it with another the grammar still rejects rather than deleting the case.
 
 CREATE SCHEMA :owner;
+-- Pinned in the database rather than left to the session, because the analyzer reads
+-- SHOW search_path over its own connection. Without this the fixture inherits whatever
+-- the developer's role happens to carry, and every case here that needs a bare name to
+-- resolve fails for a reason the fixture never intended.
+ALTER ROLE :owner IN DATABASE :dbname SET search_path TO :owner;
 SET search_path TO :owner;
 
 CREATE TABLE t (id int, val int);
@@ -45,5 +50,23 @@ BEGIN
     OPEN r FOR
     -- # 1
     SELECT no_such_function () AS v;
+END;
+$$;
+
+-- A call to a function the database really HAS, whose return type the analyzer has no
+-- mapping for. The column type is unknown for a different reason than above, and the two
+-- must not report the same way: this one is fixed by teaching the type map, and pointing
+-- its reader at the search_path points away from the fix. `bit varying` is used because
+-- it is in every PostgreSQL without an extension and the type map does not cover it; if
+-- it gains a mapping, swap in another unmapped type rather than deleting the case.
+CREATE FUNCTION fn_unmapped_return () RETURNS bit varying
+LANGUAGE 'sql' AS $$ SELECT B'101'::bit varying; $$;
+
+CREATE PROCEDURE proc_unmapped_return_type (INOUT r refcursor)
+LANGUAGE 'plpgsql' AS $$
+BEGIN
+    OPEN r FOR
+    -- # 1
+    SELECT fn_unmapped_return () AS v;
 END;
 $$;

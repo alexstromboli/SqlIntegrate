@@ -19,7 +19,7 @@ if [ "${1:-}" != '-c' ]; then
     psql -d postgres -c "DROP DATABASE $BAD_DBNAME;" || true
     psql -d postgres -c "CREATE DATABASE $BAD_DBNAME;"
 
-    psql -q -d "$BAD_DBNAME" -v owner="$USER" -f unanalysable.sql
+    psql -q -d "$BAD_DBNAME" -v owner="$USER" -v dbname="$BAD_DBNAME" -f unanalysable.sql
 
     psql -d postgres -c "DROP DATABASE $CALLEE_DBNAME;" || true
     psql -d postgres -c "CREATE DATABASE $CALLEE_DBNAME;"
@@ -121,6 +121,20 @@ elif ! grep -qE 'proc_unresolved_function: unresolved function .*no_such_functio
     echo "$NEG_OUTPUT"
 else
     report_ok "success: an unresolved function is named as such in the summary"
+fi
+
+# The other way a call goes untyped: the function exists, and it is its RETURN TYPE the
+# analyzer cannot map. Reported as an unresolved name it sends the reader to check a
+# search_path that is already correct, so it needs a kind of its own -- and the type has
+# to be named, because the type is what a maintainer adds support for.
+if grep -qE 'proc_unmapped_return_type: (unknown issue|unresolved function)' <<<"$NEG_OUTPUT"; then
+    report_failed "failed: an unmappable return type is reported as a missing function"
+    echo "$NEG_OUTPUT"
+elif ! grep -qE 'proc_unmapped_return_type: unmapped return type .*fn_unmapped_return.*bit varying' <<<"$NEG_OUTPUT"; then
+    report_failed "failed: the summary does not name the function and the type that has no mapping"
+    echo "$NEG_OUTPUT"
+else
+    report_ok "success: an unmappable return type is told apart from a missing function"
 fi
 
 "$PARSEPROCS_EXE" --no-cache --tolerate-failures "$BAD_CONN" "$NEG_JSON_FILE" >/dev/null 2>&1 \

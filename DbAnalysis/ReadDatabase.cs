@@ -19,6 +19,7 @@ namespace DbAnalysis
 				TablesDict = new Dictionary<string, DbTable> (),
 				ProceduresDict = new Dictionary<string, Procedure> (),
 				FunctionsDict = new Dictionary<string, PSqlType> (),
+				UnmappedFunctionReturnTypes = new Dictionary<string, string> (),
 				SchemaOrder = new List<string> ()
 			};
 
@@ -271,15 +272,24 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 				//
 				using (var cmd = conn.CreateCommand ())
 				{
+					// Every function is read, including the ones whose return type will not
+					// map. A function the database has must not be missing from the analyzer's
+					// view for the same reason a name that matches nothing is absent -- the two
+					// are then indistinguishable downstream, and the advice for them differs.
+					// 'any' and 'citext' are spelled out because ::regtype is not a total
+					// function over type_udt_name: those two would raise rather than return a
+					// name the type map can be asked about and decline.
 					cmd.CommandText = @"
 SELECT
 	routines.routine_schema,
     routines.routine_name,
     type_udt_schema AS result_schema,
-    type_udt_name::regtype::varchar AS result_type
+    CASE WHEN type_udt_name IN ('any', 'citext')
+        THEN type_udt_name
+        ELSE type_udt_name::regtype::varchar
+    END AS result_type
 FROM information_schema.routines
 WHERE routines.routine_type='FUNCTION'
-    AND type_udt_name NOT IN ('any', 'citext')
 ORDER BY routines.routine_schema, routines.routine_name;
 ";
 
@@ -293,13 +303,20 @@ ORDER BY routines.routine_schema, routines.routine_name;
 							string ResultSchema = (string)rdr["result_schema"];
 							string ResultType = (string)rdr["result_type"];
 
+							string QualName = PSqlUtils.PSqlQualifiedName (Schema, RoutineName);
+
 							PSqlType Type = Result.GetTypeForName (ResultSchema, ResultType);
 							if (Type == null)
 							{
+								// The function exists; it is its return type the analyzer has no
+								// mapping for. Recorded under the same name the lookup would use,
+								// so a caller that finds no type can still tell "no such function"
+								// from "no mapping for this type" -- and can name the type, which
+								// is the half a maintainer can act on.
+								Result.UnmappedFunctionReturnTypes[QualName] = ResultType;
 								continue;
 							}
 
-							string QualName = PSqlUtils.PSqlQualifiedName (Schema, RoutineName);
 							Result.FunctionsDict[QualName] = Type;
 						}
 					}

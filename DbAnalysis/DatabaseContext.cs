@@ -12,6 +12,13 @@ namespace DbAnalysis
 		public Dictionary<string, DbTable> TablesDict;
 		public Dictionary<string, Procedure> ProceduresDict;
 		public Dictionary<string, PSqlType> FunctionsDict;
+
+		// Functions the database has whose return type the type map does not cover, by the
+		// same qualified name FunctionsDict is keyed on, against the unmapped type's name.
+		// Keeping them is what makes an absent function distinguishable from an unmappable
+		// one: dropping the row on the way in collapses the two into a single null.
+		public Dictionary<string, string> UnmappedFunctionReturnTypes;
+
 		public List<string> SchemaOrder;
 
 		public PSqlType GetTypeForName (params string[] TypeName)
@@ -51,6 +58,14 @@ namespace DbAnalysis
 		public PSqlType GetFunctionType (string[] NameSegments)
 		{
 			return GetSchemaEntity (FunctionsDict, NameSegments);
+		}
+
+		// The unmapped return type of a function the database has, or null when the name
+		// names no function. Asked only after GetFunctionType has returned null, which is
+		// what splits that null into its two causes.
+		public string GetUnmappedFunctionReturnType (string[] NameSegments)
+		{
+			return GetSchemaEntity (UnmappedFunctionReturnTypes, NameSegments);
 		}
 	}
 }

@@ -31,14 +31,32 @@ namespace DbAnalysis
 		public IEnumerable<CalleeSignature> CalleeSignatures =>
 			_CalleeSignatures.OrderBy (p => p.Key).Select (p => p.Value);
 
+		// Functions this procedure calls that the database HAS, but whose return type the
+		// analyzer has no mapping for, against that type's name. A separate collection from
+		// the callee signatures because it answers a different question: not "what did this
+		// resolve to" but "why did it not resolve", and only one of the two answers sends
+		// the reader to the type map.
+		protected Dictionary<string, string> _UnmappedReturnTypes =
+			new Dictionary<string, string> ();
+
 		// The names this procedure calls that resolve to no function at all. A search_path
 		// that does not reach a function's schema resolves it the same way as one that does
-		// not exist, and the reader can act on either only if the name is named.
+		// not exist, and the reader can act on either only if the name is named. A function
+		// that exists with an unmappable return type is excluded: it is not missing, and
+		// sending its reader to check a search_path points away from the fix.
 		public IReadOnlyList<string> UnresolvedFunctions =>
 			_CalleeSignatures
-				.Where (p => p.Value.ReturnType == null)
+				.Where (p => p.Value.ReturnType == null && !_UnmappedReturnTypes.ContainsKey (p.Key))
 				.Select (p => p.Key)
 				.OrderBy (s => s)
+				.ToList ();
+
+		// The calls that failed for the other reason, each named with the type that has no
+		// mapping -- the type being the half a maintainer can act on.
+		public IReadOnlyList<string> FunctionsWithUnmappedReturnType =>
+			_UnmappedReturnTypes
+				.OrderBy (p => p.Key)
+				.Select (p => $"{p.Key} returns {p.Value}")
 				.ToList ();
 
 		public ModuleContext (
@@ -73,6 +91,18 @@ namespace DbAnalysis
 				NameSegments = Segments.ToList (),
 				ReturnType = Resolved?.Display
 			};
+
+			// A null resolution has two causes, and they are told apart here, where the
+			// database's own answer is still available. Left uncollected they reach the
+			// diagnostic as one state, and it then has to guess which advice to give.
+			if (Resolved == null)
+			{
+				string UnmappedType = DatabaseContext.GetUnmappedFunctionReturnType (Segments);
+				if (UnmappedType != null)
+				{
+					_UnmappedReturnTypes[Segments.PSqlQualifiedName ()] = UnmappedType;
+				}
+			}
 
 			// A name that resolves to nothing carries no type, and travels on as one.
 			// Resolution failing is not by itself a reason to drop the procedure: most calls

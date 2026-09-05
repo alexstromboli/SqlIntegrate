@@ -235,8 +235,16 @@ end, where a truncating `| tail` still shows it.
 The summary line is the diagnostic that survives a long run, so it has to be actionable on its own.
 It carries a **kind** — a category, so the same reason reads the same way across procedures — and,
 where the category alone says nothing a reader can act on, a **detail** naming what was specific to
-that procedure. `unresolved function` is the case that needs one: the category says resolution
+that procedure. The two resolution kinds are the cases that need one: the category says resolution
 failed, and only the name says which lookup to go and fix.
+
+**A call the analyzer cannot type fails in one of two ways, and they stay apart.** `ReadDatabase`
+reads every function the database has, including the ones whose return type the type map does not
+cover; those are recorded under the name the lookup uses, against the unmapped type. Dropping such a
+row on the way in would make it indistinguishable from a name that matches nothing, and the two need
+opposite advice — `unresolved function` is fixed by the `search_path` or by creating the function,
+`unmapped return type` by teaching the type map the type the message names. Collapsing them points
+the reader away from the fix.
 
 **A name that resolves to no function is not by itself a drop.** Resolution yields no type, and the
 call carries that absence onward; most calls sit where nothing ever asks what they return — a
@@ -547,6 +555,8 @@ test/
 │  │  → must exit non-zero and name every dropped procedure       │    │
 │  │  → an unresolved function must be named as such, with the    │    │
 │  │    name that failed, not bucketed as "unknown issue"         │    │
+│  │  → a function that exists with an unmappable return type     │    │
+│  │    must be a kind of its own, naming the type                │    │
 │  │  ParseProcs --no-cache --tolerate-failures ...               │    │
 │  │  → must exit 0                                               │    │
 │  └─────────────────────────────────────────────────────────────┘    │

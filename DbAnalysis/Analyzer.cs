@@ -27,29 +27,50 @@ namespace DbAnalysis
 
 	// A result column the analyzer has no type for. Every type in the report is one the
 	// database was asked about; a column with none would reach the wrapper as a guess, and
-	// there it is indistinguishable from a type that was really looked up. A call whose
-	// name resolves to no function is what produces this, so the names that did not resolve
-	// travel with it -- they are the only part of the diagnostic the reader can act on.
+	// there it is indistinguishable from a type that was really looked up.
+	//
+	// A call the analyzer could not type is what produces this, and there are two ways that
+	// happens. They travel separately because the advice differs: a name that matches no
+	// function is fixed by the search_path or by creating it, while a function that exists
+	// and returns an unmapped type is fixed by teaching the type map. Reporting the second
+	// as the first sends the reader to check a search_path that is already correct.
 	public class UntypedColumnException : Exception
 	{
 		public IReadOnlyList<string> UnresolvedFunctions { get; }
+		public IReadOnlyList<string> FunctionsWithUnmappedReturnType { get; }
 
 		public UntypedColumnException (string Procedure, string ResultSetName, string ColumnName,
-			IReadOnlyList<string> UnresolvedFunctions)
-			: base (Describe (Procedure, ResultSetName, ColumnName, UnresolvedFunctions))
+			IReadOnlyList<string> UnresolvedFunctions,
+			IReadOnlyList<string> FunctionsWithUnmappedReturnType)
+			: base (Describe (Procedure, ResultSetName, ColumnName, UnresolvedFunctions,
+				FunctionsWithUnmappedReturnType))
 		{
 			this.UnresolvedFunctions = UnresolvedFunctions;
+			this.FunctionsWithUnmappedReturnType = FunctionsWithUnmappedReturnType;
 		}
 
 		protected static string Describe (string Procedure, string ResultSetName, string ColumnName,
-			IReadOnlyList<string> UnresolvedFunctions)
+			IReadOnlyList<string> UnresolvedFunctions,
+			IReadOnlyList<string> FunctionsWithUnmappedReturnType)
 		{
 			string Head = $"Column \"{ColumnName}\" of result set \"{ResultSetName}\" in procedure \"{Procedure}\" has no type";
 
-			return UnresolvedFunctions.Count == 0
-				? Head + "."
-				: Head + $": these names resolve to no function: {string.Join (", ", UnresolvedFunctions.Select (s => '"' + s + '"'))}."
+			string Result = Head;
+
+			if (UnresolvedFunctions.Count > 0)
+			{
+				Result += $": these names resolve to no function: {string.Join (", ", UnresolvedFunctions.Select (s => '"' + s + '"'))}."
 					+ " A search_path that does not reach the function's schema resolves it the same way as one that does not exist.";
+			}
+
+			if (FunctionsWithUnmappedReturnType.Count > 0)
+			{
+				Result += (UnresolvedFunctions.Count > 0 ? " Also," : ":")
+					+ $" these functions exist but return a type the analyzer has no mapping for: {string.Join (", ", FunctionsWithUnmappedReturnType.Select (s => '"' + s + '"'))}."
+					+ " Add the type to the type map; the search_path is not the problem.";
+			}
+
+			return Result == Head ? Head + "." : Result;
 		}
 	}
 
@@ -1893,7 +1914,8 @@ namespace DbAnalysis
 								{
 									throw new UntypedColumnException (ProcDisplayName,
 										Set.Name ?? "???", Untyped.Name?.Value ?? "???",
-										mcProc.UnresolvedFunctions);
+										mcProc.UnresolvedFunctions,
+										mcProc.FunctionsWithUnmappedReturnType);
 								}
 
 								ResultSetReport = new ResultSet
@@ -1952,13 +1974,20 @@ namespace DbAnalysis
 				{
 					Console.WriteLine (ex.Message);
 
-					// An unresolved name is the actionable case and gets a kind of its own;
-					// without one, all that is known is that the column has no type.
+					// Both actionable causes get a kind of its own, because the end-of-run
+					// tally is read on its own and the two are fixed in different places.
+					// Without either, all that is known is that the column has no type.
+					string[] Named = ex.UnresolvedFunctions
+						.Concat (ex.FunctionsWithUnmappedReturnType)
+						.ToArray ();
+
 					Failures.Add (new ProcedureFailure (ProcDisplayName,
-						ex.UnresolvedFunctions.Count > 0 ? "unresolved function" : "untyped column",
+						ex.UnresolvedFunctions.Count > 0 ? "unresolved function"
+							: ex.FunctionsWithUnmappedReturnType.Count > 0 ? "unmapped return type"
+							: "untyped column",
 						ex.Message,
-						ex.UnresolvedFunctions.Count > 0
-							? string.Join (", ", ex.UnresolvedFunctions.Select (s => '"' + s + '"'))
+						Named.Length > 0
+							? string.Join (", ", Named.Select (s => '"' + s + '"'))
 							: null));
 				}
 				catch (Exception ex)
