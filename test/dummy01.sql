@@ -858,8 +858,22 @@ BEGIN
             '2020-03-01 14:50'::timestamp AT TIME ZONE 'UTC' AS attz_adds_zone,
             '14:50'::timetz AT TIME ZONE 'UTC' AS attz_timetz_keeps_zone,
             '14:50'::time AT TIME ZONE 'UTC' AS attz_time_gains_zone,
-            to_char (now () AT TIME ZONE 'UTC', 'YYYYMMDDHH24MISSUS') AS attz_in_call
-    ORDER BY now () AT TIME ZONE 'UTC'
+            to_char (now () AT TIME ZONE 'UTC', 'YYYYMMDDHH24MISSUS') AS attz_in_call,
+            -- COLLATE. A postfix that decides how values COMPARE and never what type
+            -- they are, so each of these keeps the type of its left operand. The name is
+            -- parsed and dropped -- quoted, unquoted and schema-qualified alike -- and
+            -- the array_agg ORDER BY is the shape that motivated the work.
+            'b' COLLATE "C" AS collate_keeps_type,
+            'B'::varchar COLLATE pg_catalog."C" AS collate_qualified_name,
+            to_char (now (), 'YYYY') COLLATE "C" AS collate_on_call_result,
+            'b' COLLATE ucs_basic AS collate_unquoted_name,
+            length ('b' COLLATE "C") AS collate_in_call,
+            (
+                SELECT array_agg (rooms.name ORDER BY lower (rooms.name) COLLATE "C")
+                FROM rooms
+            ) AS collate_in_agg_order
+    -- and where an ORDER BY key carries a direction after it
+    ORDER BY now () AT TIME ZONE 'UTC', 'b' COLLATE "C" DESC
     ;
 END;
 $$;

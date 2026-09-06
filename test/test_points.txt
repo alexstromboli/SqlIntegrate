@@ -66,6 +66,7 @@
 + unary minus
 + between
 + at time zone
++ collate
 + select asterisk
 + - with qualifier
 + select into

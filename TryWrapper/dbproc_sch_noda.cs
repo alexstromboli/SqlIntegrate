@@ -1244,6 +1244,12 @@ namespace Generated
 			public LocalTime? attz_timetz_keeps_zone;
 			public LocalTime? attz_time_gains_zone;
 			public string attz_in_call;
+			public string collate_keeps_type;
+			public string collate_qualified_name;
+			public string collate_on_call_result;
+			public string collate_unquoted_name;
+			public int? collate_in_call;
+			public string[] collate_in_agg_order;
 		}
 
 		public get_operators_Result_result get_operators ()
@@ -1288,7 +1294,13 @@ namespace Generated
 									attz_adds_zone = Rdr["attz_adds_zone"] as Instant?,
 									attz_timetz_keeps_zone = Rdr["attz_timetz_keeps_zone"] as LocalTime?,
 									attz_time_gains_zone = Rdr["attz_time_gains_zone"] as LocalTime?,
-									attz_in_call = Rdr["attz_in_call"] as string
+									attz_in_call = Rdr["attz_in_call"] as string,
+									collate_keeps_type = Rdr["collate_keeps_type"] as string,
+									collate_qualified_name = Rdr["collate_qualified_name"] as string,
+									collate_on_call_result = Rdr["collate_on_call_result"] as string,
+									collate_unquoted_name = Rdr["collate_unquoted_name"] as string,
+									collate_in_call = Rdr["collate_in_call"] as int?,
+									collate_in_agg_order = Rdr["collate_in_agg_order"] as string[]
 								};
 							}
 						}

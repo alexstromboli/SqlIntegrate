@@ -1094,6 +1094,30 @@
             {
               "Name": "attz_in_call",
               "Type": "text"
+            },
+            {
+              "Name": "collate_keeps_type",
+              "Type": "varchar"
+            },
+            {
+              "Name": "collate_qualified_name",
+              "Type": "varchar"
+            },
+            {
+              "Name": "collate_on_call_result",
+              "Type": "text"
+            },
+            {
+              "Name": "collate_unquoted_name",
+              "Type": "varchar"
+            },
+            {
+              "Name": "collate_in_call",
+              "Type": "int"
+            },
+            {
+              "Name": "collate_in_agg_order",
+              "Type": "varchar[]"
             }
           ]
         }

@@ -21,6 +21,10 @@ namespace DbAnalysis
 		// sign. Members are only ever compared relatively, so inserting one here
 		// is safe.
 		AtTimeZone,
+		// COLLATE. PostgreSQL's gram.y declares '%left COLLATE' between '%left AT'
+		// and '%right UMINUS', so it binds tighter than AT TIME ZONE and looser than
+		// a unary sign.
+		Collate,
 		Unary,
 		Array,
 		Typecast,

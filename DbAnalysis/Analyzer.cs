@@ -485,6 +485,18 @@ namespace DbAnalysis
 					select t
 				;
 
+			// COLLATE names a collation, never an expression, so this is a postfix
+			// rather than a binary operator: it consumes an identifier of its own and
+			// never reaches for PExpressionRefST, which is where Parse.Ref's
+			// left-recursion throw lives. The name is parsed and dropped -- a collation
+			// decides how values COMPARE, never what type they are, and the column name
+			// a bare expression contributes stays the left operand's.
+			var PCollateST =
+					from op in SqlToken ("collate")
+					from name in PQualifiedIdentifierLST
+					select name
+				;
+
 			var PSelectFirstColumnST = PFullSelectStatementRefST.Get.InParentsST ()
 				.Select<FullSelectStatement, Func<RequestContext, NamedTyped>> (fss => rc =>
 					fss.GetTable (rc, false).Columns[0]
@@ -950,6 +962,9 @@ namespace DbAnalysis
 						.Or (PSimpleTypeCastST.Select (tc => new OperatorProcessor (PSqlOperatorPriority.Typecast,
 							false,
 							(l, r) => rc => l (rc).WithType (tc.Select (t => t.key)))))
+						.Or (PCollateST.Select (c => new OperatorProcessor (PSqlOperatorPriority.Collate,
+							false,
+							(l, r) => rc => l (rc))))
 						.Or (PNullMatchingOperatorsST.Select (m => new OperatorProcessor (PSqlOperatorPriority.Is,
 							false,
 							(l, r) => rc => new NamedTyped (DatabaseContext.TypeMap.Bool.SourcedCalculated (m)))))
