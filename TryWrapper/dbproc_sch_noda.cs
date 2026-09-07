@@ -899,6 +899,237 @@ namespace Generated
 		}
 		#endregion
 
+		#region get_dml_cte_columns
+		public class get_dml_cte_columns_Result_deleted_rows
+		{
+			public int? gone_id;
+			public string gone_name;
+		}
+
+		public class get_dml_cte_columns_Result_deleted_agg
+		{
+			public int? affected_count;
+			public string any_name;
+			public int? max_id;
+		}
+
+		public class get_dml_cte_columns_Result_inserted_rows
+		{
+			public int? new_id;
+			public int? height;
+		}
+
+		public class get_dml_cte_columns_Result_updated_rows
+		{
+			public int? id;
+			public string category;
+			public int? height;
+		}
+
+		public class get_dml_cte_columns_Result_joined_rows
+		{
+			public Guid? id_person;
+			public string name;
+		}
+
+		public class get_dml_cte_columns_Result
+		{
+			public List<get_dml_cte_columns_Result_deleted_rows> deleted_rows;
+			public List<get_dml_cte_columns_Result_deleted_agg> deleted_agg;
+			public List<get_dml_cte_columns_Result_inserted_rows> inserted_rows;
+			public List<get_dml_cte_columns_Result_updated_rows> updated_rows;
+			public List<get_dml_cte_columns_Result_joined_rows> joined_rows;
+			public List<int?> no_returning;
+		}
+
+		public get_dml_cte_columns_Result get_dml_cte_columns ()
+		{
+			return get_dml_cte_columnsAsync ().Result;
+		}
+
+		public async Task<get_dml_cte_columns_Result> get_dml_cte_columnsAsync ()
+		{
+			get_dml_cte_columns_Result Result = new get_dml_cte_columns_Result ();
+
+			using (var Tran = await DbProc.BeginTransactionOptionalAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_dml_cte_columns\" (@deleted_rows, @deleted_agg, @inserted_rows, @updated_rows, @joined_rows, @no_returning);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@deleted_rows", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "deleted_rows" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@deleted_agg", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "deleted_agg" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@inserted_rows", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "inserted_rows" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@updated_rows", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "updated_rows" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@joined_rows", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "joined_rows" });
+					Cmd.Parameters.Add (new NpgsqlParameter ("@no_returning", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "no_returning" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"deleted_rows\";";
+						List<get_dml_cte_columns_Result_deleted_rows> Set = new List<get_dml_cte_columns_Result_deleted_rows> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_dml_cte_columns_Result_deleted_rows
+								{
+									gone_id = Rdr["gone_id"] as int?,
+									gone_name = Rdr["gone_name"] as string
+								});
+							}
+						}
+
+						Result.deleted_rows = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"deleted_agg\";";
+						List<get_dml_cte_columns_Result_deleted_agg> Set = new List<get_dml_cte_columns_Result_deleted_agg> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_dml_cte_columns_Result_deleted_agg
+								{
+									affected_count = Rdr["affected_count"] as int?,
+									any_name = Rdr["any_name"] as string,
+									max_id = Rdr["max_id"] as int?
+								});
+							}
+						}
+
+						Result.deleted_agg = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"inserted_rows\";";
+						List<get_dml_cte_columns_Result_inserted_rows> Set = new List<get_dml_cte_columns_Result_inserted_rows> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_dml_cte_columns_Result_inserted_rows
+								{
+									new_id = Rdr["new_id"] as int?,
+									height = Rdr["height"] as int?
+								});
+							}
+						}
+
+						Result.inserted_rows = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"updated_rows\";";
+						List<get_dml_cte_columns_Result_updated_rows> Set = new List<get_dml_cte_columns_Result_updated_rows> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_dml_cte_columns_Result_updated_rows
+								{
+									id = Rdr["id"] as int?,
+									category = Rdr["category"] as string,
+									height = Rdr["height"] as int?
+								});
+							}
+						}
+
+						Result.updated_rows = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"joined_rows\";";
+						List<get_dml_cte_columns_Result_joined_rows> Set = new List<get_dml_cte_columns_Result_joined_rows> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new get_dml_cte_columns_Result_joined_rows
+								{
+									id_person = Rdr["id_person"] as Guid?,
+									name = Rdr["name"] as string
+								});
+							}
+						}
+
+						Result.joined_rows = Set;
+					}
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"no_returning\";";
+						List<int?> Set = new List<int?> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (Rdr["ignored"] as int?);
+							}
+						}
+
+						Result.no_returning = Set;
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"deleted_rows\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"deleted_agg\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"inserted_rows\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"updated_rows\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"joined_rows\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"no_returning\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
+				}
+			}
+
+			return Result;
+		}
+		#endregion
+
 		#region get_inserted
 		public class get_inserted_Result_inserted
 		{

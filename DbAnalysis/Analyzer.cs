@@ -1271,17 +1271,27 @@ namespace DbAnalysis
 				;
 
 			// Forward reference for data-modifying statements inside CTE bodies
-			// (INSERT/UPDATE/DELETE with RETURNING — PostgreSQL "data-modifying CTEs")
-			Ref<int> PCteLevelDmlRefST = new Ref<int> ();
+			// (INSERT/UPDATE/DELETE with RETURNING — PostgreSQL "data-modifying CTEs").
+			// It carries the statement's RETURNING shape rather than discarding it: a
+			// data-modifying CTE is a SOURCE, and its RETURNING list is its column list.
+			Ref<FullSelectStatement> PCteLevelDmlRefST = new Ref<FullSelectStatement> ();
 
 			var PCteLevelST =
 					from name in PColumnNameLST
 					from kw_as in SqlToken ("as")
 					from select_exp in
 						PSelectST.InParentsST ()
-						.Or (PCteLevelDmlRefST.Get.InParentsST ().Select (_ => (SelectStatement)null))
+						.Or (PCteLevelDmlRefST.Get.InParentsST ().Select (dml => dml == null
+							? null
+							// Resolved through the whole FullSelectStatement rather than its
+							// body alone, so a WITH nested inside the data-modifying
+							// statement is still in scope when its RETURNING list is typed.
+							: new SelectStatement (rc => dml.GetTable (rc).Columns, null)))
 					select select_exp != null
 						? new SelectStatement (select_exp, name)
+						// A data-modifying statement with no RETURNING contributes no
+						// columns. It is still a legal CTE -- the query around it may count
+						// its rows -- so this is an empty column list rather than a refusal.
 						: new SelectStatement (rc => Array.Empty<NamedTyped> (), null, name)
 				;
 
@@ -1422,10 +1432,12 @@ namespace DbAnalysis
 				.Or (PUpdateFullST)
 				.Or (PDeleteFullST);
 
-			// Resolve CTE DML body Ref — allows INSERT/UPDATE/DELETE inside CTE parentheses
-			PCteLevelDmlRefST.Parser = PInsertFullST.Return (0)
-				.Or (PUpdateFullST.Return (0))
-				.Or (PDeleteFullST.Return (0));
+			// Resolve CTE DML body Ref — allows INSERT/UPDATE/DELETE inside CTE parentheses.
+			// Each of these yields the statement's RETURNING shape, or null when it has no
+			// RETURNING clause at all.
+			PCteLevelDmlRefST.Parser = PInsertFullST
+				.Or (PUpdateFullST)
+				.Or (PDeleteFullST);
 
 			var PDataReturnStatementST =
 					from open in POpenDatasetST

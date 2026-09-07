@@ -1039,6 +1039,102 @@ BEGIN
 END;
 $$;
 
+-- DROP PROCEDURE get_dml_cte_columns;
+-- A data-modifying CTE is a SOURCE, not just a statement that runs first: its RETURNING
+-- list is the CTE's column list, and the query around it may select those columns, alias
+-- them, aggregate over them and join them. Resolving the body but discarding its shape
+-- lets the statement parse and then fails every reference to it.
+CREATE PROCEDURE get_dml_cte_columns
+(
+    INOUT deleted_rows refcursor,
+    INOUT deleted_agg refcursor,
+    INOUT inserted_rows refcursor,
+    INOUT updated_rows refcursor,
+    INOUT joined_rows refcursor,
+    INOUT no_returning refcursor
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    -- DELETE ... RETURNING, columns selected by qualified name
+    OPEN deleted_rows FOR
+    WITH d AS
+    (
+        DELETE FROM Rooms
+        WHERE Rooms.id = 1
+        RETURNING Rooms.id, Rooms.name
+    )
+    SELECT d.id AS gone_id, d.name AS gone_name
+    FROM d
+    ;
+
+    -- and aggregated over, which is what a caller counting its own effect writes
+    OPEN deleted_agg FOR
+    WITH d AS
+    (
+        DELETE FROM Rooms
+        WHERE Rooms.id = 2
+        RETURNING Rooms.id, Rooms.name, Rooms.extents
+    )
+    SELECT COUNT (*)::int AS affected_count,
+           MIN (d.name) AS any_name,
+           MAX (d.id) AS max_id
+    FROM d
+    ;
+
+    -- INSERT ... RETURNING, with an alias in the RETURNING list
+    OPEN inserted_rows FOR
+    WITH i AS
+    (
+        INSERT INTO VoidThings (category, height)
+        VALUES ('cte', 7)
+        RETURNING id AS new_id, height
+    )
+    SELECT i.new_id, i.height
+    FROM i
+    ;
+
+    -- UPDATE ... RETURNING *, so the CTE's columns come from the table
+    OPEN updated_rows FOR
+    WITH u AS
+    (
+        UPDATE VoidThings
+        SET height = 8
+        WHERE VoidThings.category = 'cte'
+        RETURNING *
+    )
+    SELECT u.id, u.category, u.height
+    FROM u
+    ;
+
+    -- the CTE joined to an ordinary table, so its columns have to reach the same
+    -- resolution the table's do
+    OPEN joined_rows FOR
+    WITH d AS
+    (
+        DELETE FROM Own
+        WHERE Own.id_room = 3
+        RETURNING Own.id_person, Own.id_room
+    )
+    SELECT d.id_person, Rooms.name
+    FROM d
+    INNER JOIN Rooms ON Rooms.id = d.id_room
+    ;
+
+    -- a data-modifying CTE with NO returning clause contributes no columns, and the
+    -- query around it may still count its rows
+    OPEN no_returning FOR
+    WITH d AS
+    (
+        DELETE FROM Rooms
+        WHERE Rooms.id = 4
+    )
+    SELECT COUNT (*)::int AS ignored
+    FROM Rooms
+    ;
+END;
+$$;
+
 -- DROP PROCEDURE insert_conflict;
 CREATE PROCEDURE insert_conflict ()
 LANGUAGE 'plpgsql'

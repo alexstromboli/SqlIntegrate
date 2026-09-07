@@ -13,6 +13,8 @@
 + 'from' source types
 + - table
 + - cte
++ - - data-modifying (insert/update/delete ... returning), whose returning list is its columns
++ - - data-modifying with no returning, contributing no columns
 + - select
 + - function
 + - values

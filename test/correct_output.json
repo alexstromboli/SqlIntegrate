@@ -657,6 +657,132 @@
     },
     {
       "Schema": "USER",
+      "Name": "get_dml_cte_columns",
+      "Arguments": [
+        {
+          "Name": "deleted_rows",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "deleted_agg",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "inserted_rows",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "updated_rows",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "joined_rows",
+          "Type": "refcursor",
+          "IsOut": true
+        },
+        {
+          "Name": "no_returning",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "deleted_rows",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "gone_id",
+              "Type": "int"
+            },
+            {
+              "Name": "gone_name",
+              "Type": "varchar"
+            }
+          ]
+        },
+        {
+          "Name": "deleted_agg",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "affected_count",
+              "Type": "int"
+            },
+            {
+              "Name": "any_name",
+              "Type": "varchar"
+            },
+            {
+              "Name": "max_id",
+              "Type": "int"
+            }
+          ]
+        },
+        {
+          "Name": "inserted_rows",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "new_id",
+              "Type": "int"
+            },
+            {
+              "Name": "height",
+              "Type": "int"
+            }
+          ]
+        },
+        {
+          "Name": "updated_rows",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id",
+              "Type": "int"
+            },
+            {
+              "Name": "category",
+              "Type": "varchar"
+            },
+            {
+              "Name": "height",
+              "Type": "int"
+            }
+          ]
+        },
+        {
+          "Name": "joined_rows",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "id_person",
+              "Type": "uuid"
+            },
+            {
+              "Name": "name",
+              "Type": "varchar"
+            }
+          ]
+        },
+        {
+          "Name": "no_returning",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "ignored",
+              "Type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "get_inserted",
       "Arguments": [
         {
