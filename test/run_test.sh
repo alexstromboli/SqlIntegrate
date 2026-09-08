@@ -103,7 +103,8 @@ if [ "$NEG_STATUS" -eq 0 ]; then
     report_failed "failed: unanalysable procedures exited 0"
 elif ! grep -q 'proc_unparsable' <<<"$NEG_OUTPUT" || ! grep -q 'proc_overloaded' <<<"$NEG_OUTPUT" \
         || ! grep -q 'proc_unresolved_function' <<<"$NEG_OUTPUT" \
-        || ! grep -q 'proc_pseudo_return_type' <<<"$NEG_OUTPUT"; then
+        || ! grep -q 'proc_pseudo_return_type' <<<"$NEG_OUTPUT" \
+        || ! grep -q 'proc_positional_after_named' <<<"$NEG_OUTPUT"; then
     report_failed "failed: the summary does not name every dropped procedure"
     echo "$NEG_OUTPUT"
 else

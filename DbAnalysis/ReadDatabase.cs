@@ -324,8 +324,17 @@ WHERE casts.castcontext = 'i'
 					// what reaches: it is the routine's name and its oid joined by an
 					// underscore, so the trailing digits are the oid whatever the name
 					// contains. proargtypes is the input arguments alone, which is what a
-					// call site names; pronargdefaults and provariadic are how many of
-					// them the call may leave out and whether the last one absorbs the rest.
+					// call site names; pronargdefaults says how many of them the call may
+					// leave out.
+					//
+					// proargnames is what a named argument binds to, and proargmodes is
+					// what keeps it aligned: names cover the whole argument list, OUT
+					// parameters included, while proargtypes covers the inputs alone, so a
+					// name taken by raw position would sit beside another parameter's type
+					// on any function with an OUT. provariadic is the variadic array's
+					// element type outright rather than a flag -- zero where there is no
+					// variadic parameter -- which is what an expanded variadic call's
+					// trailing arguments are matched against.
 					//
 					// specific_name orders the overloads of one name, which the two key
 					// columns leave tied. It is the last-resort tie-break in resolution, so a
@@ -343,8 +352,10 @@ SELECT
     END AS result_type,
     COALESCE (rettype.typtype = 'p', false) AS result_is_pseudo,
     proc.proargtypes AS arg_type_oids,
+    proc.proargnames AS arg_names,
+    proc.proargmodes AS arg_modes,
     COALESCE (proc.pronargdefaults, 0) AS arg_default_count,
-    COALESCE (proc.provariadic <> 0, false) AS arg_is_variadic
+    COALESCE (proc.provariadic, 0) AS variadic_elem_oid
 FROM information_schema.routines
 LEFT JOIN pg_catalog.pg_namespace retschema
     ON retschema.nspname = routines.type_udt_schema
@@ -377,6 +388,34 @@ ORDER BY routines.routine_schema, routines.routine_name, routines.specific_name;
 
 							uint[] ArgTypeOids = (rdr["arg_type_oids"] as uint[]) ?? Array.Empty<uint> ();
 
+							// The names of the input arguments, in the order proargtypes
+							// lists them. proargnames parallels the whole argument list, so
+							// where modes are recorded it is filtered by them: a name that
+							// landed on the wrong parameter would bind a named argument to
+							// a parameter the call never mentioned, which is worse than not
+							// binding it at all. A parameter declared without a name has an
+							// empty entry, and nothing can bind to it.
+							string[] ArgNames = rdr["arg_names"] as string[];
+							char[] ArgModes = rdr["arg_modes"] as char[];
+
+							string[] InputArgNames =
+								ArgNames == null
+									? Array.Empty<string> ()
+									: ArgModes == null
+										? ArgNames
+										: ArgNames
+											.Where ((n, Index) => Index < ArgModes.Length
+											                      && (ArgModes[Index] == 'i'
+											                          || ArgModes[Index] == 'b'
+											                          || ArgModes[Index] == 'v'))
+											.ToArray ()
+								;
+
+							// Zero where the function has no variadic parameter. A 'VARIADIC
+							// "any"' one lands on a pseudo-type, which constrains nothing --
+							// the same answer a declared pseudo-type argument gives.
+							uint VariadicElemOid = Convert.ToUInt32 (rdr["variadic_elem_oid"]);
+
 							DbFunction Function = new DbFunction
 							{
 								QualifiedName = QualName,
@@ -388,17 +427,32 @@ ORDER BY routines.routine_schema, routines.routine_name, routines.specific_name;
 								// such function" from "no usable type here", and act on it.
 								UnmappedReturnTypeName = Type == null ? ResultType : null,
 								Arguments = ArgTypeOids
-									.Select (Oid => new DbFunctionArgument
+									.Select ((Oid, Index) => new DbFunctionArgument
 									{
 										Type = Result.TypeMap.MapByOid.TryGetValue (Oid, out PSqlType ArgType)
 											? ArgType
+											: null,
+										Name = Index < InputArgNames.Length
+										       && !string.IsNullOrEmpty (InputArgNames[Index])
+											? InputArgNames[Index]
 											: null,
 										IsPseudo = PgTypeEntriesDict.TryGetValue (Oid, out PgTypeEntry ArgEntry)
 										           && ArgEntry.Category == 'p'
 									})
 									.ToArray (),
 								DefaultCount = Convert.ToInt32 (rdr["arg_default_count"]),
-								IsVariadic = (bool)rdr["arg_is_variadic"]
+								IsVariadic = VariadicElemOid != 0,
+								VariadicElementType =
+									VariadicElemOid != 0
+									&& Result.TypeMap.MapByOid.TryGetValue (VariadicElemOid,
+										out PSqlType VariadicElemType)
+										? VariadicElemType
+										: null,
+								VariadicElementIsPseudo =
+									VariadicElemOid != 0
+									&& PgTypeEntriesDict.TryGetValue (VariadicElemOid,
+										out PgTypeEntry VariadicElemEntry)
+									&& VariadicElemEntry.Category == 'p'
 							};
 
 							if (!Result.FunctionsDict.TryGetValue (QualName, out List<DbFunction> Overloads))

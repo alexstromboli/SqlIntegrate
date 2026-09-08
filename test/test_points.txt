@@ -86,3 +86,7 @@
 + - while
 + if
 + call to a function that resolves to nothing, in a position asking nothing of its type
++ named arguments in a call, both spellings
++ - positional before named, and a name no parameter carries
++ - a named argument leaving a parameter to its default
++ variadic call, expanded and with VARIADIC passing the array whole

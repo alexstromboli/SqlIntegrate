@@ -841,6 +841,52 @@
     },
     {
       "Schema": "USER",
+      "Name": "get_named_argument_calls",
+      "Arguments": [
+        {
+          "Name": "result",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "result",
+          "Comments": [
+            " # 1",
+            " Named arguments. PostgreSQL's own syntax for binding an argument to a declared",
+            " parameter instead of to a position, in both spellings: the arrow and the legacy",
+            " assignment. Which overload a call means is decided from the types its arguments",
+            " carry, so a name has to reach resolution as the parameter it names -- the types",
+            " then arrive in declared order however they were written."
+          ],
+          "Columns": [
+            {
+              "Name": "named_out_of_order",
+              "Type": "date"
+            },
+            {
+              "Name": "named_legacy_spelling",
+              "Type": "date"
+            },
+            {
+              "Name": "named_after_positional",
+              "Type": "date"
+            },
+            {
+              "Name": "named_skips_a_default",
+              "Type": "date"
+            },
+            {
+              "Name": "named_rejects_unmatched_name",
+              "Type": "date"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "get_numeric_types_math",
       "Arguments": [
         {
@@ -1805,6 +1851,45 @@
             {
               "Name": "nullif_text",
               "Type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
+      "Name": "get_variadic_calls",
+      "Arguments": [
+        {
+          "Name": "result",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "result",
+          "Comments": [
+            " # 1",
+            " A variadic call in both of its spellings. Expanded, the arguments at and past the",
+            " variadic position are ELEMENTS of the array, so each is matched against the element",
+            " type; written with VARIADIC, the array is passed whole and is matched against the",
+            " array type. Either way the value there constrains the overload -- unscored it would",
+            " say nothing, including where it rejects the candidate outright, and the call would",
+            " be decided by its fixed arguments alone."
+          ],
+          "Columns": [
+            {
+              "Name": "variadic_elements_decide",
+              "Type": "date"
+            },
+            {
+              "Name": "variadic_array_passed_whole",
+              "Type": "date"
+            },
+            {
+              "Name": "variadic_int_elements",
+              "Type": "bigint"
             }
           ]
         }

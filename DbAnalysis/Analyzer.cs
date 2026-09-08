@@ -164,30 +164,41 @@ namespace DbAnalysis
 			return Result;
 		}
 
-		// The types a function call's arguments carry, which is what tells one overload of
-		// an overloaded name from another.
+		// A function call's arguments as resolution reads them: each one's type, the
+		// declared parameter it names where the call site named one, and whether it passes
+		// a variadic array whole. Together they are what tells one overload of an
+		// overloaded name from another.
 		//
-		// Every entry may be null, and that is a state resolution is built to handle rather
+		// Every type may be null, and that is a state resolution is built to handle rather
 		// than an error. An argument is an expression like any other, so evaluating it can
 		// reach a name the surrounding context does not carry -- something a call site was
 		// never asked to survive before, the arguments having been parsed and dropped. A
 		// call whose value nothing reads has to keep analysing, so an argument that cannot
 		// be typed contributes no constraint instead of failing the procedure.
-		protected static IReadOnlyList<PSqlType> GetArgumentTypes (SPolynom[] Arguments,
+		protected static IReadOnlyList<CallArgument> GetCallArguments (ParsedCallArgument[] Arguments,
 			RequestContext Context)
 		{
-			PSqlType[] Result = new PSqlType[Arguments.Length];
+			CallArgument[] Result = new CallArgument[Arguments.Length];
 
 			for (int i = 0; i < Arguments.Length; ++i)
 			{
+				PSqlType Type;
+
 				try
 				{
-					Result[i] = Arguments[i].GetResult (Context)?.Type?.Value;
+					Type = Arguments[i].Expression.GetResult (Context)?.Type?.Value;
 				}
 				catch
 				{
-					Result[i] = null;
+					Type = null;
 				}
+
+				Result[i] = new CallArgument
+				{
+					Type = Type,
+					Name = Arguments[i].Name?.Value,
+					IsVariadicArray = Arguments[i].IsVariadicArray
+				};
 			}
 
 			return Result;
@@ -544,17 +555,64 @@ namespace DbAnalysis
 						body (rc).ToArray ().WithName (array_kw))
 				;
 
+			// An argument may name the declared parameter it binds to instead of taking the
+			// one standing where it was written -- PostgreSQL's arrow, and the older
+			// assignment spelling of the same thing. That is how a function with defaults
+			// is called selectively, passing the fourth of five parameters without naming
+			// the three in between.
+			var PCallArgumentNamedST =
+					from name in PAlphaNumericOrQuotedLST
+					from arrow in AnyTokenST ("=>", ":=")
+					from exp in PExpressionRefST.Get
+					select new ParsedCallArgument { Name = name, Expression = exp }
+				;
+
+			// VARIADIC at a call site passes the variadic array whole instead of naming its
+			// elements, so the value there is matched against the array type rather than
+			// against the element type. It is a reserved word, so it can never be the
+			// identifier an ordinary argument starts with.
+			var PCallArgumentPositionalST =
+					from variadic in SqlToken ("variadic").Optional ()
+					from exp in PExpressionRefST.Get
+					select new ParsedCallArgument
+					{
+						IsVariadicArray = variadic.IsDefined,
+						Expression = exp
+					}
+				;
+
 			// The arguments are carried out of the parse, not dropped: which overload of an
-			// overloaded name the call means is decided from their types and from nothing
-			// else, and the name alone resolves to whichever overload the catalogue happens
-			// to order last.
+			// overloaded name the call means is decided from them and from nothing else, and
+			// the name alone resolves to whichever overload the catalogue happens to order
+			// last.
+			//
+			// Two shapes are refused here rather than left for resolution to interpret,
+			// PostgreSQL refusing both as well -- and a procedure carrying one is dropped
+			// and named, which is the honest answer for a call the database would not run
+			// either.
+			//
+			// Positional arguments are a prefix: a named argument may not be followed by a
+			// positional one, because a position after a name binds to nothing that can be
+			// named. And VARIADIC may be written only on the last argument, which is what
+			// lets one flag describe the whole call -- resolution reads it off the last
+			// argument alone, so a VARIADIC standing anywhere else would be silently
+			// scored as an ordinary positional argument.
 			var PFunctionCallST =
-					from n in PQualifiedIdentifierLST
-					from args in PExpressionRefST.Get
-						.CommaDelimitedST (true)
-						.InParentsST ()
-						.SqlToken ()
-					select (Name: n, Arguments: args.Value.ToArray ())
+					(
+						from n in PQualifiedIdentifierLST
+						from args in PCallArgumentNamedST
+							.Or (PCallArgumentPositionalST)
+							.CommaDelimitedST (true)
+							.InParentsST ()
+							.SqlToken ()
+						select (Name: n, Arguments: args.Value.ToArray ())
+					)
+					.Where (c => c.Arguments
+						        .SkipWhile (a => a.Name == null)
+						        .All (a => a.Name != null)
+					        && c.Arguments
+						        .Take (Math.Max (0, c.Arguments.Length - 1))
+						        .All (a => !a.IsVariadicArray))
 				;
 
 			//
@@ -666,9 +724,10 @@ namespace DbAnalysis
 						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
 						.Or (PFunctionCallST
-							.Select<(Sourced<string>[] Name, SPolynom[] Arguments), Func<RequestContext, NamedTyped>> (
+							.Select<(Sourced<string>[] Name, ParsedCallArgument[] Arguments),
+								Func<RequestContext, NamedTyped>> (
 								p => rc =>
-									rc.ModuleContext.GetFunction (p.Name, GetArgumentTypes (p.Arguments, rc))
+									rc.ModuleContext.GetFunction (p.Name, GetCallArguments (p.Arguments, rc))
 							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST

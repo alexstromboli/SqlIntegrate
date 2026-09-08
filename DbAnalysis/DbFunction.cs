@@ -8,6 +8,11 @@ namespace DbAnalysis
 		// rejecting the overload over it would hide a function the database has.
 		public PSqlType Type;
 
+		// The declared parameter name, or null where the function declares none. A named
+		// argument at a call site binds to it, wherever it sits, which is why a name is
+		// part of the catalogue's view of an argument and not merely of its declaration.
+		public string Name;
+
 		// A pseudo-type argument -- anyelement, anyarray, "any" -- accepts a value of any
 		// type, so it never rejects a call site, and it never outranks an overload that
 		// names the argument's own type. That is what keeps lower(text) ahead of
@@ -39,5 +44,13 @@ namespace DbAnalysis
 		// arity alone would make a perfectly ordinary call resolve to something else.
 		public int DefaultCount;
 		public bool IsVariadic;
+
+		// What the variadic array holds, where the last argument is variadic. An expanded
+		// variadic call names elements, so this is what its trailing arguments are matched
+		// against; the array type declared beside it is what a call passing the array whole
+		// is matched against. Null and pseudo mean here what they mean on a declared
+		// argument: nothing to compare, so nothing rejected.
+		public PSqlType VariadicElementType;
+		public bool VariadicElementIsPseudo;
 	}
 }

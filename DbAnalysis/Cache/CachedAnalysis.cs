@@ -19,6 +19,20 @@ namespace DbAnalysis.Cache
 		// type does.
 		public List<string> ArgumentTypes;
 
+		// The declared parameter each argument named, parallel to the types and null where
+		// it bound by position. Recorded for the same reason the types are: a named
+		// argument faces the parameter it names rather than the one at its position, so a
+		// replay that lost the names would resolve the call positionally and could answer
+		// with another overload -- silently, the entry having verified.
+		public List<string> ArgumentNames;
+
+		// Whether the call passed a variadic array whole rather than naming its elements.
+		// VARIADIC may be written only on the last argument, so one flag describes the
+		// call. It decides whether that argument is matched against the array type or
+		// against the element type, which is another way one name's overloads are told
+		// apart.
+		public bool PassesVariadicArray;
+
 		// Null when the name resolves to no function, or to one whose return type nothing
 		// can carry a value of. That is a state of its own: a function created later
 		// changes the inference, so it must not read as a match against any return type.
@@ -47,20 +61,31 @@ namespace DbAnalysis.Cache
 
 			foreach (var Callee in CalleeSignatures)
 			{
-				// An entry that records no argument types cannot be replayed: resolution
-				// consults them, and a zero-argument call is an empty list rather than an
-				// absent one, so nothing distinguishes "no arguments" from "not recorded".
-				if (Callee.NameSegments == null || Callee.ArgumentTypes == null)
+				// An entry that records no arguments cannot be replayed: resolution consults
+				// them, and a zero-argument call is an empty list rather than an absent one,
+				// so nothing distinguishes "no arguments" from "not recorded". The names are
+				// held to the same rule, and to being aligned with the types -- one list
+				// shorter than the other would bind an argument to a parameter the call
+				// never named.
+				if (Callee.NameSegments == null || Callee.ArgumentTypes == null
+				    || Callee.ArgumentNames == null
+				    || Callee.ArgumentNames.Count != Callee.ArgumentTypes.Count)
 				{
 					return false;
 				}
 
-				var ArgumentTypes = Callee.ArgumentTypes
-						.Select (n => n == null ? null : DatabaseContext.GetTypeForName (n))
+				var Arguments = Callee.ArgumentTypes
+						.Select ((n, Index) => new CallArgument
+						{
+							Type = n == null ? null : DatabaseContext.GetTypeForName (n),
+							Name = Callee.ArgumentNames[Index],
+							IsVariadicArray = Callee.PassesVariadicArray
+							                  && Index == Callee.ArgumentTypes.Count - 1
+						})
 						.ToList ()
 					;
 
-				if (DatabaseContext.ResolveFunction (Callee.NameSegments.ToArray (), ArgumentTypes)
+				if (DatabaseContext.ResolveFunction (Callee.NameSegments.ToArray (), Arguments)
 					    ?.ReturnType?.Display
 				    != Callee.ReturnType)
 				{

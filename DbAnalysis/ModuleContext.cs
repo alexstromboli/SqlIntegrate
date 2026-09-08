@@ -82,33 +82,47 @@ namespace DbAnalysis
 			return DatabaseContext.GetSchemaEntity (Dict, NameSegments);
 		}
 
-		// ArgumentTypes is what tells one overload of a name from another, and an entry in
-		// it may be null: an argument is an expression, and one the surrounding context
-		// cannot type constrains nothing rather than failing the call.
-		public NamedTyped GetFunction (Sourced<string>[] NameSegments, IReadOnlyList<PSqlType> ArgumentTypes)
+		// Arguments is what tells one overload of a name from another, and an entry's type
+		// may be null: an argument is an expression, and one the surrounding context cannot
+		// type constrains nothing rather than failing the call.
+		public NamedTyped GetFunction (Sourced<string>[] NameSegments, IReadOnlyList<CallArgument> Arguments)
 		{
 			Sourced<string> Name = NameSegments[^1].ToLower ();
 			var Span = NameSegments.Range ();
 			string[] Segments = NameSegments.Values ();
 
-			DbFunction Resolved = DatabaseContext.ResolveFunction (Segments, ArgumentTypes);
+			DbFunction Resolved = DatabaseContext.ResolveFunction (Segments, Arguments);
 
-			List<string> ArgumentTypeNames = (ArgumentTypes ?? Array.Empty<PSqlType> ())
-				.Select (t => t?.Display)
+			IReadOnlyList<CallArgument> CallArguments = Arguments ?? Array.Empty<CallArgument> ();
+
+			List<string> ArgumentTypeNames = CallArguments
+				.Select (a => a.Type?.Display)
 				.ToList ();
 
-			// Recorded under the resolution key -- the name as written AND the argument
-			// types it was resolved against -- so repeated calls to the same function
-			// collapse into one entry, while two spellings of it, and two call sites whose
-			// arguments differ, stay separate: each is a lookup in its own right and each
-			// has to be replayed as it happened.
+			// Parallel to the types, an entry null where the argument binds by position.
+			// The names are part of the lookup and not merely of its key: they decide which
+			// parameter each argument faces, so a replay without them resolves the call by
+			// position and may answer with another overload.
+			List<string> ArgumentNames = CallArguments
+				.Select (a => a.Name)
+				.ToList ();
+
+			// Recorded under the resolution key -- the name as written AND the arguments it
+			// was resolved against -- so repeated calls to the same function collapse into
+			// one entry, while two spellings of it, and two call sites whose arguments
+			// differ, stay separate: each is a lookup in its own right and each has to be
+			// replayed as it happened. An argument's name and its VARIADIC spelling belong
+			// in the key for that reason: the same types written the other way round, or
+			// passed as the array rather than as its elements, are a different lookup.
 			string Key = Segments.PSqlQualifiedName ()
-			             + " (" + string.Join (", ", ArgumentTypeNames.Select (n => n ?? "?")) + ")";
+			             + " (" + string.Join (", ", CallArguments.Select (RenderArgument)) + ")";
 
 			_CalleeSignatures[Key] = new CalleeSignature
 			{
 				NameSegments = Segments.ToList (),
 				ArgumentTypes = ArgumentTypeNames,
+				ArgumentNames = ArgumentNames,
+				PassesVariadicArray = CallArguments.Count > 0 && CallArguments[^1].IsVariadicArray,
 				ReturnType = Resolved?.ReturnType?.Display
 			};
 
@@ -129,6 +143,23 @@ namespace DbAnalysis
 			// wrapper never carries a guessed type, and the names above are what that
 			// refusal names.
 			return new NamedTyped (Name, Resolved?.ReturnType.SourcedFunction (Span));
+		}
+
+		// How one argument reads in a resolution key. An untyped argument is a question
+		// mark rather than an absence, so it cannot be confused with having no argument
+		// there at all.
+		protected static string RenderArgument (CallArgument Argument)
+		{
+			string Rendered = Argument.Type?.Display ?? "?";
+
+			if (Argument.IsVariadicArray)
+			{
+				Rendered = "variadic " + Rendered;
+			}
+
+			return Argument.Name == null
+				? Rendered
+				: Argument.Name + " => " + Rendered;
 		}
 
 		public DbTable GetTable (string[] NameSegments)

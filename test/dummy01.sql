@@ -314,6 +314,53 @@ AS $$
     END
 $$ LANGUAGE plpgsql;
 
+-- Overloads that a named-argument call has to tell apart. Each pair agrees on
+-- everything a call site could use except the declared parameters themselves, so a call
+-- that binds its arguments by name and not by position resolves to the one the
+-- catalogue does not order last -- which is what the fallback would otherwise answer.
+
+-- The same two names in the two orders. A call naming them out of order still names
+-- these parameters, so the types reach resolution in declared order or not at all.
+CREATE FUNCTION named_args (a varchar, b int)
+    RETURNS date
+AS $$ BEGIN RETURN '2020-01-01'::date; END $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION named_args (a int, b varchar)
+    RETURNS bigint
+AS $$ BEGIN RETURN a; END $$ LANGUAGE plpgsql;
+
+-- Trailing defaults, which is what a named argument is for: naming the third parameter
+-- leaves the second to its default rather than shifting it into second position.
+CREATE FUNCTION named_skips (a int, b int DEFAULT 2, c varchar DEFAULT 'x')
+    RETURNS date
+AS $$ BEGIN RETURN '2020-01-01'::date; END $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION named_skips (a bigint, b int DEFAULT 2, c int DEFAULT 3)
+    RETURNS bigint
+AS $$ BEGIN RETURN a; END $$ LANGUAGE plpgsql;
+
+-- Disjoint parameter names over identical argument types, so nothing but the name can
+-- decide: the overload that does not declare the name written at the call site has to be
+-- rejected, exactly as PostgreSQL rejects it.
+CREATE FUNCTION named_disjoint (p_first int)
+    RETURNS date
+AS $$ BEGIN RETURN '2020-01-01'::date; END $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION named_disjoint (q_second int)
+    RETURNS bigint
+AS $$ BEGIN RETURN q_second; END $$ LANGUAGE plpgsql;
+
+-- Two variadic overloads whose ELEMENT types differ, which is the only shape where a
+-- variadic position decides anything: the fixed argument is the same int in both, so a
+-- call is answered by its elements or by catalogue order and by nothing else.
+CREATE FUNCTION variadic_elem (a int, VARIADIC rest varchar[])
+    RETURNS date
+AS $$ BEGIN RETURN '2020-01-01'::date; END $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION variadic_elem (a int, VARIADIC rest int[])
+    RETURNS bigint
+AS $$ BEGIN RETURN a; END $$ LANGUAGE plpgsql;
+
 -- DROP PROCEDURE RoomsForPerson;
 CREATE PROCEDURE RoomsForPerson (
         id_person uuid,
@@ -893,6 +940,52 @@ BEGIN
             date_trunc ('day', (SELECT now () FROM rooms LIMIT 1)) AS overload_by_subselect_arg
     -- and where an ORDER BY key carries a direction after it
     ORDER BY now () AT TIME ZONE 'UTC', 'b' COLLATE "C" DESC
+    ;
+END;
+$$;
+
+CREATE PROCEDURE get_variadic_calls (INOUT result refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN result FOR
+    -- # 1
+    -- A variadic call in both of its spellings. Expanded, the arguments at and past the
+    -- variadic position are ELEMENTS of the array, so each is matched against the element
+    -- type; written with VARIADIC, the array is passed whole and is matched against the
+    -- array type. Either way the value there constrains the overload -- unscored it would
+    -- say nothing, including where it rejects the candidate outright, and the call would
+    -- be decided by its fixed arguments alone.
+    SELECT  variadic_elem (1, 'x'::varchar, 'y'::varchar) AS variadic_elements_decide,
+            variadic_elem (1, VARIADIC array['x'::varchar]) AS variadic_array_passed_whole,
+            -- The complement: elements that reject the other candidate instead.
+            variadic_elem (1, 2, 3) AS variadic_int_elements
+    FROM rooms
+    ;
+END;
+$$;
+
+CREATE PROCEDURE get_named_argument_calls (INOUT result refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN result FOR
+    -- # 1
+    -- Named arguments. PostgreSQL's own syntax for binding an argument to a declared
+    -- parameter instead of to a position, in both spellings: the arrow and the legacy
+    -- assignment. Which overload a call means is decided from the types its arguments
+    -- carry, so a name has to reach resolution as the parameter it names -- the types
+    -- then arrive in declared order however they were written.
+    SELECT  named_args (b => 1, a => 'x'::varchar) AS named_out_of_order,
+            named_args (b := 1, a := 'x'::varchar) AS named_legacy_spelling,
+            -- Positional arguments may precede named ones, and never follow them.
+            named_args ('x'::varchar, b => 1) AS named_after_positional,
+            -- A named argument leaves the parameters it skipped to their defaults.
+            named_skips (1, c => 'y'::varchar) AS named_skips_a_default,
+            -- The name alone decides here: both overloads take one int, and only one of
+            -- them declares a parameter of this name.
+            named_disjoint (p_first => 1) AS named_rejects_unmatched_name
+    FROM rooms
     ;
 END;
 $$;

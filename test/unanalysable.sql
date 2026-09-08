@@ -88,3 +88,20 @@ BEGIN
     SELECT fn_pseudo_return (t.id) AS v FROM t;
 END;
 $$;
+
+-- A call mixing named and positional arguments the wrong way round. A named argument
+-- binds to the parameter it names, so a positional one after it binds to nothing that
+-- can be named -- PostgreSQL refuses the call for that reason, and the analyzer refuses
+-- to parse it rather than inventing a position for it. Dropping the procedure and naming
+-- it is the honest answer for a call the database would not run either.
+CREATE FUNCTION fn_two_named (a int, b int) RETURNS int
+LANGUAGE 'sql' AS $$ SELECT a + b; $$;
+
+CREATE PROCEDURE proc_positional_after_named (INOUT r refcursor)
+LANGUAGE 'plpgsql' AS $$
+BEGIN
+    OPEN r FOR
+    -- # 1
+    SELECT fn_two_named (a => 1, 2) AS v;
+END;
+$$;

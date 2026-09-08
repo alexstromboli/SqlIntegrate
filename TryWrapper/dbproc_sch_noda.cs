@@ -1256,6 +1256,74 @@ namespace Generated
 		}
 		#endregion
 
+		#region get_named_argument_calls
+		public class get_named_argument_calls_Result_result
+		{
+			public LocalDate? named_out_of_order;
+			public LocalDate? named_legacy_spelling;
+			public LocalDate? named_after_positional;
+			public LocalDate? named_skips_a_default;
+			public LocalDate? named_rejects_unmatched_name;
+		}
+
+		public get_named_argument_calls_Result_result get_named_argument_calls ()
+		{
+			return get_named_argument_callsAsync ().Result;
+		}
+
+		public async Task<get_named_argument_calls_Result_result> get_named_argument_callsAsync ()
+		{
+			get_named_argument_calls_Result_result Result = null;
+
+			using (var Tran = await DbProc.BeginTransactionOptionalAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_named_argument_calls\" (@result);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						get_named_argument_calls_Result_result Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new get_named_argument_calls_Result_result
+								{
+									named_out_of_order = Rdr["named_out_of_order"] as LocalDate?,
+									named_legacy_spelling = Rdr["named_legacy_spelling"] as LocalDate?,
+									named_after_positional = Rdr["named_after_positional"] as LocalDate?,
+									named_skips_a_default = Rdr["named_skips_a_default"] as LocalDate?,
+									named_rejects_unmatched_name = Rdr["named_rejects_unmatched_name"] as LocalDate?
+								};
+							}
+						}
+
+						Result = Set;
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"result\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
+				}
+			}
+
+			return Result;
+		}
+		#endregion
+
 		#region get_numeric_types_math
 		public class get_numeric_types_math_Result_result
 		{
@@ -2205,6 +2273,70 @@ namespace Generated
 					using (var cmdClose = Conn.CreateCommand ())
 					{
 						cmdClose.CommandText = "CLOSE \"nulls\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
+				}
+			}
+
+			return Result;
+		}
+		#endregion
+
+		#region get_variadic_calls
+		public class get_variadic_calls_Result_result
+		{
+			public LocalDate? variadic_elements_decide;
+			public LocalDate? variadic_array_passed_whole;
+			public long? variadic_int_elements;
+		}
+
+		public get_variadic_calls_Result_result get_variadic_calls ()
+		{
+			return get_variadic_callsAsync ().Result;
+		}
+
+		public async Task<get_variadic_calls_Result_result> get_variadic_callsAsync ()
+		{
+			get_variadic_calls_Result_result Result = null;
+
+			using (var Tran = await DbProc.BeginTransactionOptionalAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"get_variadic_calls\" (@result);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "result" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"result\";";
+						get_variadic_calls_Result_result Set = null;
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							if (Rdr.Read ())
+							{
+								Set = new get_variadic_calls_Result_result
+								{
+									variadic_elements_decide = Rdr["variadic_elements_decide"] as LocalDate?,
+									variadic_array_passed_whole = Rdr["variadic_array_passed_whole"] as LocalDate?,
+									variadic_int_elements = Rdr["variadic_int_elements"] as long?
+								};
+							}
+						}
+
+						Result = Set;
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"result\";";
 						await cmdClose.ExecuteNonQueryAsync ();
 					}
 
