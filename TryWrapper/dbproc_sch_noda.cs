@@ -1482,6 +1482,12 @@ namespace Generated
 			public int? collate_in_call;
 			public string[] collate_in_agg_order;
 			public string overloaded_name_resolves_to_a_real_type;
+			public Instant? overload_by_arg_timestamptz;
+			public LocalDateTime? overload_by_arg_timestamp;
+			public Period overload_by_arg_interval;
+			public Instant? overload_by_nested_call;
+			public Instant? overload_by_arity;
+			public Instant? overload_by_subselect_arg;
 		}
 
 		public get_operators_Result_result get_operators ()
@@ -1533,7 +1539,13 @@ namespace Generated
 									collate_unquoted_name = Rdr["collate_unquoted_name"] as string,
 									collate_in_call = Rdr["collate_in_call"] as int?,
 									collate_in_agg_order = Rdr["collate_in_agg_order"] as string[],
-									overloaded_name_resolves_to_a_real_type = Rdr["overloaded_name_resolves_to_a_real_type"] as string
+									overloaded_name_resolves_to_a_real_type = Rdr["overloaded_name_resolves_to_a_real_type"] as string,
+									overload_by_arg_timestamptz = Rdr["overload_by_arg_timestamptz"] as Instant?,
+									overload_by_arg_timestamp = Rdr["overload_by_arg_timestamp"] as LocalDateTime?,
+									overload_by_arg_interval = Rdr["overload_by_arg_interval"] as Period,
+									overload_by_nested_call = Rdr["overload_by_nested_call"] as Instant?,
+									overload_by_arity = Rdr["overload_by_arity"] as Instant?,
+									overload_by_subselect_arg = Rdr["overload_by_subselect_arg"] as Instant?
 								};
 							}
 						}

@@ -281,4 +281,62 @@ fi
 rm -rf "$CALLEE_HOME" temp_callee_before.json temp_callee_after.json \
     temp_callee_fresh.json temp_callee_hit.json
 
+### the cache and an overload added beside a callee
+
+# Which overload of a name a call site means is decided from the argument types beside it,
+# so an overload added next to a function a procedure calls moves the inferred column type
+# with nothing the cache key describes having moved. The recorded callee carries the
+# argument types it was resolved against; replaying that lookup is what catches this, and
+# an entry keyed on the name alone would hand back the type the other overload gave.
+
+OVERLOAD_HOME="$(realpath temp_overload_home)"
+rm -rf "$OVERLOAD_HOME"
+mkdir -p "$OVERLOAD_HOME"
+
+# Dropped rather than assumed absent, so the section is idempotent and a -c re-run does
+# not start from the overload the previous run added.
+psql -q -d "$CALLEE_DBNAME" -v ON_ERROR_STOP=1 \
+    -c "SET search_path TO $USER; DROP FUNCTION IF EXISTS overloaded (int);"
+
+HOME="$OVERLOAD_HOME" "$PARSEPROCS_EXE" "$CALLEE_CONN" temp_overload_before.json >/dev/null
+
+psql -q -d "$CALLEE_DBNAME" -v ON_ERROR_STOP=1 \
+    -c "SET search_path TO $USER;
+        CREATE FUNCTION overloaded (arg int) RETURNS int
+            AS \$\$ BEGIN RETURN arg; END \$\$ LANGUAGE plpgsql;"
+
+HOME="$OVERLOAD_HOME" "$PARSEPROCS_EXE" "$CALLEE_CONN" temp_overload_after.json >/dev/null
+"$PARSEPROCS_EXE" --no-cache "$CALLEE_CONN" temp_overload_fresh.json >/dev/null
+
+if cmp -s temp_overload_before.json temp_overload_after.json; then
+    report_failed "failed: an overload added beside a callee was served from the cache"
+elif ! cmp -s temp_overload_after.json temp_overload_fresh.json; then
+    report_failed "failed: the re-analysed report differs from an uncached one"
+else
+    report_ok "success: an overload added beside a callee invalidates the entry"
+fi
+
+# The check above is also satisfied by a cache that never hits. Doctoring a stored result
+# to something the database cannot produce separates the two -- and the procedure doctored
+# is the one calling a built-in whose overloads the arguments and the catalogue order
+# disagree about, so the sentinel comes back only if the replay consulted the argument
+# types the entry recorded.
+OVERLOAD_ENTRY="$(grep -l 'builtin_overload_caller' "$OVERLOAD_HOME"/.sqlintegrate/cache/*.json 2>/dev/null | head -1)"
+
+if [ -z "$OVERLOAD_ENTRY" ]; then
+    report_failed "failed: the overload run wrote no cache entry for the built-in caller"
+else
+    sed -i 's/"Name":"v","Type":"timestamptz"/"Name":"v","Type":"numeric"/' "$OVERLOAD_ENTRY"
+    HOME="$OVERLOAD_HOME" "$PARSEPROCS_EXE" "$CALLEE_CONN" temp_overload_hit.json >/dev/null
+
+    if grep -q '"Type": "numeric"' temp_overload_hit.json; then
+        report_ok "success: an entry is replayed against the argument types it recorded"
+    else
+        report_failed "failed: an entry was re-analysed although its overloaded call still resolves the same way"
+    fi
+fi
+
+rm -rf "$OVERLOAD_HOME" temp_overload_before.json temp_overload_after.json \
+    temp_overload_fresh.json temp_overload_hit.json
+
 exit "$FAILED"

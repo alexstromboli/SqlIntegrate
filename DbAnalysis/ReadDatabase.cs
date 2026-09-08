@@ -18,8 +18,8 @@ namespace DbAnalysis
 				TypeMap = null,
 				TablesDict = new Dictionary<string, DbTable> (),
 				ProceduresDict = new Dictionary<string, Procedure> (),
-				FunctionsDict = new Dictionary<string, PSqlType> (),
-				UnmappedFunctionReturnTypes = new Dictionary<string, string> (),
+				FunctionsDict = new Dictionary<string, List<DbFunction>> (),
+				ImplicitCasts = new HashSet<(string Source, string Target)> (),
 				SchemaOrder = new List<string> ()
 			};
 
@@ -269,6 +269,39 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 					}
 				}
 
+				// Types PostgreSQL coerces between without being asked. Overload resolution
+				// needs them because a call site rarely names an argument's declared type
+				// exactly: a string literal reaches date_trunc as varchar where the
+				// argument is declared text, and an overload rejected over that would
+				// leave the arguments deciding nothing. Keyed on the two types' display
+				// names, which is what both sides of a resolution have to hand.
+				using (var cmd = conn.CreateCommand ())
+				{
+					cmd.CommandText = @"
+SELECT  casts.castsource,
+        casts.casttarget
+FROM pg_catalog.pg_cast AS casts
+WHERE casts.castcontext = 'i'
+;
+";
+
+					using (var rdr = cmd.ExecuteReader ())
+					{
+						while (rdr.Read ())
+						{
+							uint SourceOid = (uint)rdr["castsource"];
+							uint TargetOid = (uint)rdr["casttarget"];
+
+							if (Result.TypeMap.MapByOid.TryGetValue (SourceOid, out PSqlType Source)
+							    && Result.TypeMap.MapByOid.TryGetValue (TargetOid, out PSqlType Target)
+							    )
+							{
+								Result.ImplicitCasts.Add ((Source.Display, Target.Display));
+							}
+						}
+					}
+				}
+
 				//
 				using (var cmd = conn.CreateCommand ())
 				{
@@ -287,11 +320,18 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 					// rather than by the routine's oid, which information_schema does not
 					// expose in a form worth splitting out of specific_name.
 					//
+					// The declared argument types come from pg_proc, which specific_name is
+					// what reaches: it is the routine's name and its oid joined by an
+					// underscore, so the trailing digits are the oid whatever the name
+					// contains. proargtypes is the input arguments alone, which is what a
+					// call site names; pronargdefaults and provariadic are how many of
+					// them the call may leave out and whether the last one absorbs the rest.
+					//
 					// specific_name orders the overloads of one name, which the two key
-					// columns leave tied. A name resolves to a single return type here, so
-					// which of its overloads is read last decides that type, and a tie the
-					// query does not break makes it the planner's choice -- reproducible
-					// output being the whole reason the analysis is comparable at all.
+					// columns leave tied. It is the last-resort tie-break in resolution, so a
+					// call whose arguments genuinely decide nothing still answers the same way
+					// on every run rather than by the planner's choice -- reproducible output
+					// being the whole reason the analysis is comparable at all.
 					cmd.CommandText = @"
 SELECT
 	routines.routine_schema,
@@ -301,13 +341,18 @@ SELECT
         THEN routines.type_udt_name
         ELSE routines.type_udt_name::regtype::varchar
     END AS result_type,
-    COALESCE (rettype.typtype = 'p', false) AS result_is_pseudo
+    COALESCE (rettype.typtype = 'p', false) AS result_is_pseudo,
+    proc.proargtypes AS arg_type_oids,
+    COALESCE (proc.pronargdefaults, 0) AS arg_default_count,
+    COALESCE (proc.provariadic <> 0, false) AS arg_is_variadic
 FROM information_schema.routines
 LEFT JOIN pg_catalog.pg_namespace retschema
     ON retschema.nspname = routines.type_udt_schema
 LEFT JOIN pg_catalog.pg_type rettype
     ON rettype.typname = routines.type_udt_name
     AND rettype.typnamespace = retschema.oid
+LEFT JOIN pg_catalog.pg_proc proc
+    ON proc.oid = SUBSTRING (routines.specific_name FROM '_([0-9]+)$')::oid
 WHERE routines.routine_type='FUNCTION'
 ORDER BY routines.routine_schema, routines.routine_name, routines.specific_name;
 ";
@@ -330,28 +375,39 @@ ORDER BY routines.routine_schema, routines.routine_name, routines.specific_name;
 								? null
 								: Result.GetTypeForName (ResultSchema, ResultType);
 
-							if (Type == null)
+							uint[] ArgTypeOids = (rdr["arg_type_oids"] as uint[]) ?? Array.Empty<uint> ();
+
+							DbFunction Function = new DbFunction
 							{
-								// The function exists; it is its return type nothing can carry a
-								// value of -- either the type map has no mapping for it, or it is
-								// a pseudo-type, which no mapping could describe. Recorded under
-								// the same name the lookup would use, so a caller that finds no
-								// type can still tell "no such function" from "no usable type
-								// here" -- and can name the type, which is the half a maintainer
-								// can act on.
-								//
-								// It does not displace a type already recorded for the name.
-								// Several functions share one name here, and only some of them
-								// carry a usable type: lower is lower(text) and the lower bound
-								// of a range, and letting the second overwrite the first types
-								// every lower() in the corpus as anyelement. The unmappable name
-								// is still remembered, so a name whose every overload is
-								// unusable is named rather than merely missing.
-								Result.UnmappedFunctionReturnTypes[QualName] = ResultType;
-								continue;
+								QualifiedName = QualName,
+								ReturnType = Type,
+								// The function exists; it is its return type nothing can carry
+								// a value of -- either the type map has no mapping for it, or
+								// it is a pseudo-type, which no mapping could describe. Naming
+								// the type is what lets a caller that found no type tell "no
+								// such function" from "no usable type here", and act on it.
+								UnmappedReturnTypeName = Type == null ? ResultType : null,
+								Arguments = ArgTypeOids
+									.Select (Oid => new DbFunctionArgument
+									{
+										Type = Result.TypeMap.MapByOid.TryGetValue (Oid, out PSqlType ArgType)
+											? ArgType
+											: null,
+										IsPseudo = PgTypeEntriesDict.TryGetValue (Oid, out PgTypeEntry ArgEntry)
+										           && ArgEntry.Category == 'p'
+									})
+									.ToArray (),
+								DefaultCount = Convert.ToInt32 (rdr["arg_default_count"]),
+								IsVariadic = (bool)rdr["arg_is_variadic"]
+							};
+
+							if (!Result.FunctionsDict.TryGetValue (QualName, out List<DbFunction> Overloads))
+							{
+								Overloads = new List<DbFunction> ();
+								Result.FunctionsDict[QualName] = Overloads;
 							}
 
-							Result.FunctionsDict[QualName] = Type;
+							Overloads.Add (Function);
 						}
 					}
 				}

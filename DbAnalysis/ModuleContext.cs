@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -17,7 +18,7 @@ namespace DbAnalysis
 		protected Dictionary<string, NamedTyped> _VariablesDict;
 		public IReadOnlyDictionary<string, NamedTyped> VariablesDict => _VariablesDict;
 
-		public IReadOnlyDictionary<string, PSqlType> FunctionsDict => DatabaseContext.FunctionsDict;
+		public IReadOnlyDictionary<string, List<DbFunction>> FunctionsDict => DatabaseContext.FunctionsDict;
 
 		public IReadOnlyList<string> SchemaOrder => DatabaseContext.SchemaOrder;
 
@@ -44,10 +45,15 @@ namespace DbAnalysis
 		// not exist, and the reader can act on either only if the name is named. A function
 		// that exists with an unmappable return type is excluded: it is not missing, and
 		// sending its reader to check a search_path points away from the fix.
+		//
+		// Reported by the name as written rather than by the resolution key, which carries
+		// the argument types too: those are what tell one call site of a name from another,
+		// and none of them is what the reader has to change.
 		public IReadOnlyList<string> UnresolvedFunctions =>
 			_CalleeSignatures
 				.Where (p => p.Value.ReturnType == null && !_UnmappedReturnTypes.ContainsKey (p.Key))
-				.Select (p => p.Key)
+				.Select (p => p.Value.NameSegments.ToArray ().PSqlQualifiedName ())
+				.Distinct ()
 				.OrderBy (s => s)
 				.ToList ();
 
@@ -56,7 +62,8 @@ namespace DbAnalysis
 		public IReadOnlyList<string> FunctionsWithUnmappedReturnType =>
 			_UnmappedReturnTypes
 				.OrderBy (p => p.Key)
-				.Select (p => $"{p.Key} returns {p.Value}")
+				.Select (p => $"{_CalleeSignatures[p.Key].NameSegments.ToArray ().PSqlQualifiedName ()} returns {p.Value}")
+				.Distinct ()
 				.ToList ();
 
 		public ModuleContext (
@@ -75,33 +82,43 @@ namespace DbAnalysis
 			return DatabaseContext.GetSchemaEntity (Dict, NameSegments);
 		}
 
-		public NamedTyped GetFunction (Sourced<string>[] NameSegments)
+		// ArgumentTypes is what tells one overload of a name from another, and an entry in
+		// it may be null: an argument is an expression, and one the surrounding context
+		// cannot type constrains nothing rather than failing the call.
+		public NamedTyped GetFunction (Sourced<string>[] NameSegments, IReadOnlyList<PSqlType> ArgumentTypes)
 		{
 			Sourced<string> Name = NameSegments[^1].ToLower ();
 			var Span = NameSegments.Range ();
 			string[] Segments = NameSegments.Values ();
 
-			PSqlType Resolved = DatabaseContext.GetFunctionType (Segments);
+			DbFunction Resolved = DatabaseContext.ResolveFunction (Segments, ArgumentTypes);
 
-			// Recorded under the resolution key so repeated calls to the same function
-			// collapse into one entry, while two spellings of it stay separate: each is a
-			// lookup in its own right and each has to be replayed as written.
-			_CalleeSignatures[Segments.PSqlQualifiedName ()] = new CalleeSignature
+			List<string> ArgumentTypeNames = (ArgumentTypes ?? Array.Empty<PSqlType> ())
+				.Select (t => t?.Display)
+				.ToList ();
+
+			// Recorded under the resolution key -- the name as written AND the argument
+			// types it was resolved against -- so repeated calls to the same function
+			// collapse into one entry, while two spellings of it, and two call sites whose
+			// arguments differ, stay separate: each is a lookup in its own right and each
+			// has to be replayed as it happened.
+			string Key = Segments.PSqlQualifiedName ()
+			             + " (" + string.Join (", ", ArgumentTypeNames.Select (n => n ?? "?")) + ")";
+
+			_CalleeSignatures[Key] = new CalleeSignature
 			{
 				NameSegments = Segments.ToList (),
-				ReturnType = Resolved?.Display
+				ArgumentTypes = ArgumentTypeNames,
+				ReturnType = Resolved?.ReturnType?.Display
 			};
 
-			// A null resolution has two causes, and they are told apart here, where the
-			// database's own answer is still available. Left uncollected they reach the
-			// diagnostic as one state, and it then has to guess which advice to give.
-			if (Resolved == null)
+			// A resolution that yields no usable type has two causes, and they are told
+			// apart here, where the database's own answer is still available. Left
+			// uncollected they reach the diagnostic as one state, and it then has to guess
+			// which advice to give.
+			if (Resolved?.UnmappedReturnTypeName != null)
 			{
-				string UnmappedType = DatabaseContext.GetUnmappedFunctionReturnType (Segments);
-				if (UnmappedType != null)
-				{
-					_UnmappedReturnTypes[Segments.PSqlQualifiedName ()] = UnmappedType;
-				}
+				_UnmappedReturnTypes[Key] = Resolved.UnmappedReturnTypeName;
 			}
 
 			// A name that resolves to nothing carries no type, and travels on as one.
@@ -111,7 +128,7 @@ namespace DbAnalysis
 			// unknown type would become a result column that it has to be refused, so the
 			// wrapper never carries a guessed type, and the names above are what that
 			// refusal names.
-			return new NamedTyped (Name, Resolved.SourcedFunction (Span));
+			return new NamedTyped (Name, Resolved?.ReturnType.SourcedFunction (Span));
 		}
 
 		public DbTable GetTable (string[] NameSegments)

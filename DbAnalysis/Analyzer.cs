@@ -164,6 +164,35 @@ namespace DbAnalysis
 			return Result;
 		}
 
+		// The types a function call's arguments carry, which is what tells one overload of
+		// an overloaded name from another.
+		//
+		// Every entry may be null, and that is a state resolution is built to handle rather
+		// than an error. An argument is an expression like any other, so evaluating it can
+		// reach a name the surrounding context does not carry -- something a call site was
+		// never asked to survive before, the arguments having been parsed and dropped. A
+		// call whose value nothing reads has to keep analysing, so an argument that cannot
+		// be typed contributes no constraint instead of failing the procedure.
+		protected static IReadOnlyList<PSqlType> GetArgumentTypes (SPolynom[] Arguments,
+			RequestContext Context)
+		{
+			PSqlType[] Result = new PSqlType[Arguments.Length];
+
+			for (int i = 0; i < Arguments.Length; ++i)
+			{
+				try
+				{
+					Result[i] = Arguments[i].GetResult (Context)?.Type?.Value;
+				}
+				catch
+				{
+					Result[i] = null;
+				}
+			}
+
+			return Result;
+		}
+
 		protected Parser<CaseBase<T>> GetCase<T> (Parser<T> Then)
 		{
 			return
@@ -515,13 +544,17 @@ namespace DbAnalysis
 						body (rc).ToArray ().WithName (array_kw))
 				;
 
+			// The arguments are carried out of the parse, not dropped: which overload of an
+			// overloaded name the call means is decided from their types and from nothing
+			// else, and the name alone resolves to whichever overload the catalogue happens
+			// to order last.
 			var PFunctionCallST =
 					from n in PQualifiedIdentifierLST
-					from arg in PExpressionRefST.Get
+					from args in PExpressionRefST.Get
 						.CommaDelimitedST (true)
 						.InParentsST ()
 						.SqlToken ()
-					select n
+					select (Name: n, Arguments: args.Value.ToArray ())
 				;
 
 			//
@@ -632,8 +665,10 @@ namespace DbAnalysis
 						.Or (PCastST)
 						.Or (PParentsST.Select<SPolynom, Func<RequestContext, NamedTyped>> (p =>
 							rc => p.GetResult (rc)))
-						.Or (PFunctionCallST.Select<Sourced<string>[], Func<RequestContext, NamedTyped>> (p => rc =>
-							rc.ModuleContext.GetFunction (p)
+						.Or (PFunctionCallST
+							.Select<(Sourced<string>[] Name, SPolynom[] Arguments), Func<RequestContext, NamedTyped>> (
+								p => rc =>
+									rc.ModuleContext.GetFunction (p.Name, GetArgumentTypes (p.Arguments, rc))
 							))
 						// PQualifiedIdentifier must be or-ed after PFunctionCall
 						.Or (PQualifiedIdentifierLST
@@ -1142,7 +1177,7 @@ namespace DbAnalysis
 							.Or (PGenerateSeriesST.Select<Func<RequestContext, NamedTyped>, ITableRetriever> (p =>
 								new GenerateSeriesTableRetriever (p)))
 							// or-ed after unnest
-							.Or (PFunctionCallST.Select (qi => new NamedTableRetriever (qi.Values ()) // stub
+							.Or (PFunctionCallST.Select (qi => new NamedTableRetriever (qi.Name.Values ()) // stub
 							))
 							// or-ed after function calls
 							.Or (PQualifiedIdentifierLST.Select (qi => new NamedTableRetriever (qi.Values ())))

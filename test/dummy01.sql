@@ -877,7 +877,20 @@ BEGIN
             -- is a pseudo-type no wrapper can carry a value of. Resolution has to land on
             -- the candidate that names a real type. Inside an ORDER BY the type is
             -- discarded and either candidate passes, so the case has to be a column.
-            lower ('B'::varchar) AS overloaded_name_resolves_to_a_real_type
+            lower ('B'::varchar) AS overloaded_name_resolves_to_a_real_type,
+            -- Overloads that all name a real type, differing in what they return.
+            -- date_trunc is four of them, and the argument types written at the call
+            -- site are the only thing that tells them apart: the same name yields
+            -- timestamptz, timestamp and interval here. The nested, three-argument and
+            -- subselect rows are the argument shapes resolution has to evaluate --
+            -- an argument was never asked for its type before, so each one is a way
+            -- for the evaluation itself to fail.
+            date_trunc ('day', now ()) AS overload_by_arg_timestamptz,
+            date_trunc ('day', '2020-01-01'::timestamp) AS overload_by_arg_timestamp,
+            date_trunc ('day', '1 day'::interval) AS overload_by_arg_interval,
+            date_trunc ('day', date_trunc ('hour', now ())) AS overload_by_nested_call,
+            date_trunc ('day', now (), 'UTC') AS overload_by_arity,
+            date_trunc ('day', (SELECT now () FROM rooms LIMIT 1)) AS overload_by_subselect_arg
     -- and where an ORDER BY key carries a direction after it
     ORDER BY now () AT TIME ZONE 'UTC', 'b' COLLATE "C" DESC
     ;
@@ -993,6 +1006,14 @@ BEGIN
     END LOOP;
 
     FETCH LAST FROM src INTO rec;
+
+    -- An argument the surrounding context cannot type. A record variable's field is not
+    -- a name the analyzer carries, and resolving an overloaded name now asks every
+    -- argument what type it is -- so this is the shape where the asking itself fails.
+    -- Such an argument constrains nothing and the name answers on its own; it must not
+    -- take the procedure down with it.
+    t := lower (rec.category);
+
     /*
     FETCH FORWARD FROM src INTO rec;
     FETCH FORWARD 1 FROM src INTO rec;

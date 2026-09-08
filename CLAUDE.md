@@ -42,12 +42,15 @@ exercises the analysis cache, which every other run here bypasses with `--no-cac
 must reproduce the fresh one, and cache keys must carry all three of the analyzer, the data layout
 and the procedure.
 
-A third database, from `callee_signature.sql`, covers the input the key cannot carry. Its procedure
-takes a column type from a function it calls, so changing that function's return type moves the
-report while the procedure's own source, the tables and the custom types all stay put: the entry has
-to be refused. The same section then doctors a stored result to a type the database cannot produce
-and checks it comes back, because "the entry was refused" is otherwise indistinguishable from a
-cache that never hits at all.
+A third database, from `callee_signature.sql`, covers the inputs the key cannot carry. Its procedures
+take their column types from functions they call, so changing a callee's return type — or adding an
+overload beside it, which is the other way the call's answer moves — shifts the report while the
+procedures' own source, the tables and the custom types all stay put: the entry has to be refused.
+Each of the two then doctors a stored result to a type the database cannot produce and checks it
+comes back, because "the entry was refused" is otherwise indistinguishable from a cache that never
+hits at all. The overload half doctors the procedure that calls a *built-in* whose overloads the
+argument types and the catalogue order disagree about, so the sentinel returns only if the replay
+resolved against the argument types the entry recorded rather than the name alone.
 
 `run_test.sh` runs every check before reporting, and exits non-zero if any of them failed. A
 mismatching report is left in `test/temp_actual_output.json` to diff against `correct_output.json`.

@@ -1,18 +1,27 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DbAnalysis.Cache
 {
-	// One function call site's dependency: the name as written, and what it resolved to.
-	// The segments are kept rather than the resolved key, because resolution walks the
-	// schema order -- replaying the lookup is what catches a function that has appeared
-	// earlier on the path, as well as one whose return type changed.
+	// One function call site's dependency: the name as written, the argument types it was
+	// resolved against, and what it resolved to. The segments are kept rather than the
+	// resolved key, because resolution walks the schema order -- replaying the lookup is
+	// what catches a function that has appeared earlier on the path, as well as one whose
+	// return type changed.
 	public class CalleeSignature
 	{
 		public List<string> NameSegments;
 
-		// Null when the name resolves to no function. That is a state of its own: a
-		// function created later changes the inference, so it must not read as a match
-		// against any return type.
+		// The call site's argument types, by display name, in order; an entry is null where
+		// the argument could not be typed. They are part of the dependency and not merely
+		// of the key: which overload of a name the call means is decided from them, so an
+		// overload added or removed since changes the inference exactly as a changed return
+		// type does.
+		public List<string> ArgumentTypes;
+
+		// Null when the name resolves to no function, or to one whose return type nothing
+		// can carry a value of. That is a state of its own: a function created later
+		// changes the inference, so it must not read as a match against any return type.
 		public string ReturnType;
 	}
 
@@ -38,12 +47,21 @@ namespace DbAnalysis.Cache
 
 			foreach (var Callee in CalleeSignatures)
 			{
-				if (Callee.NameSegments == null)
+				// An entry that records no argument types cannot be replayed: resolution
+				// consults them, and a zero-argument call is an empty list rather than an
+				// absent one, so nothing distinguishes "no arguments" from "not recorded".
+				if (Callee.NameSegments == null || Callee.ArgumentTypes == null)
 				{
 					return false;
 				}
 
-				if (DatabaseContext.GetFunctionType (Callee.NameSegments.ToArray ())?.Display
+				var ArgumentTypes = Callee.ArgumentTypes
+						.Select (n => n == null ? null : DatabaseContext.GetTypeForName (n))
+						.ToList ()
+					;
+
+				if (DatabaseContext.ResolveFunction (Callee.NameSegments.ToArray (), ArgumentTypes)
+					    ?.ReturnType?.Display
 				    != Callee.ReturnType)
 				{
 					return false;

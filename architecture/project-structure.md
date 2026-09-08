@@ -253,14 +253,37 @@ opposite advice — `unresolved function` is fixed by the `search_path` or by cr
 `unmapped return type` by teaching the type map the type the message names. Collapsing them points
 the reader away from the fix.
 
-**One name, several functions, one return type.** A function is recorded under its qualified
-name alone, so the overloads of a name compete for the same entry, and a candidate carrying a type
-nothing can hold must not win it: `lower` is `lower(text)` and the lower bound of a range, and the
-range one returns `anyelement`. A row whose return type is unusable therefore never displaces a
-usable one, and the query orders overloads by `specific_name` so that a tie between two usable ones
-is decided the same way on every run rather than by the planner. What the entry cannot express is
-which overload the *call* selected, so two usable candidates with different return types still
-resolve by that ordering and not by the argument types written at the call site.
+**A name is not a function.** The overloads of one name are separate entries, in catalogue order,
+because what a call returns is decided from the argument types written beside it and nothing else
+can tell them apart: `date_trunc` is four functions and three return types, so a name-keyed
+catalogue would type every `date_trunc` in a corpus the same and be wrong about two of the three.
+The parser therefore carries a call's arguments out with its name, and `DatabaseContext.ResolveFunction`
+picks the overload from their types.
+
+Resolution **narrows rather than decides**, and every step of it is built around that. An argument
+is an expression, so evaluating one can reach a name the surrounding context does not carry — an
+argument was never asked for its type before — and an argument that cannot be typed therefore
+contributes no constraint instead of failing the call. The same goes for a declared type the type
+map has no answer for, and for a declared pseudo-type, which accepts a value of any type: none of
+the three may reject an overload, and the pseudo-type case scores nothing either, which is what
+keeps `lower(text)` ahead of `lower(anyrange)` for a text argument. An argument that reaches its
+declared type only through a cast PostgreSQL makes without being asked counts for less than one
+that names it outright, because a string literal reaches a `text` argument that way and an overload
+rejected over it would leave the arguments deciding nothing.
+
+What answers where the arguments genuinely decide nothing is **catalogue order** — the last overload
+that names a usable type, and only failing that the first that does not, with `specific_name`
+ordering the overloads so the choice is the same on every run rather than the planner's. A candidate
+carrying a type nothing can hold never displaces one that does, or every `lower()` in a corpus types
+as `anyelement` on the strength of the range overload sorting last. Ranking ends on that same
+ordering, so a call the arguments do not separate answers exactly as it would have without being
+ranked at all.
+
+The overload a call selects is part of what a cached analysis depends on, so a recorded callee
+carries the argument types it was resolved against as well as the name, and the replay resolves
+against them again. An overload appearing or disappearing beside a callee moves the inference with
+nothing the cache key describes having moved, and a replay that consulted the name alone would both
+miss that and refuse every entry whose call the arguments and the catalogue order disagree about.
 
 **A pseudo-type is not a gap in the type map.** `anyelement`, `anyarray`, `record` and `void` stand
 for whatever the call site resolved them to, so no mapping could describe one, and a column carrying

@@ -1248,6 +1248,30 @@
             {
               "Name": "overloaded_name_resolves_to_a_real_type",
               "Type": "text"
+            },
+            {
+              "Name": "overload_by_arg_timestamptz",
+              "Type": "timestamptz"
+            },
+            {
+              "Name": "overload_by_arg_timestamp",
+              "Type": "timestamp"
+            },
+            {
+              "Name": "overload_by_arg_interval",
+              "Type": "interval"
+            },
+            {
+              "Name": "overload_by_nested_call",
+              "Type": "timestamptz"
+            },
+            {
+              "Name": "overload_by_arity",
+              "Type": "timestamptz"
+            },
+            {
+              "Name": "overload_by_subselect_arg",
+              "Type": "timestamptz"
             }
           ]
         }
