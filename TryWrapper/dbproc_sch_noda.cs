@@ -1481,6 +1481,7 @@ namespace Generated
 			public string collate_unquoted_name;
 			public int? collate_in_call;
 			public string[] collate_in_agg_order;
+			public string overloaded_name_resolves_to_a_real_type;
 		}
 
 		public get_operators_Result_result get_operators ()
@@ -1531,7 +1532,8 @@ namespace Generated
 									collate_on_call_result = Rdr["collate_on_call_result"] as string,
 									collate_unquoted_name = Rdr["collate_unquoted_name"] as string,
 									collate_in_call = Rdr["collate_in_call"] as int?,
-									collate_in_agg_order = Rdr["collate_in_agg_order"] as string[]
+									collate_in_agg_order = Rdr["collate_in_agg_order"] as string[],
+									overloaded_name_resolves_to_a_real_type = Rdr["overloaded_name_resolves_to_a_real_type"] as string
 								};
 							}
 						}

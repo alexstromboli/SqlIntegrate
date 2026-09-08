@@ -871,7 +871,13 @@ BEGIN
             (
                 SELECT array_agg (rooms.name ORDER BY lower (rooms.name) COLLATE "C")
                 FROM rooms
-            ) AS collate_in_agg_order
+            ) AS collate_in_agg_order,
+            -- A name several functions share. lower is two of them: lower(text), and
+            -- the lower bound of a range, lower(anyrange), whose anyelement return type
+            -- is a pseudo-type no wrapper can carry a value of. Resolution has to land on
+            -- the candidate that names a real type. Inside an ORDER BY the type is
+            -- discarded and either candidate passes, so the case has to be a column.
+            lower ('B'::varchar) AS overloaded_name_resolves_to_a_real_type
     -- and where an ORDER BY key carries a direction after it
     ORDER BY now () AT TIME ZONE 'UTC', 'b' COLLATE "C" DESC
     ;

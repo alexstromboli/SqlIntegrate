@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
@@ -54,7 +55,7 @@ namespace TestWrapper
 	{
 		const string LegacyNpgsqlFlag = "--legacy-npgsql";
 
-		static void Main (string[] args)
+		static int Main (string[] args)
 		{
 			bool LegacyNpgsql = args.Any (a => a == LegacyNpgsqlFlag);
 			string[] PositionalArgs = args.Where (a => a != LegacyNpgsqlFlag).ToArray ();
@@ -66,21 +67,34 @@ namespace TestWrapper
 			GeneratorOptions Options = new GeneratorOptions { LegacyNpgsql = LegacyNpgsql };
 
 			//
-			foreach (var run in new[]
-			         {
-				         new { target = "dbproc.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new ChangeNameCodeProcessor () } },
-				         new { target = "dbproc_sch_noda.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[]
-				         {
-					         new GNodaTimeCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> (),
-					         new TaggerCodeProcessor (),
-					         new EncryptionCodeProcessor ()
-				         } }
-			         }
-			        )
+			// A type the generator cannot describe is something to act on, not a crash to
+			// read a stack trace out of. The message names the site and the type; a stack
+			// trace through the LINQ that walked there names neither.
+			try
 			{
-				string Code = Generator.GGenerateCode (Module, Options, run.processors);
-				CodeGenerationUtils.EnsureFileContents (run.target, Code, EndOfLine.MakeLf, Encoding.UTF8);
+				foreach (var run in new[]
+				         {
+					         new { target = "dbproc.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new ChangeNameCodeProcessor () } },
+					         new { target = "dbproc_sch_noda.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[]
+					         {
+						         new GNodaTimeCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> (),
+						         new TaggerCodeProcessor (),
+						         new EncryptionCodeProcessor ()
+					         } }
+				         }
+				        )
+				{
+					string Code = Generator.GGenerateCode (Module, Options, run.processors);
+					CodeGenerationUtils.EnsureFileContents (run.target, Code, EndOfLine.MakeLf, Encoding.UTF8);
+				}
 			}
+			catch (UnmappedTypeException ex)
+			{
+				Console.Error.WriteLine ("Cannot generate code: " + ex.Message);
+				return 1;
+			}
+
+			return 0;
 		}
 	}
 }

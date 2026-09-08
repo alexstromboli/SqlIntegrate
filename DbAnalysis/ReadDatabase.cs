@@ -279,18 +279,37 @@ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
 					// 'any' and 'citext' are spelled out because ::regtype is not a total
 					// function over type_udt_name: those two would raise rather than return a
 					// name the type map can be asked about and decline.
+					//
+					// typtype tells a pseudo-type from a real one, and it is read here because
+					// a pseudo-type is not a type a value can be carried in: a call that
+					// resolves to a function returning anyelement, anyarray, record or void
+					// yields a column no wrapper can declare. Joined by name and schema
+					// rather than by the routine's oid, which information_schema does not
+					// expose in a form worth splitting out of specific_name.
+					//
+					// specific_name orders the overloads of one name, which the two key
+					// columns leave tied. A name resolves to a single return type here, so
+					// which of its overloads is read last decides that type, and a tie the
+					// query does not break makes it the planner's choice -- reproducible
+					// output being the whole reason the analysis is comparable at all.
 					cmd.CommandText = @"
 SELECT
 	routines.routine_schema,
     routines.routine_name,
-    type_udt_schema AS result_schema,
-    CASE WHEN type_udt_name IN ('any', 'citext')
-        THEN type_udt_name
-        ELSE type_udt_name::regtype::varchar
-    END AS result_type
+    routines.type_udt_schema AS result_schema,
+    CASE WHEN routines.type_udt_name IN ('any', 'citext')
+        THEN routines.type_udt_name
+        ELSE routines.type_udt_name::regtype::varchar
+    END AS result_type,
+    COALESCE (rettype.typtype = 'p', false) AS result_is_pseudo
 FROM information_schema.routines
+LEFT JOIN pg_catalog.pg_namespace retschema
+    ON retschema.nspname = routines.type_udt_schema
+LEFT JOIN pg_catalog.pg_type rettype
+    ON rettype.typname = routines.type_udt_name
+    AND rettype.typnamespace = retschema.oid
 WHERE routines.routine_type='FUNCTION'
-ORDER BY routines.routine_schema, routines.routine_name;
+ORDER BY routines.routine_schema, routines.routine_name, routines.specific_name;
 ";
 
 					using (var rdr = cmd.ExecuteReader ())
@@ -303,16 +322,31 @@ ORDER BY routines.routine_schema, routines.routine_name;
 							string ResultSchema = (string)rdr["result_schema"];
 							string ResultType = (string)rdr["result_type"];
 
+							bool ResultIsPseudo = (bool)rdr["result_is_pseudo"];
+
 							string QualName = PSqlUtils.PSqlQualifiedName (Schema, RoutineName);
 
-							PSqlType Type = Result.GetTypeForName (ResultSchema, ResultType);
+							PSqlType Type = ResultIsPseudo
+								? null
+								: Result.GetTypeForName (ResultSchema, ResultType);
+
 							if (Type == null)
 							{
-								// The function exists; it is its return type the analyzer has no
-								// mapping for. Recorded under the same name the lookup would use,
-								// so a caller that finds no type can still tell "no such function"
-								// from "no mapping for this type" -- and can name the type, which
-								// is the half a maintainer can act on.
+								// The function exists; it is its return type nothing can carry a
+								// value of -- either the type map has no mapping for it, or it is
+								// a pseudo-type, which no mapping could describe. Recorded under
+								// the same name the lookup would use, so a caller that finds no
+								// type can still tell "no such function" from "no usable type
+								// here" -- and can name the type, which is the half a maintainer
+								// can act on.
+								//
+								// It does not displace a type already recorded for the name.
+								// Several functions share one name here, and only some of them
+								// carry a usable type: lower is lower(text) and the lower bound
+								// of a range, and letting the second overwrite the first types
+								// every lower() in the corpus as anyelement. The unmappable name
+								// is still remembered, so a name whose every overload is
+								// unusable is named rather than merely missing.
 								Result.UnmappedFunctionReturnTypes[QualName] = ResultType;
 								continue;
 							}

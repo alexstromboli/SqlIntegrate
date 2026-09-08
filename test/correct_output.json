@@ -1244,6 +1244,10 @@
             {
               "Name": "collate_in_agg_order",
               "Type": "varchar[]"
+            },
+            {
+              "Name": "overloaded_name_resolves_to_a_real_type",
+              "Type": "text"
             }
           ]
         }

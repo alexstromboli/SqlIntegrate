@@ -32,7 +32,10 @@ resolves to no function is named as an unresolved function, with the name that f
 landing in the catch-all kind that leaves the reader nothing to act on — and a call to a function
 that *exists* whose return type the type map does not cover is told apart from it, named with the
 type, because the two are fixed in different places and reporting the second as the first sends the
-reader to check a `search_path` that is already correct. The fixture pins its own `search_path` in
+reader to check a `search_path` that is already correct. A return type that is a *pseudo*-type
+reports the same way and names the pseudo-type, since no mapping could ever describe one — and a
+report doctored to carry such a type has to make the *generator* name the procedure and the column
+that carry it, rather than raise a dictionary miss that names only the type. The fixture pins its own `search_path` in
 the database, so a case that needs a bare name to resolve does not depend on what the developer's
 role happens to carry. A pair of runs then
 exercises the analysis cache, which every other run here bypasses with `--no-cache`: a cached run

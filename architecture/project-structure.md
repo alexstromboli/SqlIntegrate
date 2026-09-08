@@ -177,6 +177,13 @@ Code generation engine that transforms analyzed database metadata into C# wrappe
 - `Wrapper` - Code generation engine
 - `Utils.CodeGeneration` - Code generation utilities
 
+**A type with no C# mapping names where it came from.** Every reported type name is turned into a
+mapping through one lookup, `TypeMappingUtils.Mapping`, which raises `UnmappedTypeException` naming
+the procedure and the column, argument or property that carried the type. The dictionary's own miss
+carries the type alone, and the type is the half a reader already knows; a console app catches the
+exception and prints it as a report, because a stack trace through the LINQ that walked there names
+neither the site nor anything to act on.
+
 **CodeProcessor Hooks:**
 
 ```csharp
@@ -245,6 +252,21 @@ row on the way in would make it indistinguishable from a name that matches nothi
 opposite advice — `unresolved function` is fixed by the `search_path` or by creating the function,
 `unmapped return type` by teaching the type map the type the message names. Collapsing them points
 the reader away from the fix.
+
+**One name, several functions, one return type.** A function is recorded under its qualified
+name alone, so the overloads of a name compete for the same entry, and a candidate carrying a type
+nothing can hold must not win it: `lower` is `lower(text)` and the lower bound of a range, and the
+range one returns `anyelement`. A row whose return type is unusable therefore never displaces a
+usable one, and the query orders overloads by `specific_name` so that a tie between two usable ones
+is decided the same way on every run rather than by the planner. What the entry cannot express is
+which overload the *call* selected, so two usable candidates with different return types still
+resolve by that ordering and not by the argument types written at the call site.
+
+**A pseudo-type is not a gap in the type map.** `anyelement`, `anyarray`, `record` and `void` stand
+for whatever the call site resolved them to, so no mapping could describe one, and a column carrying
+one is a column no wrapper can declare. `ReadDatabase` reads `typtype` and treats such a return type
+as unusable — reported with the type named, exactly like a type the map does not cover, because the
+reader's next step in both cases is the expression rather than the `search_path`.
 
 **A name that resolves to no function is not by itself a drop.** Resolution yields no type, and the
 call carries that absence onward; most calls sit where nothing ever asks what they return — a
@@ -557,12 +579,23 @@ test/
 │  │    name that failed, not bucketed as "unknown issue"         │    │
 │  │  → a function that exists with an unmappable return type     │    │
 │  │    must be a kind of its own, naming the type                │    │
+│  │  → a function returning a pseudo-type must report the same   │    │
+│  │    way, naming the pseudo-type                               │    │
 │  │  ParseProcs --no-cache --tolerate-failures ...               │    │
 │  │  → must exit 0                                               │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 │                          │                                          │
 │                          ▼                                          │
-│  Step 8: Cache round trip (HOME redirected to a scratch dir)        │
+│  Step 8: Generator diagnostic (a doctored report)                   │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │  a corpus report with one column's type replaced by an      │    │
+│  │  unmappable one, handed to TestWrapper                      │    │
+│  │  → must exit non-zero, and name the procedure, the column   │    │
+│  │    and the type — never a bare dictionary miss              │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                          │                                          │
+│                          ▼                                          │
+│  Step 9: Cache round trip (HOME redirected to a scratch dir)        │
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │  two runs WITHOUT --no-cache against dummy01                 │    │
 │  │  → the cached run must reproduce the fresh one               │    │
@@ -570,7 +603,7 @@ test/
 │  └─────────────────────────────────────────────────────────────┘    │
 │                          │                                          │
 │                          ▼                                          │
-│  Step 9: Callee closure (database dummy01_callee)                   │
+│  Step 10: Callee closure (database dummy01_callee)                  │
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │  run, change the callee's return type, run again             │    │
 │  │  → the report must follow, and match a --no-cache one        │    │
@@ -582,10 +615,15 @@ test/
 ```
 
 Every step runs before the script reports, and the script exits non-zero if any of them failed —
-one run tells you everything that is wrong rather than only the first thing. Steps 7, 8 and 9 use
-databases and a `HOME` of their own so they cannot disturb the corpus comparison or the real cache.
+one run tells you everything that is wrong rather than only the first thing. Steps 7 to 10 use
+databases, a report and a `HOME` of their own so they cannot disturb the corpus comparison or the
+real cache.
 
-Step 9 needs both halves. The first alone is satisfied by a cache that never hits, which would be
+Step 8 has to doctor a report because the analyzer refuses an unusable type on the way in, so no
+fixture can put one in front of the generator. It is worth the doctoring: the lookup happens per
+column, per argument and per composite property, and each has to say where the type came from.
+
+Step 10 needs both halves. The first alone is satisfied by a cache that never hits, which would be
 correct and useless; doctoring the stored result to a type the database cannot produce separates the
 two, because the sentinel comes back only if the entry was served. Its fixture sets the callee's
 return type explicitly rather than inheriting it, so `./run_test.sh -c` does not start from whatever

@@ -174,7 +174,8 @@ namespace Wrapper
 										{
 											Origin = p,
 											NativeName = p.Name,
-											TypeMapping = TypeMap[p.Type],
+											TypeMapping = TypeMap.Mapping (p.Type,
+												$"custom type \"{t.Schema}.{t.Name}\", property \"{p.Name}\""),
 											CsName = p.Name.ValidCsName ()
 										})
 										.ToList ()
@@ -195,7 +196,8 @@ namespace Wrapper
 											NativeName = a.Name,
 											CallParamName = "@" + a.Name,
 											CsName = a.Name.ValidCsName (),
-											TypeMapping = TypeMap[a.Type],
+											TypeMapping = TypeMap.Mapping (a.Type,
+												$"procedure \"{p.Schema}.{p.Name}\", argument \"{a.Name}\""),
 											IsOut = a.IsOut,
 											IsCursor = a.Type == "refcursor"
 											           || a.Type ==
@@ -222,7 +224,8 @@ namespace Wrapper
 															Origin = c,
 															NativeName = c.Name,
 															CsName = c.Name.ValidCsName (),
-															TypeMapping = TypeMap[c.Type]
+															TypeMapping = TypeMap.Mapping (c.Type,
+																$"procedure \"{p.Schema}.{p.Name}\", result set \"{s.Name}\", column \"{c.Name}\"")
 														})
 													.ToList ()
 											};

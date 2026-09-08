@@ -70,3 +70,21 @@ BEGIN
     SELECT fn_unmapped_return () AS v;
 END;
 $$;
+
+-- A call to a function whose return type is a PSEUDO-type. It is not a gap in the type
+-- map -- no mapping could describe anyelement, since it stands for whatever type the
+-- call site resolved it to -- so it reports as an unusable return type rather than as a
+-- missing function, and its type is named for the same reason. A pseudo-type is also how
+-- an overload of a name a real type resolves through would misreport it: only a
+-- candidate carrying a real type may claim the name.
+CREATE FUNCTION fn_pseudo_return (x anyelement) RETURNS anyelement
+LANGUAGE 'sql' AS $$ SELECT x; $$;
+
+CREATE PROCEDURE proc_pseudo_return_type (INOUT r refcursor)
+LANGUAGE 'plpgsql' AS $$
+BEGIN
+    OPEN r FOR
+    -- # 1
+    SELECT fn_pseudo_return (t.id) AS v FROM t;
+END;
+$$;

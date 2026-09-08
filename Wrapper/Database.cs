@@ -7,8 +7,44 @@ using DbAnalysis.Datasets;
 
 namespace Wrapper
 {
+	// A type the report names that the type map does not cover. Thrown instead of the
+	// dictionary's own KeyNotFoundException, which carries the type name and nothing
+	// else: the type alone does not say which procedure, argument or column named it,
+	// and that is the half a reader can act on. A pseudo-type reaches here the same way
+	// a genuinely unmapped one does, and neither can be described in C#.
+	public class UnmappedTypeException : Exception
+	{
+		public string SqlTypeName { get; }
+		public string Site { get; }
+
+		public UnmappedTypeException (string SqlTypeName, string Site)
+			: base ($"{Site} has type \"{SqlTypeName}\", which no C# type is mapped to")
+		{
+			this.SqlTypeName = SqlTypeName;
+			this.Site = Site;
+		}
+	}
+
 	public static class TypeMappingUtils
 	{
+		// The one way a reported type name is turned into a mapping. Every lookup goes
+		// through it so that a missing mapping names its own origin, whatever the shape
+		// that named it.
+		public static TypeMapping<TSqlType, TColumn> Mapping<TSqlType, TColumn> (this Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap,
+				string SqlTypeName,
+				string Site
+				)
+			where TColumn : Column, new()
+			where TSqlType : GSqlType<TColumn>, new()
+		{
+			if (!TypeMap.TryGetValue (SqlTypeName, out var Result))
+			{
+				throw new UnmappedTypeException (SqlTypeName, Site);
+			}
+
+			return Result;
+		}
+
 		public static Dictionary<string, TypeMapping<TSqlType, TColumn>> AddSynonym<TSqlType, TColumn> (this Dictionary<string, TypeMapping<TSqlType, TColumn>> TypeMap,
 				string SourceName,
 				string Synonym

@@ -102,7 +102,8 @@ NEG_OUTPUT="$("$PARSEPROCS_EXE" --no-cache "$BAD_CONN" "$NEG_JSON_FILE" 2>&1)" &
 if [ "$NEG_STATUS" -eq 0 ]; then
     report_failed "failed: unanalysable procedures exited 0"
 elif ! grep -q 'proc_unparsable' <<<"$NEG_OUTPUT" || ! grep -q 'proc_overloaded' <<<"$NEG_OUTPUT" \
-        || ! grep -q 'proc_unresolved_function' <<<"$NEG_OUTPUT"; then
+        || ! grep -q 'proc_unresolved_function' <<<"$NEG_OUTPUT" \
+        || ! grep -q 'proc_pseudo_return_type' <<<"$NEG_OUTPUT"; then
     report_failed "failed: the summary does not name every dropped procedure"
     echo "$NEG_OUTPUT"
 else
@@ -137,11 +138,61 @@ else
     report_ok "success: an unmappable return type is told apart from a missing function"
 fi
 
+# A pseudo-type return type is the case no mapping could ever cover: anyelement stands
+# for whatever type the call site resolved it to, so there is no C# type to map it to and
+# nothing to teach the type map. It still reports as an unusable return type rather than
+# as a missing function -- the reader's next step is the expression, not the search_path.
+if grep -qE 'proc_pseudo_return_type: (unknown issue|unresolved function)' <<<"$NEG_OUTPUT"; then
+    report_failed "failed: a pseudo-type return type is reported as a missing function"
+    echo "$NEG_OUTPUT"
+elif ! grep -qE 'proc_pseudo_return_type: unmapped return type .*fn_pseudo_return.*anyelement' <<<"$NEG_OUTPUT"; then
+    report_failed "failed: the summary does not name the function returning a pseudo-type"
+    echo "$NEG_OUTPUT"
+else
+    report_ok "success: a pseudo-type return type is named rather than carried into a column"
+fi
+
 "$PARSEPROCS_EXE" --no-cache --tolerate-failures "$BAD_CONN" "$NEG_JSON_FILE" >/dev/null 2>&1 \
     && report_ok "success: --tolerate-failures exits 0" \
     || report_failed "failed: --tolerate-failures did not exit 0"
 
 rm -f "$NEG_JSON_FILE"
+
+### the generator meeting a type it has no C# mapping for
+
+# The analyzer refuses such a type on the way in, so the only way to put one in front of
+# the generator is to doctor a report. It is worth doing: the generator looks a type name
+# up per column, per argument and per composite property, and a bare dictionary miss
+# names the type and nothing else -- not the procedure, not the column -- which is the
+# half that says where to go. The type is spelled pg_catalog.anyelement because that is
+# what an overload resolving to a range's lower bound used to leave behind.
+DOCTORED_JSON_FILE="$(realpath temp_doctored.json)"
+"$PARSEPROCS_EXE" --no-cache "$CONN" "$DOCTORED_JSON_FILE" >/dev/null
+
+sed -i '/"Name": "overloaded_name_resolves_to_a_real_type",/{n;s/"Type": "text"/"Type": "pg_catalog.anyelement"/}' \
+    "$DOCTORED_JSON_FILE"
+
+if ! grep -q 'pg_catalog.anyelement' "$DOCTORED_JSON_FILE"; then
+    report_failed "failed: the doctored report carries no unmappable type, so the generator is not being tested"
+else
+    pushd ../TestWrapper/bin/Debug/net10.0 >/dev/null
+    GEN_OUTPUT="$(./TestWrapper --legacy-npgsql "$DOCTORED_JSON_FILE" 2>&1)" && GEN_STATUS=0 || GEN_STATUS=$?
+    popd >/dev/null
+
+    if [ "$GEN_STATUS" -eq 0 ]; then
+        report_failed "failed: the generator emitted code for a type it has no mapping for"
+    elif grep -q 'KeyNotFoundException' <<<"$GEN_OUTPUT"; then
+        report_failed "failed: an unmappable type reaches the generator as a bare dictionary miss"
+        echo "$GEN_OUTPUT"
+    elif ! grep -qE 'get_operators.*overloaded_name_resolves_to_a_real_type.*pg_catalog.anyelement' <<<"$GEN_OUTPUT"; then
+        report_failed "failed: the generator does not name the procedure, the column and the type"
+        echo "$GEN_OUTPUT"
+    else
+        report_ok "success: an unmappable type is named with the column that carries it"
+    fi
+fi
+
+rm -f "$DOCTORED_JSON_FILE"
 
 ### the analysis cache
 
