@@ -2099,6 +2099,41 @@
     },
     {
       "Schema": "USER",
+      "Name": "test_distinct_on_several",
+      "Arguments": [
+        {
+          "Name": "sample",
+          "Type": "refcursor",
+          "IsOut": true
+        }
+      ],
+      "ResultSets": [
+        {
+          "Name": "sample",
+          "Comments": [],
+          "Columns": [
+            {
+              "Name": "kind",
+              "Type": "varchar"
+            },
+            {
+              "Name": "id_farm",
+              "Type": "int"
+            },
+            {
+              "Name": "id_node",
+              "Type": "int"
+            },
+            {
+              "Name": "started",
+              "Type": "timestamptz"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Schema": "USER",
       "Name": "test_duplicate_open",
       "Arguments": [
         {

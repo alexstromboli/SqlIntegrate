@@ -710,13 +710,14 @@ The test schema provides comprehensive coverage of PostgreSQL features:
 | `test_out` | INOUT parameters with arrays |
 | `test_json` | JSON/JSONB handling |
 | `get_composite` | Nested composite access with destructuring |
+| `test_distinct_on_several` | `DISTINCT ON` over a list of expressions, one of them nullable |
 
 ### Test Coverage Areas (from test_points.txt)
 
 - **SQL Types:** Tables, arguments, variables, type casts
 - **Type Features:** Arrays, lengths, qualifiers
 - **FROM Sources:** Table, CTE (including data-modifying, with and without RETURNING), select, function, VALUES, UNNEST
-- **Combinations:** UNION, JOIN variations, DISTINCT, window functions
+- **Combinations:** UNION, JOIN variations, DISTINCT (bare, and `DISTINCT ON` over one expression or a list), window functions
 - **Name Resolution:** Conflicts, aliases, qualification
 - **Array Operations:** Literals, unnest, indexing, aggregation
 - **Aggregate Functions:** SUM, AVG, COUNT

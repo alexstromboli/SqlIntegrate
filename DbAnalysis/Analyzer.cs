@@ -1229,7 +1229,10 @@ namespace DbAnalysis
 						from _2 in
 						(
 							from _3 in SqlToken ("on")
-							from _4 in PExpressionRefST.Get.InParentsST ()
+							// DISTINCT ON ( expression [, ...] ): a comma-separated LIST. Reading only
+							// the first expression fails at the comma, and a failure there drops the
+							// whole procedure rather than the clause.
+							from _4 in PExpressionRefST.Get.CommaDelimitedST ().InParentsST ()
 							select 0
 						).Optional ()
 						select 0

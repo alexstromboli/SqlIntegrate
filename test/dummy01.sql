@@ -1623,3 +1623,28 @@ BEGIN
     WHERE no_such_function (Persons.id) > 1;
 END;
 $$;
+
+-- DISTINCT ON over MORE THAN ONE expression. PostgreSQL takes a comma-separated list
+-- there, so a grammar accepting a single expression drops the whole procedure rather
+-- than the clause. The nullable third key is what earns this a place in the corpus:
+-- DISTINCT ON treats nulls as equal, so every row carrying no value collapses into one,
+-- and a caller relying on that is relying on the list being read whole.
+CREATE PROCEDURE test_distinct_on_several (INOUT sample refcursor)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    OPEN sample FOR
+    SELECT  DISTINCT ON (runs.kind, runs.id_farm, runs.id_node)
+            runs.kind    AS kind,
+            runs.id_farm AS id_farm,
+            runs.id_node AS id_node,
+            runs.started AS started
+    FROM    (
+            VALUES
+            ('sweep', 1, 1, '2026-01-01'::timestamptz),
+            ('sweep', 1, 2, '2026-01-02'::timestamptz),
+            ('relay', 1, NULL, '2026-01-03'::timestamptz)
+            ) runs (kind, id_farm, id_node, started)
+    ORDER BY runs.kind, runs.id_farm, runs.id_node, runs.started DESC;
+END;
+$$;

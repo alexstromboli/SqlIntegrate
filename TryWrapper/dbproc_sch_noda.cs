@@ -2578,6 +2578,72 @@ namespace Generated
 		}
 		#endregion
 
+		#region test_distinct_on_several
+		public class test_distinct_on_several_Result_sample
+		{
+			public string kind;
+			public int? id_farm;
+			public int? id_node;
+			public Instant? started;
+		}
+
+		public List<test_distinct_on_several_Result_sample> test_distinct_on_several ()
+		{
+			return test_distinct_on_severalAsync ().Result;
+		}
+
+		public async Task<List<test_distinct_on_several_Result_sample>> test_distinct_on_severalAsync ()
+		{
+			List<test_distinct_on_several_Result_sample> Result = null;
+
+			using (var Tran = await DbProc.BeginTransactionOptionalAsync ())
+			{
+				using (var Cmd = Conn.CreateCommand ())
+				{
+					Cmd.CommandText = "call \"alexey\".\"test_distinct_on_several\" (@sample);";
+					Cmd.Parameters.Add (new NpgsqlParameter ("@sample", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.InputOutput, Value = "sample" });
+
+					await Cmd.ExecuteNonQueryAsync ();
+
+					using (var ResCmd = Conn.CreateCommand ())
+					{
+						ResCmd.CommandText = "FETCH ALL IN \"sample\";";
+						List<test_distinct_on_several_Result_sample> Set = new List<test_distinct_on_several_Result_sample> ();
+
+						using (var Rdr = await ResCmd.ExecuteReaderAsync ())
+						{
+							while (Rdr.Read ())
+							{
+								Set.Add (new test_distinct_on_several_Result_sample
+								{
+									kind = Rdr["kind"] as string,
+									id_farm = Rdr["id_farm"] as int?,
+									id_node = Rdr["id_node"] as int?,
+									started = Rdr["started"] as Instant?
+								});
+							}
+						}
+
+						Result = Set;
+					}
+
+					using (var cmdClose = Conn.CreateCommand ())
+					{
+						cmdClose.CommandText = "CLOSE \"sample\";";
+						await cmdClose.ExecuteNonQueryAsync ();
+					}
+
+					if (Tran != null)
+					{
+						await Tran.CommitAsync ();
+					}
+				}
+			}
+
+			return Result;
+		}
+		#endregion
+
 		#region test_duplicate_open
 		public class test_duplicate_open_Result_single
 		{
