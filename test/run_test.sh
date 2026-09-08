@@ -164,8 +164,8 @@ rm -f "$NEG_JSON_FILE"
 # the generator is to doctor a report. It is worth doing: the generator looks a type name
 # up per column, per argument and per composite property, and a bare dictionary miss
 # names the type and nothing else -- not the procedure, not the column -- which is the
-# half that says where to go. The type is spelled pg_catalog.anyelement because that is
-# what an overload resolving to a range's lower bound used to leave behind.
+# half that says where to go. The type is spelled pg_catalog.anyelement because a
+# pseudo-type is the one an overloaded name can put in front of the generator.
 DOCTORED_JSON_FILE="$(realpath temp_doctored.json)"
 "$PARSEPROCS_EXE" --no-cache "$CONN" "$DOCTORED_JSON_FILE" >/dev/null
 
