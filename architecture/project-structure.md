@@ -145,7 +145,7 @@ retried on the next run.
 | `TextSpan.cs` | Source location tracking |
 | `SelectStatement.cs` | SELECT statement parsing |
 | `OrdinarySelect.cs` | Simple SELECT handling |
-| `FullSelectStatement.cs` | Complex SELECT with CTEs, UNION |
+| `FullSelectStatement.cs` | Complex SELECT with CTEs, UNION. A CTE level is resolved to a table and pushed into the request context before the body is resolved, so later levels and the body can refer to it |
 | `FromTableExpression.cs` | FROM clause parsing |
 | `ValuesBlock.cs` | VALUES clause parsing |
 | `OperatorProcessor.cs` | Operator precedence handling |
@@ -645,6 +645,7 @@ The test schema provides comprehensive coverage of PostgreSQL features:
 | `get_operators` | ALL, ANY, BETWEEN, unary operators, IS TRUE/IS NOT TRUE |
 | `test_loops` | FOR, WHILE, FOREACH with arrays, DELETE USING, = ANY(array) |
 | `get_returning` | INSERT/UPDATE/DELETE with RETURNING |
+| `get_dml_cte_columns` | Data-modifying CTEs as a source: RETURNING selected by name, aggregated, aliased, `RETURNING *`, joined to a table, and absent |
 | `test_out` | INOUT parameters with arrays |
 | `test_json` | JSON/JSONB handling |
 | `get_composite` | Nested composite access with destructuring |
@@ -653,7 +654,7 @@ The test schema provides comprehensive coverage of PostgreSQL features:
 
 - **SQL Types:** Tables, arguments, variables, type casts
 - **Type Features:** Arrays, lengths, qualifiers
-- **FROM Sources:** Table, CTE, select, function, VALUES, UNNEST
+- **FROM Sources:** Table, CTE (including data-modifying, with and without RETURNING), select, function, VALUES, UNNEST
 - **Combinations:** UNION, JOIN variations, DISTINCT, window functions
 - **Name Resolution:** Conflicts, aliases, qualification
 - **Array Operations:** Literals, unnest, indexing, aggregation
@@ -778,6 +779,32 @@ select (Func<RequestContext, NamedTyped>)(rc =>
     return args.First ().GetResult (rc).WithName (f);
 })
 ```
+
+### A CTE is a source, whatever statement produces it
+
+A CTE level is resolved to a table and pushed into the request context before the next
+level and the body are resolved. That holds for a **data-modifying** CTE too — PostgreSQL
+allows `INSERT`/`UPDATE`/`DELETE` inside `WITH`, and the statement's `RETURNING` list is the
+CTE's column list:
+
+```sql
+WITH d AS (DELETE FROM t WHERE t.id = $1 RETURNING t.payload, t.kind)
+SELECT COUNT (*)::int AS affected, MIN (d.payload) AS payload
+FROM d
+```
+
+`PInsertFullST`, `PUpdateFullST` and `PDeleteFullST` each yield a `FullSelectStatement`
+describing that list over the modified table, or `null` when the statement has no
+`RETURNING` at all. `PCteLevelDmlRefST` carries that value; discarding it would let the
+statement parse and then fail every reference to the CTE with `Not found d.payload`, which
+reads as a missing column rather than as a source that was never given one.
+
+The DML branch resolves through the whole `FullSelectStatement` rather than its `SelectBody`,
+because a data-modifying statement may itself carry a `WITH` that has to stay in scope while
+its `RETURNING` list is typed.
+
+A data-modifying CTE with **no** `RETURNING` contributes an empty column list rather than a
+refusal. It is legal SQL, and the query around it may still count its rows.
 
 ### 3. Chain of Responsibility (CodeProcessor)
 
