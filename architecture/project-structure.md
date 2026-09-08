@@ -254,11 +254,32 @@ opposite advice — `unresolved function` is fixed by the `search_path` or by cr
 the reader away from the fix.
 
 **A name is not a function.** The overloads of one name are separate entries, in catalogue order,
-because what a call returns is decided from the argument types written beside it and nothing else
+because what a call returns is decided from the arguments written beside it and nothing else
 can tell them apart: `date_trunc` is four functions and three return types, so a name-keyed
 catalogue would type every `date_trunc` in a corpus the same and be wrong about two of the three.
 The parser therefore carries a call's arguments out with its name, and `DatabaseContext.ResolveFunction`
-picks the overload from their types.
+picks the overload from them.
+
+**An argument is bound to a declared parameter before any type is compared**, because which
+parameter an argument faces is not always the one standing where it was written. A positional
+argument faces its own position; a **named** one — `f (a => 1)`, or the older `f (a := 1)` — faces
+the parameter it names, so the types reach the comparison in declared order however they were
+written, and a name no parameter carries rejects the candidate exactly as PostgreSQL rejects it.
+The arguments of an expanded **variadic** call face the array's *element* type rather than a
+parameter each, which is the only thing they could be matched against; `VARIADIC arr` is the other
+spelling of the same call, passing the array whole, and faces the array type instead. `proargnames`
+supplies the names for that binding and `proargmodes` aligns it, names covering the whole argument
+list while `proargtypes` covers the inputs alone — so a name taken by raw position would sit beside
+another parameter's type on any function with an `OUT`. The element type comes from `provariadic`,
+which names it outright.
+
+Binding first is also what makes **arity a consequence** rather than a rule beside it: a parameter
+the call bound to nothing has to carry a default or be the variadic one, and one bound twice rejects
+the candidate. Two call shapes are refused in the grammar rather than left for resolution to
+interpret, PostgreSQL refusing both as well — a positional argument after a named one, which binds
+to nothing that can be named, and `VARIADIC` anywhere but the last argument, since one flag
+describes the whole call and a `VARIADIC` elsewhere would be scored as an ordinary positional
+argument in silence.
 
 Resolution **narrows rather than decides**, and every step of it is built around that. An argument
 is an expression, so evaluating one can reach a name the surrounding context does not carry — an
@@ -280,8 +301,11 @@ ordering, so a call the arguments do not separate answers exactly as it would ha
 ranked at all.
 
 The overload a call selects is part of what a cached analysis depends on, so a recorded callee
-carries the argument types it was resolved against as well as the name, and the replay resolves
-against them again. An overload appearing or disappearing beside a callee moves the inference with
+carries the arguments it was resolved against as well as the name — each one's type, the parameter
+name it bound to, and whether the call passed a variadic array whole — and the replay resolves
+against them again. An entry that lost the names is refused rather than replayed, since a replay
+without them would resolve the call positionally and could serve back another overload's return
+type, verified and wrong. An overload appearing or disappearing beside a callee moves the inference with
 nothing the cache key describes having moved, and a replay that consulted the name alone would both
 miss that and refuse every entry whose call the arguments and the catalogue order disagree about.
 
