@@ -467,11 +467,11 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 						}
 
 						// properties
-						sb.AppendLine ("public DbProc DbProc;")
+						sb.AppendLine ($"public {Database.CsClassName} DbProc;")
 							.AppendLine ("public NpgsqlConnection Conn => DbProc.Conn;")
 							.AppendLine ();
 
-						using (sb.UseCurlyBraces ($"public {ns.CsClassName} (DbProc DbProc)"))
+						using (sb.UseCurlyBraces ($"public {ns.CsClassName} ({Database.CsClassName} DbProc)"))
 						{
 							sb.AppendLine ("this.DbProc = DbProc;");
 						}
