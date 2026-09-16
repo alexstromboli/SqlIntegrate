@@ -12,6 +12,21 @@ SqlIntegrate is a .NET 8.0 solution that analyzes PostgreSQL databases and gener
 - 2 class libraries (DbAnalysis, Wrapper)
 - 4 console applications (ParseProcs, TestWrapper, TryWrapper, TryPsql)
 
+**Plus `Runtime/`, which is not a project.** It holds source that a *consumer* of a generated
+wrapper compiles, not source the generator compiles: today, `IDbProcTracker.cs`. It has no
+`.csproj` on purpose. The contract names `NpgsqlCommand`, and `Wrapper` deliberately carries no
+Npgsql reference -- it knows CLR and PostgreSQL type *names* and nothing else -- so putting the
+interface there would drag a dependency into the generator that exists only for the code it writes.
+Consuming projects pull the file in the way `Wrapper` already pulls its DbAnalysis sources:
+
+```xml
+<Compile Include="..\Runtime\IDbProcTracker.cs">
+  <Link>IDbProcTracker.cs</Link>
+</Compile>
+```
+
+See [call-tracking.md](call-tracking.md) for the contract and everything it implies.
+
 ## Project Dependency Graph
 
 ```
@@ -167,6 +182,7 @@ Code generation engine that transforms analyzed database metadata into C# wrappe
 | `CodeProcessor.cs` | Chain of Responsibility pattern. Base `GCodeProcessor<T>` with virtual hooks |
 | `GNodaTimeCodeProcessor.cs` | Example processor for NodaTime type mappings (timestamptz -> Instant?, etc.) |
 | `CodeGenerationUtils.cs` | Utilities for file generation and content management |
+| `GeneratorOptions.cs` | Switches the generator reads directly: `LegacyNpgsql`, `TrackerStateType` |
 
 **Linked Files from DbAnalysis:**
 - `DatasetStructs.cs`
@@ -184,6 +200,28 @@ carries the type alone, and the type is the half a reader already knows; a conso
 exception and prints it as a report, because a stack trace through the LINQ that walked there names
 neither the site nor anything to act on.
 
+**Optional call tracking (`TrackerStateType`).** Left null, the generator emits exactly what it
+emits without the feature, character for character. Set to the fully qualified name of a state type,
+it makes the generated wrapper report every call to an `IDbProcTracker<T>` from `Runtime/`: `DbProc`
+takes one in its constructor, and each procedure caller wraps its body in
+
+```csharp
+using (var Tracking = DbProc.Tracker.OnEnter ("schema", "procedure"))
+{
+    try { ... return Result; }
+    finally { DbProc.Tracker.OnExit (Tracking); }
+}
+```
+
+with `OnBeforeExecute`/`OnAfterExecute` around `ExecuteNonQuery` and an
+`OnBeforeFetchCursor`/`OnAfterFetchCursor` pair around each cursor's read. The tracker only
+observes -- nothing it does changes the call, and it is never consulted about whether to make one.
+
+**Full documentation: [call-tracking.md](call-tracking.md)** -- the contract and each parameter, why
+the state type is named at generation rather than `DbProc` being generic, what the emitted body
+looks like and why it is shaped that way, and how the two guarantees (the output is unchanged when
+the option is off; the output compiles when it is on) are checked.
+
 **CodeProcessor Hooks:**
 
 ```csharp
@@ -191,8 +229,10 @@ neither the site nor anything to act on.
 OnHaveModule()              // Module loaded
 OnHaveTypeMap()             // Type mapping ready
 OnHaveWrapper()             // Database wrapper created
-OnCodeGenerationStarted()   // Generation begins
+OnCodeGenerationStarted()   // Generation begins; contribute DbProc interfaces and properties
+OnCodeGeneratingDbProc()    // Append members to the end of the DbProc class body
 OnEncodingParameter()       // Transform parameter type for encoding
+OnEncodingResultSetColumn() // Transform result set column type
 OnPassingParameter()        // Wrap parameter value when passing
 OnReadingParameter()        // Transform when reading parameter
 OnReadingResultSetColumn()  // Transform result set column
@@ -346,17 +386,29 @@ Validates generated code by consuming JSON module reports and generating C# wrap
 // 1. Deserialize module
 AugModule module = JsonConvert.DeserializeObject<AugModule> (json);
 
-// 2. Generate code with processors
-string code = Generator.GGenerateCode (module, processors);
+// 2. Generate code with processors, under the options the flags selected
+string code = Generator.GGenerateCode (module, options, processors);
 
 // 3. Write to file
 CodeGenerationUtils.EnsureFileContents (targetFile, code, lineEnding, encoding);
 ```
 
+**Flags:** `--legacy-npgsql` picks the connection-side `UseCustomMapping` over the
+`NpgsqlDataSourceBuilder` extension. `--tracker=<TypeName>` names the state type a tracker hands
+itself, and adds a third generation run; without it only the first two run, so the flag is what
+decides whether `dbproc_tracked.cs` exists at all.
+
+**Generation runs:** `dbproc.cs` (renamed namespace and class), `dbproc_sch_noda.cs` (NodaTime,
+tagging, encryption), and on `--tracker=`, `dbproc_tracked.cs` -- the same chain as
+`dbproc_sch_noda.cs` plus a namespace change, so tracking is exercised beside the parameter and
+column rewriting the processors do rather than on a bare wrapper. Only the namespace moves: the
+class stays `DbProc`, which is what lets both files live in one assembly.
+
 **Custom Processors:**
 - `ChangeNameCodeProcessor` - Renames namespace and class
 - `TaggerCodeProcessor` - Adds comments with type tags
 - `EncryptionCodeProcessor` - Adds encryption/decryption for sensitive fields
+- `TrackedNamespaceCodeProcessor` - Moves the tracked wrapper to its own namespace
 
 **EncryptionCodeProcessor Details:**
 
@@ -389,6 +441,13 @@ Example application demonstrating usage of generated database wrappers.
 |------|---------|
 | `Program.cs` | Usage examples calling stored procedures |
 | `dbproc_sch_noda.cs` | Generated wrapper code with NodaTime support |
+| `dbproc_tracked.cs` | The same wrapper generated with tracking on, in namespace `GeneratedTracked` |
+| `SampleTracker.cs` | An `IDbProcTracker<SampleTracker.Call>` that times a call and logs it |
+| `IDbProcTracker.cs` | Linked in from `Runtime/`, not a file of its own here |
+
+Both generated files are checked in, so a change in what the generator emits shows up as a working
+tree diff. Compiling this project is also the only place anything compiles generated code, which is
+why `run_test.sh` builds it.
 
 **Usage Example:**
 
@@ -603,9 +662,9 @@ test/
 │                          ▼                                          │
 │  Step 5: Run TestWrapper                                            │
 │  ┌─────────────────────────────────────────────────────────────┐    │
-│  │  TestWrapper "$OUTPUT_JSON_FILE"                             │    │
-│  │  → Generates dbproc.cs and dbproc_sch_noda.cs                │    │
-│  │  → Copies dbproc_sch_noda.cs to TryWrapper/                  │    │
+│  │  TestWrapper --legacy-npgsql --tracker=... "$OUTPUT_JSON..." │    │
+│  │  → Generates dbproc.cs, dbproc_sch_noda.cs, dbproc_tracked   │    │
+│  │  → Copies the latter two to TryWrapper/                      │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 │                          │                                          │
 │                          ▼                                          │
@@ -615,6 +674,15 @@ test/
 │  │  sha1sum normalized == sha1sum correct_output.json           │    │
 │  │  → Green: PASS (delete temp file)                            │    │
 │  │  → Red: FAIL (keep temp_actual_output.json to diff)          │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                          │                                          │
+│                          ▼                                          │
+│  Step 6a: The generated wrappers have to compile                    │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │  dotnet build ../TryWrapper/TryWrapper.csproj                │    │
+│  │  → a right report does not make the code built from it       │    │
+│  │    buildable, and nothing else here hands a generated file   │    │
+│  │    to a compiler; covers the tracked wrapper too             │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 │                          │                                          │
 │                          ▼                                          │

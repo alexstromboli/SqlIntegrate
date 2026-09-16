@@ -73,8 +73,8 @@ if [ -f "$OUTPUT_JSON_FILE" ]; then
     sed -i "s/\"Name\": \"mapped\",/\"Name\": \"mapped\", \"MapTo\": \"TryWrapper.CardType\", \"GenerateEnum\": true,/g" "$OUTPUT_JSON_FILE"
 
     pushd ../TestWrapper/bin/Debug/net10.0 >/dev/null
-    ./TestWrapper --legacy-npgsql "$OUTPUT_JSON_FILE"
-    cp dbproc_sch_noda.cs ../../../../TryWrapper
+    ./TestWrapper --legacy-npgsql --tracker=TryWrapper.SampleTracker.Call "$OUTPUT_JSON_FILE"
+    cp dbproc_sch_noda.cs dbproc_tracked.cs ../../../../TryWrapper
     popd >/dev/null
 fi
 
@@ -88,6 +88,20 @@ else
     # repeated failures overwrite one file instead of accumulating.
     mv "$OUTPUT_JSON_FILE" temp_actual_output.json
     report_failed "failed: report differs from correct_output.json (see test/temp_actual_output.json)"
+fi
+
+### the generated wrappers have to compile
+
+# The report being right does not make the code generated from it buildable, and nothing
+# else here ever hands a generated file to a compiler. TryWrapper carries both flavours --
+# the plain wrapper and the tracked one, whose every caller calls into IDbProcTracker -- so
+# building it is what says the emitted text is C#. Guarded rather than left to set -e,
+# because a failure here is one more report line, not the end of the run.
+if BUILD_OUTPUT="$(dotnet build ../TryWrapper/TryWrapper.csproj -v q 2>&1)"; then
+    report_ok "success: the generated wrappers compile"
+else
+    report_failed "failed: the generated wrappers do not compile"
+    echo "$BUILD_OUTPUT"
 fi
 
 ### a procedure the analyzer drops must fail the run

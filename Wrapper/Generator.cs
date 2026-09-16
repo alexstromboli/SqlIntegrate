@@ -121,6 +121,11 @@ namespace Wrapper
 			//
 			Processors.Act (p => p.OnHaveTypeMap (DbTypeMap, TypeMap));
 
+			// Tracking is decided once, here: every site below is gated on this flag, and with
+			// it off not one of them may put a character into the output.
+			bool Track = !string.IsNullOrWhiteSpace (Options.TrackerStateType);
+			string TrackerType = $"IDbProcTracker<{Options.TrackerStateType}>";
+
 			//
 			Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule> Database = new Database<TSqlType, TProcedure, TColumn, TArgument, TResultSet, TModule>
 			{
@@ -249,12 +254,25 @@ namespace Wrapper
 					.ToArray ()
 			};
 
+			if (Track)
+			{
+				Database.Usings.Add ("using SqlIntegrate;");
+			}
+
 			Processors.Act (p => p.OnHaveWrapper (Database));
 
 			//
 			IndentedTextBuilder sb = new IndentedTextBuilder ();
 			List<string> DbProcInterfaces = new List<string> ();
 			List<DbProcProperty> DbProcProperties = new List<DbProcProperty> ();
+
+			// Added before the processors get their turn, so the tracker sits directly after
+			// Conn and whatever a processor contributes keeps its place after it.
+			if (Track)
+			{
+				DbProcProperties.Add (new DbProcProperty { Type = TrackerType, Name = "Tracker" });
+			}
+
 			Processors.Act (p => p.OnCodeGenerationStarted (Database, sb, DbProcInterfaces, DbProcProperties));
 
 			if (!string.IsNullOrWhiteSpace (Database.TitleComment))
@@ -607,6 +625,17 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 												.AppendLine ();
 										}
 
+										// The tracked scope holds the whole body and the return: OnExit has to run
+										// on the throwing path as well, or a tracker measuring latency only ever
+										// sees the calls that went well.
+										using (Track
+											       ? sb.UseCurlyBraces (
+												       $"using (var Tracking = DbProc.Tracker.OnEnter ({ns.NativeName.ToDoubleQuotes ()}, {pi.Value.NativeName.ToDoubleQuotes ()}))"
+											       )
+											       : null)
+										{
+										using (Track ? sb.UseCurlyBraces ("try") : null)
+										{
 										using (UseTransaction
 											       ? sb.UseCurlyBraces (
 												       IsAsync
@@ -663,8 +692,18 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 													}
 												}
 
-												sb.AppendLine ()
-													.AppendLine ($"{Await}Cmd.ExecuteNonQuery{Async} ();");
+												sb.AppendLine ();
+
+												if (Track)
+												{
+													sb.AppendLine ("DbProc.Tracker.OnBeforeExecute (Tracking, Cmd);")
+														.AppendLine ($"int Affected = {Await}Cmd.ExecuteNonQuery{Async} ();")
+														.AppendLine ("DbProc.Tracker.OnAfterExecute (Tracking, Cmd, Affected);");
+												}
+												else
+												{
+													sb.AppendLine ($"{Await}Cmd.ExecuteNonQuery{Async} ();");
+												}
 
 												// read OUT parameters returned
 												foreach (var oa in OutArguments.Indexed ())
@@ -694,8 +733,25 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 																$"ResCmd.CommandText = {$"FETCH ALL IN {Set.CursorName.ToDoubleQuotes ()};".ToDoubleQuotes ()};")
 															.AppendLine (
 																$"{Set.SetCsTypeName} Set = {(Set.IsSingleRow ? $"null" : $"new {Set.SetCsTypeName} ()")};")
-															.AppendLine ()
 															;
+
+														// A list set counts itself. A single-row one cannot: its Set may be a
+														// column's own CLR type, which a MapTo can make one that does not compare
+														// to null -- so that shape gets a counter instead.
+														bool CountRows = Track && Set.IsSingleRow;
+														if (CountRows)
+														{
+															sb.AppendLine ("int Rows = 0;");
+														}
+
+														sb.AppendLine ();
+
+														if (Track)
+														{
+															sb.AppendLine (
+																$"DbProc.Tracker.OnBeforeFetchCursor (Tracking, {Set.CursorName.ToDoubleQuotes ()}, ResCmd);")
+																.AppendLine ();
+														}
 
 														using (sb.UseCurlyBraces (
 															       $"using (var Rdr = {Await}ResCmd.ExecuteReader{Async} ())"))
@@ -758,12 +814,24 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 																if (Set.IsSingleRow)
 																{
 																	sb.AppendLine (";");
+
+																	if (CountRows)
+																	{
+																		sb.AppendLine ("Rows = 1;");
+																	}
 																}
 																else
 																{
 																	sb.AppendLine (");");
 																}
 															}
+														}
+
+														if (Track)
+														{
+															sb.AppendLine ()
+																.AppendLine (
+																	$"DbProc.Tracker.OnAfterFetchCursor (Tracking, {Set.CursorName.ToDoubleQuotes ()}, ResCmd, {(CountRows ? "Rows" : "Set.Count")});");
 														}
 
 														sb.AppendLine ();
@@ -807,6 +875,16 @@ public async ValueTask<NpgsqlTransaction> BeginTransactionOptionalAsync ()
 										{
 											sb.AppendLine ()
 												.AppendLine ($"return Result;");
+										}
+										}
+
+										if (Track)
+										{
+											using (sb.UseCurlyBraces ("finally"))
+											{
+												sb.AppendLine ("DbProc.Tracker.OnExit (Tracking);");
+											}
+										}
 										}
 									}
 								}

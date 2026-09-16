@@ -52,6 +52,16 @@ hits at all. The overload half doctors the procedure that calls a *built-in* who
 argument types and the catalogue order disagree about, so the sentinel returns only if the replay
 resolved against the argument types the entry recorded rather than the name alone.
 
+The generated wrappers then have to compile: `TryWrapper` is built, carrying both the plain wrapper
+and one generated with call tracking on, whose every caller calls into `IDbProcTracker`. A report
+that matches says nothing about whether the code generated from it is C#, and nothing else here
+ever hands a generated file to a compiler. The tracked half is also what catches a signature drift
+between the contract and the calls the generator emits against it.
+
+The other half of that guarantee is not a check in the script: `TryWrapper/dbproc_sch_noda.cs` is
+git-tracked and rewritten by every run, so after a change to the generator `git diff` on it has to
+be empty unless the change was meant to move untracked output.
+
 `run_test.sh` runs every check before reporting, and exits non-zero if any of them failed. A
 mismatching report is left in `test/temp_actual_output.json` to diff against `correct_output.json`.
 
@@ -74,6 +84,16 @@ PostgreSQL Database → ReadDatabase.LoadContext() → Analyzer (DbAnalysis)
 - **TestWrapper** - Console app: Validates generated code
 - **TryWrapper** - Console app: Example usage of generated database wrappers
 - **TryPsql** - Console app: Direct Npgsql testing without wrappers
+
+`Runtime/` is not a project: it holds source a *consumer* of a generated wrapper compiles, today
+`IDbProcTracker.cs`, linked into consuming projects. It stays out of **Wrapper** because the
+contract names `NpgsqlCommand` and the generator carries no Npgsql reference by design.
+
+**Optional call tracking:** `GeneratorOptions.TrackerStateType`, null by default, makes every
+generated caller report its entry, its `ExecuteNonQuery`, each cursor fetch and its exit to an
+`IDbProcTracker<T>` the host passes to `DbProc`. Left null the emitted text is unchanged, character
+for character, and that is checked. The tracker observes only; it cannot alter a call.
+Details: [architecture/call-tracking.md](architecture/call-tracking.md).
 
 **Key Design Patterns:**
 - Generic programming with template-based data models (`GModule<TSqlType, TProcedure, TColumn, TArgument, TResultSet>`)

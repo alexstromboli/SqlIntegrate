@@ -43,6 +43,11 @@ namespace TryWrapper
 				Func<byte[], byte[]> XorCryptor = buf => buf.Select (b => (byte)(b ^ 0x53)).ToArray ();
 				var DbProc = new Generated.DbProc (Conn, XorCryptor, XorCryptor);
 
+				// The same wrapper generated with tracking on. One call is enough to see the
+				// tracker report a procedure, its cursor and its timing.
+				var Tracked = new GeneratedTracked.DbProc (Conn, new SampleTracker (), XorCryptor, XorCryptor);
+				var tracked_scalar = Tracked.alexey.get_scalar ();
+
 				// jsonb
 				var t_json = DbProc.alexey.test_json ("{\"t\": 9}", "{\"t\": 20}");
 

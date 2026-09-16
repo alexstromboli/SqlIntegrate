@@ -36,6 +36,17 @@ namespace TestWrapper
 		}
 	}
 
+	// The tracked wrapper is compiled beside the untracked one, so it needs a namespace
+	// of its own. The class name stays DbProc -- the schema classes name it literally.
+	class TrackedNamespaceCodeProcessor : AugCodeProcessor
+	{
+		public override void OnHaveWrapper (Database<AugType, Procedure, Column, Argument, ResultSet, AugModule> Database)
+		{
+			base.OnHaveWrapper (Database);
+			Database.CsNamespace = "GeneratedTracked";
+		}
+	}
+
 	class TaggerCodeProcessor : AugCodeProcessor
 	{
 		public override void OnHaveTypeMap (SqlTypeMap DbTypeMap, Dictionary<string, TypeMapping<AugType, Column>> TypeMap)
@@ -54,11 +65,18 @@ namespace TestWrapper
 	class Program
 	{
 		const string LegacyNpgsqlFlag = "--legacy-npgsql";
+		const string TrackerFlag = "--tracker=";
 
 		static int Main (string[] args)
 		{
 			bool LegacyNpgsql = args.Any (a => a == LegacyNpgsqlFlag);
-			string[] PositionalArgs = args.Where (a => a != LegacyNpgsqlFlag).ToArray ();
+			string TrackerStateType = args
+				.Where (a => a.StartsWith (TrackerFlag))
+				.Select (a => a.Substring (TrackerFlag.Length))
+				.LastOrDefault ();
+			string[] PositionalArgs = args
+				.Where (a => a != LegacyNpgsqlFlag && !a.StartsWith (TrackerFlag))
+				.ToArray ();
 
 			string ModuleInputPath = Path.GetFullPath (PositionalArgs[0]);
 			string ModuleJson = File.ReadAllText (ModuleInputPath);
@@ -66,26 +84,44 @@ namespace TestWrapper
 
 			GeneratorOptions Options = new GeneratorOptions { LegacyNpgsql = LegacyNpgsql };
 
+			var Runs = new List<(string Target, GeneratorOptions Options, GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] Processors)>
+			{
+				("dbproc.cs", Options, new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new ChangeNameCodeProcessor () }),
+				("dbproc_sch_noda.cs", Options, new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[]
+				{
+					new GNodaTimeCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> (),
+					new TaggerCodeProcessor (),
+					new EncryptionCodeProcessor ()
+				})
+			};
+
+			// Only on request: a tracked wrapper has to name the state type its tracker hands
+			// itself, and without the flag there is nothing to name it with. The chain is the
+			// one dbproc_sch_noda.cs uses, so tracking is exercised alongside the value
+			// rewriting the processors do rather than on a bare wrapper.
+			if (TrackerStateType != null)
+			{
+				Runs.Add (("dbproc_tracked.cs",
+					new GeneratorOptions { LegacyNpgsql = LegacyNpgsql, TrackerStateType = TrackerStateType },
+					new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[]
+					{
+						new GNodaTimeCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> (),
+						new TaggerCodeProcessor (),
+						new EncryptionCodeProcessor (),
+						new TrackedNamespaceCodeProcessor ()
+					}));
+			}
+
 			//
 			// A type the generator cannot describe is something to act on, not a crash to
 			// read a stack trace out of. The message names the site and the type; a stack
 			// trace through the LINQ that walked there names neither.
 			try
 			{
-				foreach (var run in new[]
-				         {
-					         new { target = "dbproc.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[] { new ChangeNameCodeProcessor () } },
-					         new { target = "dbproc_sch_noda.cs", processors = new GCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule>[]
-					         {
-						         new GNodaTimeCodeProcessor<AugType, Procedure, Column, Argument, ResultSet, AugModule> (),
-						         new TaggerCodeProcessor (),
-						         new EncryptionCodeProcessor ()
-					         } }
-				         }
-				        )
+				foreach (var run in Runs)
 				{
-					string Code = Generator.GGenerateCode (Module, Options, run.processors);
-					CodeGenerationUtils.EnsureFileContents (run.target, Code, EndOfLine.MakeLf, Encoding.UTF8);
+					string Code = Generator.GGenerateCode (Module, run.Options, run.Processors);
+					CodeGenerationUtils.EnsureFileContents (run.Target, Code, EndOfLine.MakeLf, Encoding.UTF8);
 				}
 			}
 			catch (UnmappedTypeException ex)

@@ -12,4 +12,10 @@
       <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Include="..\Runtime\IDbProcTracker.cs">
+        <Link>IDbProcTracker.cs</Link>
+      </Compile>
+    </ItemGroup>
+
 </Project>
