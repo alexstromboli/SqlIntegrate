@@ -919,6 +919,14 @@ BEGIN
                 SELECT array_agg (rooms.name ORDER BY lower (rooms.name) COLLATE "C")
                 FROM rooms
             ) AS collate_in_agg_order,
+            -- Bitwise XOR. The result is the wider integer operand. '#' opens the JSON
+            -- path operators too, so the last row checks that #>> still reads as one
+            -- operator rather than as '#' followed by '>>'. The cast chain is the shape
+            -- that motivated the work: a hash salt XORed into an ORDER BY key.
+            5 # 3 AS xor_int,
+            5::bigint # 3 AS xor_widens,
+            ('x' || substr (md5 ('a'), 1, 16))::bit(64)::bigint # 7::bigint AS xor_in_cast_chain,
+            '{"a": {"b": 1}}'::jsonb #>> '{a,b}' AS xor_leaves_json_path_alone,
             -- A name several functions share. lower is two of them: lower(text), and
             -- the lower bound of a range, lower(anyrange), whose anyelement return type
             -- is a pseudo-type no wrapper can carry a value of. Resolution has to land on
@@ -939,7 +947,7 @@ BEGIN
             date_trunc ('day', now (), 'UTC') AS overload_by_arity,
             date_trunc ('day', (SELECT now () FROM rooms LIMIT 1)) AS overload_by_subselect_arg
     -- and where an ORDER BY key carries a direction after it
-    ORDER BY now () AT TIME ZONE 'UTC', 'b' COLLATE "C" DESC
+    ORDER BY now () AT TIME ZONE 'UTC', 'b' COLLATE "C" DESC, 5 # 3
     ;
 END;
 $$;

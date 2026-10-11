@@ -69,6 +69,7 @@
 + between
 + at time zone
 + collate
++ bitwise xor
 + select asterisk
 + - with qualifier
 + select into

@@ -1549,6 +1549,10 @@ namespace Generated
 			public string collate_unquoted_name;
 			public int? collate_in_call;
 			public string[] collate_in_agg_order;
+			public int? xor_int;
+			public long? xor_widens;
+			public long? xor_in_cast_chain;
+			public string xor_leaves_json_path_alone;
 			public string overloaded_name_resolves_to_a_real_type;
 			public Instant? overload_by_arg_timestamptz;
 			public LocalDateTime? overload_by_arg_timestamp;
@@ -1607,6 +1611,10 @@ namespace Generated
 									collate_unquoted_name = Rdr["collate_unquoted_name"] as string,
 									collate_in_call = Rdr["collate_in_call"] as int?,
 									collate_in_agg_order = Rdr["collate_in_agg_order"] as string[],
+									xor_int = Rdr["xor_int"] as int?,
+									xor_widens = Rdr["xor_widens"] as long?,
+									xor_in_cast_chain = Rdr["xor_in_cast_chain"] as long?,
+									xor_leaves_json_path_alone = Rdr["xor_leaves_json_path_alone"] as string,
 									overloaded_name_resolves_to_a_real_type = Rdr["overloaded_name_resolves_to_a_real_type"] as string,
 									overload_by_arg_timestamptz = Rdr["overload_by_arg_timestamptz"] as Instant?,
 									overload_by_arg_timestamp = Rdr["overload_by_arg_timestamp"] as LocalDateTime?,

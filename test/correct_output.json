@@ -1292,6 +1292,22 @@
               "Type": "varchar[]"
             },
             {
+              "Name": "xor_int",
+              "Type": "int"
+            },
+            {
+              "Name": "xor_widens",
+              "Type": "bigint"
+            },
+            {
+              "Name": "xor_in_cast_chain",
+              "Type": "bigint"
+            },
+            {
+              "Name": "xor_leaves_json_path_alone",
+              "Type": "varchar"
+            },
+            {
               "Name": "overloaded_name_resolves_to_a_real_type",
               "Type": "text"
             },

@@ -457,6 +457,13 @@ namespace DbAnalysis
 				"||"
 			);
 
+			// Bitwise XOR. gram.y has no rule of its own for it: '#' is a generic Op,
+			// so it binds exactly like '||'. It has to be tried after the JSON path
+			// operators '#>>' and '#>', which begin with the same character.
+			var PBinaryBitwiseOperatorsST = AnyTokenST (
+				"#"
+			);
+
 			var PBinaryIncludeOperatorsST = AnyTokenST (
 				"in", "not in"
 			);
@@ -1116,6 +1123,9 @@ namespace DbAnalysis
 						.Or (PArrayOperatorsST.Select (b => new OperatorProcessor (PSqlOperatorPriority.ArrayOverlap, true,
 							OperatorProcessor.ProduceType (b, DatabaseContext.TypeMap.Bool))))
 						.Or (PBinaryGeneralTextOperatorsST.Select (b => new OperatorProcessor (
+							PSqlOperatorPriority.General, true,
+							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
+						.Or (PBinaryBitwiseOperatorsST.Select (b => new OperatorProcessor (
 							PSqlOperatorPriority.General, true,
 							OperatorProcessor.GetForBinaryOperator (DatabaseContext.TypeMap, b))))
 						.Or (PBetweenOperatorST.Select (b => new OperatorProcessor (PSqlOperatorPriority.Between, true,
